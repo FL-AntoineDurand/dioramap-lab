@@ -1,0 +1,10 @@
+{
+  "name": "viewer-fetchers",
+  "description": "Fetch ortho RGB + elevation + scene-origin for a lat/lon/radius input. Input: {\"lat\": deg, \"lon\": deg, \"radius_m\": m}. Requires network access to data.geopf.fr.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "fetch-ortho-rgb",       "params": { "size_px":   512 } },
+    { "step": "fetch-elevation",       "params": { "grid_size": 128 } },
+    { "step": "compute-scene-origin" }
+  ]
+}

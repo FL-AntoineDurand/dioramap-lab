@@ -1,0 +1,31 @@
+key	label	sources	harness
+hash	Hash (xxh3 wrapper)	core/src/hash/hash.c	scripts/frama-c/harnesses/hash_harness.c
+refcount	Refcount (header-only atomics)	scripts/frama-c/harnesses/refcount_harness.c	scripts/frama-c/harnesses/refcount_harness.c
+log	Structured logging	core/src/log/log.c core/src/log/log_events.c	scripts/frama-c/harnesses/log_harness.c
+intent_map	Intent map (open-addressing HT)	core/src/intent_map/intent_map.c	scripts/frama-c/harnesses/intent_map_harness.c
+coords	PROJ wrapper	core/src/coords/coords.c	scripts/frama-c/harnesses/coords_harness.c
+artifact	Artifact buffer	core/src/artifact/artifact.c	scripts/frama-c/harnesses/artifact_harness.c
+mmap_file	mmap wrapper	core/src/mmap/mmap_file.c	scripts/frama-c/harnesses/mmap_file_harness.c
+store	Key-value store	core/src/store/store.c	scripts/frama-c/harnesses/store_harness.c
+thread_pool	Worker pool	core/src/runtime/thread_pool.c	scripts/frama-c/harnesses/thread_pool_harness.c
+batch_ctx	Batch context	core/src/batch/batch_ctx.c	scripts/frama-c/harnesses/batch_ctx_harness.c
+cached_compute	Memoization layer	core/src/runner/cached_compute.c	scripts/frama-c/harnesses/cached_compute_harness.c
+runner	Step orchestration	core/src/runner/runner.c core/src/runner/step_manifest.c	scripts/frama-c/harnesses/runner_harness.c
+run_journal	SQLite run journal	core/src/runner/run_journal.c	scripts/frama-c/harnesses/run_journal_harness.c
+fetch	Fetch (HTTP)	core/src/fetch/fetch.c	scripts/frama-c/harnesses/fetch_harness.c
+server	WebSocket server	core/src/server/server.c	scripts/frama-c/harnesses/server_harness.c
+session	Session	core/src/server/session.c	scripts/frama-c/harnesses/session_harness.c
+session_mgr	Session manager	core/src/server/session_mgr.c	scripts/frama-c/harnesses/session_mgr_harness.c
+pipeline	Pipeline DAG	core/src/pipeline/pipeline.c	scripts/frama-c/harnesses/pipeline_harness.c
+registry	Step registry	core/src/step/registry.c	scripts/frama-c/harnesses/registry_harness.c
+main	Process entry	core/src/main.c	scripts/frama-c/harnesses/main_harness.c
+v7_seed_impl	v7-normal-cascade-seed	steps/v7/v7-normal-cascade-seed-impl.c steps/normals/kd_tree.c	scripts/frama-c/harnesses/v7/normal_cascade_seed_impl_harness.c
+v7_grm_impl	v7-grow-refit-merge	steps/v7/v7-grow-refit-merge-impl.c steps/v7/v7-normal-cascade-seed-impl.c steps/v7/v7-density-voids-2-impl.c steps/normals/kd_tree.c	scripts/frama-c/harnesses/v7/grow_refit_merge_impl_harness.c
+polygon_primitives	v7 shared 2D polygon primitives	steps/v7/v7-polygon-primitives.c	scripts/frama-c/harnesses/v7/polygon_primitives_harness.c
+grid_contour	v7 grid-contour (marching squares)	steps/v7/v7-grid-contour.c	scripts/frama-c/harnesses/v7/grid_contour_harness.c
+bp2	v7-boundary-polygons-2 (TSP polygon fit)	steps/v7/v7-boundary-polygons-2-impl.c steps/v7/v7-polygon-primitives.c	scripts/frama-c/harnesses/v7/bp2_harness.c
+v7_corner_pool	v7 corner pool (canonical-source invariant)	steps/v7/v7-corner-pool.c	scripts/frama-c/harnesses/v7/corner_pool_harness.c
+v7_bclass_impl	v7-boundary-classify	steps/v7/v7-boundary-classify-impl.c	scripts/frama-c/harnesses/v7/boundary_classify_harness.c
+v7_wd_impl	v7-wall-detect	steps/v7/v7-wall-detect-impl.c	scripts/frama-c/harnesses/v7/wall_detect_harness.c
+v7_br_impl	v7-boundary-regularize	steps/v7/v7-boundary-regularize-impl.c	scripts/frama-c/harnesses/v7/boundary_regularize_harness.c
+v7_score_intrinsic	v7-score-intrinsic (in-pipeline intrinsic scoring)	steps/v7/v7-score-intrinsic-impl.c	scripts/frama-c/harnesses/v7/score_intrinsic_harness.c

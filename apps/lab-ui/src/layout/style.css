@@ -1,0 +1,1539 @@
+/* Lab UI — L2 layout. GitHub-dark tokens (§5.4 of PLAN-LAB-UI-PORT.md). */
+:root {
+  --bg-0: #0d1117;
+  --bg-1: #161b22;
+  --bg-2: #21262d;
+  --fg-0: #e6edf3;
+  --fg-1: #8b949e;
+  --fg-2: #6e7681;
+  --accent: #2f81f7;
+  --accent-bg: #1f6feb33;
+  /* Section-header background — deliberately distinct from --accent
+   * (which is also used for focused-row borders, focused-pill states,
+   * etc.) so the "this is a section title bar" cue is unambiguous. */
+  --section: #83ab2d;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --err: #f85149;
+  --border: #30363d;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+/* Scrollbars — consistent narrow dark thumb across browsers.
+ *
+ * Two specs cover the field:
+ *   - CSS Scrollbars Module Level 1 (`scrollbar-width` + `scrollbar-color`)
+ *     handles Firefox 64+, Chrome 121+ (Jan 2024), Safari 18.2+ (Dec 2024).
+ *   - WebKit pseudo-elements (`::-webkit-scrollbar*`) cover older Chromium
+ *     versions, embedded WebViews, etc.
+ *
+ * Default Chrome on Windows/macOS shows wide grey OS scrollbars that
+ * clash with the dark theme; this rule unifies them. Apply globally
+ * via `*` so any future scrollable region inherits without per-element
+ * styling. */
+* {
+  scrollbar-width: thin;
+  /* Firefox: thumb / track colours. Thumb uses --fg-2 (#6e7681) — a
+   * mid-grey clearly distinct from the dark surrounding chrome. */
+  scrollbar-color: var(--fg-2) transparent;
+}
+*::-webkit-scrollbar          { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track    { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--fg-2);
+  border-radius: 6px;
+  /* `border: 3px solid transparent` + `background-clip: padding-box`
+   * makes the visible thumb 6 px wide inside a 12 px gutter — slim
+   * but high-contrast against the dark theme. */
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-1);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner   { background: transparent; }
+
+html, body { height: 100%; margin: 0; }
+body {
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: var(--fg-0);
+  background: var(--bg-0);
+  overflow: hidden;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: 40px 1fr;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------- */
+/* top bar                                                        */
+/* ------------------------------------------------------------- */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 12px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+}
+#brand { font-weight: 600; letter-spacing: .02em; }
+.topbar-spacer { flex: 1; }
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fg-1);
+}
+.status-dot::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--fg-2);
+}
+.status-dot[data-state="connecting"]::before { background: var(--warn); }
+.status-dot[data-state="connected"]::before { background: var(--ok); }
+.status-dot[data-state="error"]::before { background: var(--err); }
+
+.mono { font-family: var(--mono); font-size: 11px; color: var(--fg-2); }
+
+/* ------------------------------------------------------------- */
+/* main layout: 3 columns L→R                                    */
+/*   pipelines (collapsible) | run+timeline+log | DAG ⇆ inspect  */
+/* (pane-right was retired — composite-views moved into 3D Scene */
+/*  Controls; log moved into pane-run.)                          */
+/* ------------------------------------------------------------- */
+main {
+  display: grid;
+  grid-template-columns: 240px 280px 1fr;
+  overflow: hidden;
+}
+main:has(#pane-left[data-collapsed="true"]) {
+  grid-template-columns: 32px 280px 1fr;
+}
+#pane-left, #pane-run {
+  display: grid;
+  background: var(--bg-0);
+  min-height: 0;
+  min-width: 0;
+}
+/* Pane-left: pipeline list + collapse button. The collapse spine appears
+   only when the pane is collapsed; the full content (header + list)
+   is hidden via display:none. */
+#pane-left {
+  grid-template-rows: 1fr;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+#pane-left[data-collapsed="true"] .pane-collapsible-content { display: none; }
+#pane-left[data-collapsed="false"] .pane-collapsed-spine { display: none; }
+/* Clickable header (when expanded) — visual feedback on hover. */
+.pane-header-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+.pane-header-clickable:hover { filter: brightness(1.10); }
+/* Whole-column spine (when collapsed) — clickable everywhere. */
+.pane-collapsed-spine {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18px;
+  background: var(--section);
+  color: #fff;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+}
+.pane-collapsed-spine:hover { filter: brightness(1.10); }
+/* Pane-run (Run + Timeline + Log): three stacked blocks. Run is
+ * compact (auto), Timeline + Log share the rest. */
+#pane-run {
+  grid-template-rows: auto 1fr 1fr;
+  border-right: 1px solid var(--border);
+}
+
+.pane-block {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+}
+#pane-left .pane-block:first-child,
+#pane-run .pane-block:first-child { border-top: none; }
+
+/* Unified section header — used for every column / sub-section title:
+ *   Pipelines, Run, Timeline, Log, Artifacts, Renders,
+ *   3D Scene Controls, Composite views, Layers.
+ * One catchy accent background so the eye instantly picks out the
+ * panel boundaries no matter which column the user is looking at. */
+.pane-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  height: 26px;
+  flex-shrink: 0;
+  background: var(--section, #7c3aed);
+  color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+/* All section titles share one size — no sub-header variant. The user
+ * explicitly asked for Composite views / Layers / 3D Scene Controls /
+ * etc. to all read at the same visual weight. */
+/* Pipeline filter input — moved out of .pane-header into the column
+ * body, since it's a content control, not a title. */
+.pane-block-body {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+}
+.pane-filter-input {
+  height: 24px;
+  margin: 4px 6px;
+  padding: 0 6px;
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: inherit;
+}
+.pane-filter-input:focus { outline: none; border-color: var(--accent); }
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  min-height: 0;
+}
+.list li {
+  padding: 4px 10px;
+  cursor: pointer;
+  user-select: none;
+  border-left: 2px solid transparent;
+}
+.list li:hover { background: var(--bg-1); }
+.list li.selected {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+.list li .secondary {
+  display: block;
+  color: var(--fg-2);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--fg-1);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  letter-spacing: .05em;
+}
+.badge.debug { color: var(--warn); }
+.badge.public { color: var(--ok); }
+.badge.cached { color: var(--accent); background: var(--accent-bg); }
+
+.empty { padding: 10px; color: var(--fg-2); font-style: italic; }
+
+/* ------------------------------------------------------------- */
+/* center pane: 3D viewer + overlay                               */
+/* ------------------------------------------------------------- */
+/*
+ * Center pane has two mutually-exclusive modes. Switching is driven by JS
+ * setting `data-mode` on the pane. Contents that aren't part of the active
+ * mode are display:none'd so they don't participate in layout — this also
+ * means the 3D canvas can collapse to 0×0 when we're in DAG mode; the
+ * ResizeObserver in the viewer re-sizes it back when it reappears.
+ *
+ *   [mode="dag"]     → DAG occupies the full pane.
+ *   [mode="inspect"] → three columns: layer-list (180px) | 3D scene (1fr)
+ *                      | render stack (360px). Back button sits in the
+ *                      upper-left of the 3D column.
+ */
+#pane-center {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+#pane-center[data-mode="dag"] {
+  grid-template-columns: 1fr;
+  grid-template-areas: "dag";
+}
+#pane-center[data-mode="dag"] #dag-host { grid-area: dag; }
+#pane-center[data-mode="dag"] #layer-list-host,
+#pane-center[data-mode="dag"] #viewer-host,
+#pane-center[data-mode="dag"] #stack-host,
+#pane-center[data-mode="dag"] #scene-controls-host { display: none; }
+
+#pane-center[data-mode="inspect"] {
+  /* L→R: artifacts (overlay-list) | renders (stack) | viewer (3D) |
+   *      scene-controls (always-visible viewer-toolbar content).
+   * Widths: stack a bit wider (renders need room), scene-controls is
+   * the always-visible visibility tree + projection/sun/etc. */
+  grid-template-columns: 240px 540px 1fr 280px;
+  grid-template-areas: "artifacts renders viewer scenectl";
+}
+#pane-center[data-mode="inspect"] #dag-host { display: none; }
+#pane-center[data-mode="inspect"] #layer-list-host {
+  grid-area: artifacts;
+  border-right: 1px solid var(--border);
+}
+#pane-center[data-mode="inspect"] #viewer-host { grid-area: viewer; }
+#pane-center[data-mode="inspect"] #stack-host {
+  grid-area: renders;
+  border-right: 1px solid var(--border);
+  /* Real header + scrollable body — title stays put while content
+   * scrolls. The `<div class="pane-header">` is a sibling row, not a
+   * pseudo-element, so it picks up the unified .pane-header style. */
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--bg-0);
+  min-height: 0;
+}
+#pane-center[data-mode="inspect"] #stack-host #stack-body {
+  overflow-y: auto;
+  padding: 6px;
+  min-height: 0;
+}
+#pane-center[data-mode="inspect"] #scene-controls-host {
+  grid-area: scenectl;
+  border-left: 1px solid var(--border);
+  background: var(--bg-0);
+  /* Six rows in source order:
+   *   1) "3D Scene Controls" header  — auto
+   *   2) #viewer-settings-host         — auto (sized to toolbar content)
+   *   3) "Composite Views" header     — auto
+   *   4) #composite-views-host         — auto (capped to 240px below)
+   *   5) "Layers" header              — auto
+   *   6) #viewer-layers-host           — 1fr (visibility tree fills rest)
+   * Without all six explicit rows the LAST `1fr` would land on whatever
+   * row the implicit grid placed it into — which produced "all content
+   * stuck at the bottom of the column" because viewer-settings-host
+   * was being sized as the 1fr stretch row. */
+  display: grid;
+  grid-template-rows: auto auto auto auto auto 1fr;
+  align-content: start;
+  min-height: 0;
+}
+/* Per-host scroll behaviour inside the Scene-Controls column. The grid
+ * layout itself is defined by the `mode="inspect"` selector above. */
+#scene-controls-host #viewer-settings-host {
+  overflow-y: auto;
+  min-height: 0;
+}
+#scene-controls-host #composite-views-host {
+  padding: 4px 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+#scene-controls-host #viewer-layers-host {
+  overflow-y: auto;
+  min-height: 0;
+}
+/* The gear-popover use of .vw-tree caps to 240px; in the inline
+ * Layers column we let it fill the grid-1fr row freely. */
+#scene-controls-host #viewer-layers-host .vw-tree {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* #back-to-dag rules removed — button gone, mode switch via Esc / Tab. */
+#dag-host {
+  position: relative;
+  background: var(--bg-0);
+  min-height: 0;
+  overflow: hidden;
+}
+.dag-svg { overflow: visible; }
+.dag-host .dag-empty {
+  padding: 16px;
+  color: var(--fg-2);
+  font-style: italic;
+}
+.dag-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  color: var(--fg-1);
+  user-select: none;
+}
+.dag-svg:active { cursor: grabbing; }
+
+.dag-edge {
+  fill: none;
+  stroke: var(--fg-2);
+  stroke-width: 1.4;
+  stroke-opacity: .55;
+  color: var(--fg-2); /* feeds currentColor of the arrow marker */
+}
+
+.dag-node-bg {
+  fill: var(--bg-1);
+  stroke: var(--border);
+  stroke-width: 1;
+  /* White drop shadow so nodes lift off the dark background; edges stay
+     flat on the canvas. Two stacked shadows — a wider soft halo + a tighter
+     edge-highlight — read as a subtle glow rather than a blurry smudge. */
+  filter: drop-shadow(0 3px 10px rgba(255, 255, 255, 0.18))
+          drop-shadow(0 0 2px rgba(255, 255, 255, 0.22));
+}
+.dag-node-header rect { fill: var(--bg-2); }
+.dag-node-header { cursor: pointer; }
+.dag-node-title { fill: var(--fg-0); font: 600 12px -apple-system, system-ui, sans-serif; }
+.dag-node-chev { fill: var(--fg-1); font: 11px var(--mono); }
+.dag-node-param { fill: var(--fg-0); font: 11px var(--mono); }
+.dag-node-param-hint { fill: var(--fg-2); font: 11px var(--mono); font-style: italic; }
+
+/* Editable params row (L5) — lives inside an SVG <foreignObject> so the
+   inputs are native HTML. Overridden rows are accent-colored with a small
+   reset icon. */
+.dag-param-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(60px, 90px) auto;
+  align-items: center;
+  gap: 4px;
+  font: 11px var(--mono);
+  color: var(--fg-0);
+  height: 100%;
+}
+.dag-param-row.overridden { color: var(--accent); font-weight: 600; }
+.dag-param-key {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dag-param-input {
+  background: var(--bg-2);
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font: inherit;
+  padding: 0 4px;
+  height: 18px;
+  width: 100%;
+  min-width: 0;
+}
+.dag-param-input:focus { outline: none; border-color: var(--accent); }
+.dag-param-row.overridden .dag-param-input { border-color: var(--accent); }
+.dag-param-input[type="checkbox"] {
+  width: auto;
+  height: auto;
+  accent-color: var(--accent);
+}
+.dag-param-reset {
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  font: 12px var(--mono);
+  cursor: pointer;
+  padding: 0 4px;
+}
+.dag-param-reset:hover { color: var(--err); }
+
+.dag-port-in-dot { fill: var(--fg-2); stroke: var(--bg-1); stroke-width: 1; }
+.dag-port-in-label {
+  fill: var(--fg-1);
+  font: 11px var(--mono);
+  dominant-baseline: middle;
+}
+
+.dag-tile { cursor: pointer; }
+.dag-tile rect {
+  fill: var(--bg-0);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.dag-tile:hover rect { stroke: var(--accent); }
+.dag-tile[data-visibility="public"] rect { stroke: #29402b; }
+.dag-tile.focused rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.dag-tile-icon { fill: var(--fg-1); font: 12px var(--mono); }
+.dag-tile-label { fill: var(--fg-0); font: 11px var(--mono); }
+.dag-tile-dot { fill: var(--fg-2); stroke: var(--bg-0); stroke-width: 1; }
+.dag-tile[data-state="loading"] .dag-tile-dot { fill: var(--warn); }
+.dag-tile[data-state="loaded"] .dag-tile-dot { fill: var(--ok); }
+.dag-tile[data-state="cached"] .dag-tile-dot { fill: var(--accent); }
+
+/* Step-node run state. `running` highlights the step that's currently
+   executing during a RUN; `cached` and `fresh` linger after the run
+   to show which steps actually computed vs were intent-map shortcuts.
+   Selectors target the SVG <g class="dag-node"> emitted by
+   _renderStepNode + its <rect class="dag-node-bg">. */
+.dag-node[data-state="running"] .dag-node-bg {
+  stroke: var(--warn);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px rgba(210, 153, 34, 0.55));
+}
+.dag-node[data-state="cached"] .dag-node-bg {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.dag-node[data-state="fresh"] .dag-node-bg {
+  stroke: var(--ok);
+  stroke-width: 1.5;
+}
+
+.dag-context-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dag-context-menu button {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+  text-align: left;
+}
+.dag-context-menu button:hover { background: var(--bg-2); }
+.dag-ctx-icon { color: var(--fg-1); text-align: center; }
+.dag-ctx-hint { color: var(--fg-2); font-size: 10px; }
+
+.dag-legend {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 10px;
+  padding: 4px 8px;
+  background: rgba(13, 17, 23, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--fg-1);
+  z-index: 3;
+}
+.dag-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dag-legend-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; background: var(--fg-2);
+}
+.dag-legend-dot[data-state="loading"] { background: var(--warn); }
+.dag-legend-dot[data-state="loaded"]  { background: var(--ok); }
+.dag-legend-dot[data-state="cached"]  { background: var(--accent); }
+
+.dag-input-node rect {
+  fill: transparent;
+  stroke: var(--fg-2);
+  stroke-dasharray: 4 3;
+  stroke-width: 1;
+}
+.dag-input-label { fill: var(--fg-1); font: 600 11px var(--mono); }
+
+#viewer-host {
+  position: relative;
+  background: var(--bg-0);
+  min-height: 0;
+}
+#viewer-host canvas { display: block; width: 100%; height: 100%; }
+
+/* Floating marine compass — bottom-right of the 3D scene. */
+.dioramap-compass {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 4;
+  pointer-events: none;
+  perspective: 360px;
+  perspective-origin: 50% 50%;
+}
+.dioramap-compass-tilt {
+  transform-origin: 50% 50%;
+  will-change: transform;
+  /* No `transition: transform`: JS already updates per rAF, so a CSS
+   * transition would queue overlapping animations and produce jittery
+   * interpolation. Per-frame writes on a will-change layer are GPU-
+   * composited and smooth on their own. */
+}
+.dioramap-compass-bg {
+  fill: rgba(13, 17, 23, 0.78);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.dioramap-compass-minor    { stroke: var(--fg-2); stroke-width: 0.6; }
+.dioramap-compass-major    { stroke: var(--fg-0); stroke-width: 1; }
+.dioramap-compass-cardinal { stroke: var(--fg-0); stroke-width: 1.6; }
+.dioramap-compass-label {
+  fill: var(--fg-1);
+  font: 9px var(--mono);
+}
+.dioramap-compass-cardinal-label {
+  fill: var(--fg-0);
+  font: 700 11px -apple-system, system-ui, sans-serif;
+}
+.dioramap-compass-north-label {
+  fill: var(--err);
+  font: 800 12px -apple-system, system-ui, sans-serif;
+}
+.dioramap-compass-n-arrow {
+  fill: var(--err);
+  stroke: var(--err);
+  stroke-width: 0.5;
+}
+/* Readout is rendered as an HTML <div> overlay on top of the SVG so the
+   camera-pitch rotateX on the disc doesn't distort the digits. Size is 25%
+   larger than the prior SVG text version (11px → 14px). */
+.dioramap-compass-readout {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font: 600 14px var(--mono);
+  color: var(--fg-0);
+  pointer-events: none;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
+}
+
+/* Floating viewer toolbar — top-right of the 3D scene. */
+.vw-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+}
+/* Inline mode: mounted as a normal column (not a floating gear). The
+ * popover sits in-flow, fills the column, and never hides. */
+.vw-toolbar-inline {
+  position: static;
+  top: auto; right: auto;
+  display: block;
+  height: 100%;
+}
+.vw-toolbar-inline .vw-toolbar-popover {
+  position: static;
+  top: auto; right: auto;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  /* Allow content to scroll inside the column, not overflow it. */
+  overflow-y: auto;
+  max-height: 100%;
+}
+/* Status dot on leaves of the visibility tree.
+ *   rendered → green (≥1 attached THREE.Object).
+ *   empty    → amber (visualizer registered the leaf but never attached
+ *              an object — used to be a silent failure mode).
+ * Tooltip on the dot itself (native title=) carries the per-leaf detail. */
+.vw-leaf-status {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  margin-right: 4px;
+  background: var(--fg-2, #6e7681);
+  flex-shrink: 0;
+}
+.vw-leaf-status[data-status="rendered"] { background: var(--ok, #2ea043); }
+.vw-leaf-status[data-status="empty"]    { background: var(--warn, #d29922); }
+
+/* Provenance tag on visibility-tree leaves. "C" = composer (composite
+ * visualizer), "A" = artifact (per-artifact step visualizer). Tag has
+ * a native `title=` tooltip so the single letter doesn't have to be
+ * self-explanatory. */
+.vw-leaf-tag {
+  display: inline-block;
+  min-width: 14px;
+  margin-left: 4px;
+  padding: 0 3px;
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  line-height: 14px;
+  flex-shrink: 0;
+  background: transparent;
+}
+.vw-leaf-tag[data-source="composer"]  { background: #b85ec3; }
+.vw-leaf-tag[data-source="inspector"] { background: #4d7dd6; }
+.vw-toolbar-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-1);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+.vw-toolbar-btn:hover { background: var(--bg-2); border-color: var(--accent); }
+.vw-toolbar-btn[aria-expanded="true"] {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.vw-toolbar-btn svg { display: block; }
+
+.vw-toolbar-popover {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  min-width: 240px;
+  padding: 8px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* Author `display: flex` above overrides the `hidden` attribute's default
+   user-agent `display: none`; restore it explicitly. */
+.vw-toolbar-popover[hidden] { display: none; }
+
+.vw-toolbar-row {
+  display: grid;
+  grid-template-columns: 74px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.vw-toolbar-row .vw-toolbar-label {
+  font-size: 11px;
+  color: var(--fg-1);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.vw-toolbar-row input[type=range] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+/* Cursor: pointer on every slider in the app — WebKit and Firefox
+ * expose separate pseudo-elements for the thumb and track and inherit
+ * `cursor` differently across vendors, so set on all four. */
+input[type=range],
+input[type=range]::-webkit-slider-thumb,
+input[type=range]::-moz-range-thumb,
+input[type=range]::-webkit-slider-runnable-track,
+input[type=range]::-moz-range-track { cursor: pointer; }
+.vw-toolbar-value {
+  color: var(--fg-1);
+  text-align: right;
+  min-width: 46px;
+}
+
+/* Pill toggle: two adjacent buttons with a shared border, one marked .active. */
+.vw-pill {
+  display: inline-flex;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  grid-column: 2 / span 2;
+}
+.vw-pill button {
+  flex: 1;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--fg-1);
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.vw-pill button:last-child { border-right: none; }
+.vw-pill button:hover:not(:disabled) { color: var(--fg-0); }
+.vw-pill button.active {
+  background: var(--accent);
+  color: white;
+}
+.vw-pill button:disabled { opacity: .45; cursor: not-allowed; }
+.overlay-list {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  background: var(--bg-0);
+}
+/* .overlay-list-header is no longer emitted — overlay-panel.js builds a
+ * standard `.pane-header` instead so the title style is unified across
+ * every column / sub-section in the lab. Keeping the legacy class as
+ * an alias in case any test or doc still references it. */
+.overlay-list-header {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--fg-1);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.overlay-list-items {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  min-height: 0;
+}
+.overlay-layer-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  cursor: pointer;
+  user-select: none;
+  border-left: 3px solid transparent; /* reserve width so .focused doesn't shift layout */
+}
+.overlay-layer-row:hover { background: var(--bg-1); }
+.overlay-layer-row.focused {
+  background: var(--bg-2);
+  border-left: 3px solid var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.overlay-layer-icon {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--fg-1);
+}
+.overlay-layer-row[data-surface="3d"] .overlay-layer-icon { color: var(--accent); }
+.overlay-layer-row[data-surface="chart"] .overlay-layer-icon { color: var(--warn); }
+.overlay-layer-row[data-surface="json"] .overlay-layer-icon { color: var(--fg-0); }
+.overlay-layer-row[data-surface="html"] .overlay-layer-icon { color: var(--ok); }
+.overlay-layer-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.overlay-layer-remove {
+  border: none;
+  background: transparent;
+  color: var(--fg-2);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.overlay-layer-remove:hover { color: var(--err); }
+
+.overlay-stack {
+  /* The stack host itself already handles overflow + padding via the
+     pane-center[data-mode="inspect"] #stack-host rules above. This class
+     exists so the rendered block-groups can target it for spacing. */
+}
+.overlay-block-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  background: var(--bg-1);
+  border: 2px solid var(--border); /* reserve 2px so .focused doesn't shift layout */
+  border-radius: 3px;
+}
+.overlay-block-group.focused {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.overlay-block-group.three-d-only { display: none; }
+.overlay-block-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.overlay-block-title {
+  font-family: var(--mono);
+  color: var(--fg-0);
+  font-weight: 600;
+  flex: 1;
+}
+.overlay-block-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.overlay-block { }
+.overlay-block-json pre.json,
+pre.json-raw {
+  margin: 0;
+  padding: 6px 8px;
+  font: 11px/1.45 var(--mono);
+  color: var(--fg-0);
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* JSON syntax highlighting — class names match prismjs's `token …`
+   convention so swapping json-highlight.js for prism is purely a
+   one-file change (see apps/lab-ui/src/artifact-inspector/
+   json-highlight.js header). Palette: GitHub-dark. */
+.overlay-block-json pre.json .token.property { color: #79c0ff; }
+.overlay-block-json pre.json .token.string   { color: #a5d6ff; }
+.overlay-block-json pre.json .token.number   { color: #d2a8ff; }
+.overlay-block-json pre.json .token.boolean  { color: #ffa657; }
+.overlay-block-json pre.json .token.null     { color: #8b949e; font-style: italic; }
+.render-placeholder, .render-error {
+  padding: 10px;
+  color: var(--fg-1);
+  font-style: italic;
+}
+.render-error { color: var(--err); }
+
+.streaming-meta {
+  padding: 6px 8px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--warn);
+  font-size: 11px;
+}
+
+.raster-render { display: flex; flex-direction: column; gap: 4px; }
+.raster-header { display: flex; justify-content: space-between; color: var(--fg-1); font-size: 12px; }
+.raster-channel-picker {
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: inherit;
+  padding: 2px 4px;
+  width: fit-content;
+}
+.raster-stats { color: var(--fg-2); }
+
+.image-render { display: flex; flex-direction: column; gap: 4px; }
+.image-render-img {
+  max-width: 100%;
+  max-height: 320px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------- */
+/* run panel                                                      */
+/* ------------------------------------------------------------- */
+#run-host {
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+.run-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.run-label {
+  font-size: 11px;
+  color: var(--fg-1);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.run-pipeline {
+  padding: 4px 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg-0);
+  min-height: 22px;
+}
+.run-input-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.run-input-pick {
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.run-input-pick:hover { border-color: var(--accent); color: var(--accent); }
+
+#run-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 6px 8px;
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: 12px/1.45 var(--mono);
+  resize: vertical;
+}
+#run-input:focus { outline: none; border-color: var(--accent); }
+
+/* Map-picker modal — fullscreen dim-out with a bordered card. The picker
+   mounts inside .map-picker-host which gets MapLibre's full-size canvas. */
+.map-picker-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.map-picker-card {
+  width: min(1100px, 92vw);
+  height: min(720px, 86vh);
+  display: grid;
+  grid-template-rows: 40px 1fr 28px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.map-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--fg-0);
+}
+.map-picker-close {
+  background: transparent;
+  color: var(--fg-1);
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.map-picker-close:hover { color: var(--err); }
+.map-picker-host {
+  position: relative;
+  background: var(--bg-0);
+  min-height: 0;
+}
+.map-picker-footer {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  color: var(--fg-2);
+  font-size: 11px;
+}
+
+.run-subscribe-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.run-subscribe-list li {
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.run-subscribe-list li:last-child { border-bottom: none; }
+.run-subscribe-list label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* Override summary row — appears only when the user has any per-step
+   param overrides set for the current pipeline. "reset all" clears the
+   whole pipeline's override bucket. */
+.run-overrides-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  font-size: 11px;
+}
+.run-overrides-badge { flex: 1; color: var(--accent); font-weight: 600; }
+.run-overrides-reset {
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: inherit;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.run-overrides-reset:hover { border-color: var(--err); color: var(--err); }
+
+.run-buttons { display: flex; gap: 6px; }
+.run-buttons button {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: inherit;
+  cursor: pointer;
+}
+.run-buttons button:hover:not(:disabled) { border-color: var(--accent); }
+.run-buttons button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+.run-buttons button.primary:hover:not(:disabled) { background: #539bf5; }
+.run-buttons button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ------------------------------------------------------------- */
+/* timeline (L4 Gantt)                                            */
+/* ------------------------------------------------------------- */
+#timeline-host {
+  overflow-y: auto;
+  padding: 4px 0;
+  min-height: 0;
+}
+.timeline-host { display: flex; flex-direction: column; min-height: 0; }
+
+.gantt-track-header {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center;
+  padding: 2px 8px 2px 8px;
+  font-size: 11px;
+  color: var(--fg-2);
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+.gantt-track-label { text-transform: uppercase; letter-spacing: .05em; }
+.gantt-axis {
+  position: relative;
+  height: 14px;
+}
+.gantt-axis-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--fg-2);
+}
+.gantt-axis-tick:first-child { transform: translateX(0); }
+.gantt-axis-tick:last-child  { transform: translateX(-100%); }
+
+.gantt-rows {
+  display: flex;
+  flex-direction: column;
+}
+.gantt-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  border-left: 2px solid transparent;
+  font-size: 11px;
+}
+.gantt-row[data-state="pending"] { color: var(--fg-2); }
+.gantt-row[data-state="running"] { border-left-color: var(--warn); }
+.gantt-row[data-state="done"]    { border-left-color: var(--ok); }
+
+.gantt-step-name {
+  color: var(--fg-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt-track {
+  position: relative;
+  height: 16px;
+  background: var(--bg-1);
+  border-radius: 2px;
+}
+.gantt-bar {
+  position: absolute;
+  top: 2px;
+  height: 12px;
+  min-width: 2px;
+  background: var(--ok);
+  border-radius: 1px;
+  transition: left .1s ease, width .1s ease;
+}
+.gantt-bar.cached {
+  background: var(--accent);
+  opacity: .65;
+}
+.gantt-row[data-state="running"] .gantt-bar {
+  background: var(--warn);
+  animation: gantt-pulse 1.2s ease-in-out infinite;
+}
+@keyframes gantt-pulse {
+  0%, 100% { opacity: .5; }
+  50%      { opacity: 1;  }
+}
+.gantt-duration {
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  color: var(--fg-1);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.timeline-list {
+  list-style: none;
+  margin: 6px 0 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+.timeline-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 10px;
+  border-left: 2px solid transparent;
+  font-size: 12px;
+}
+.timeline-list li[data-state="summary"] {
+  font-weight: 600;
+}
+.timeline-list li[data-state="error"] {
+  border-left-color: var(--err);
+  color: var(--err);
+}
+.timeline-step-name { font-family: var(--mono); }
+.timeline-step-status { color: var(--fg-1); }
+
+/* ------------------------------------------------------------- */
+/* log panel                                                      */
+/* ------------------------------------------------------------- */
+#log-host {
+  display: grid;
+  grid-template-rows: 28px 1fr;
+  min-height: 0;
+}
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--fg-1);
+}
+.log-header-label { text-transform: uppercase; letter-spacing: .04em; }
+.log-header-spacer { flex: 1; }
+.log-line-count { color: var(--fg-2); }
+.log-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.log-pin input { accent-color: var(--accent); }
+.log-clear {
+  background: var(--bg-2);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: inherit;
+  padding: 1px 8px;
+  cursor: pointer;
+}
+.log-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+.log-body {
+  margin: 0;
+  padding: 4px 8px;
+  overflow-y: auto;
+  font: 11px/1.45 var(--mono);
+  color: var(--fg-0);
+  background: var(--bg-0);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 0;
+}
+.log-line { display: block; }
+.log-line-error    { color: var(--err); }
+.log-line-step     { color: var(--fg-1); }
+.log-line-run      { color: var(--accent); }
+.log-line-sub      { color: var(--accent); }
+.log-line-artifact { color: var(--ok); }
+.log-line-stream   { color: var(--warn); }
+.log-line-invalidate { color: var(--err); font-weight: 600; }
+.log-line-session  { color: var(--fg-2); font-style: italic; }
+
+/* ---------------------------------------------------------------------- */
+/* L9 — extended viewer-toolbar popover sections (sun + layers tree)       */
+/* ---------------------------------------------------------------------- */
+
+.vw-toolbar-popover { max-height: calc(100vh - 140px); overflow-y: auto; }
+.vw-toolbar-section {
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vw-toolbar-section.is-hidden { display: none; }
+/* "Sun" sub-label inside the 3D Scene Controls section.
+ * Not styled as a full section header — the column-level
+ * `.pane-header` already owns that role. Just a small muted line. */
+.vw-toolbar-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fg-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 4px 0 2px;
+}
+.vw-leaf-count {
+  font-size: 10px;
+  color: var(--fg-2);
+  font-weight: 400;
+}
+/* Performance section — Stats.js gauges + a renderer.info readout.
+ *
+ * Stats.js shows ONE panel at a time by default (FPS/MS/MB/...) and
+ * the user clicks to cycle. We override that to show ALL panels at
+ * once, side by side in a wrapping row. Override stats.js's inline
+ * absolute positioning + display:none on inactive panels.
+ */
+/* `.vw-toolbar-row` is a 3-column grid (74px label / 1fr / auto) so a
+ * bare `<div>` child lands in the 74px column. Override to single-
+ * column block layout so the perf host spans full column width. */
+.vw-perf-row, .vw-perf-info-row {
+  display: block !important;
+  padding: 0;
+}
+.vw-perf-host {
+  width: 100%;
+  /* Isolate per-frame canvas updates from the rest of the page's
+   * WebRender picture cache. Without `contain: paint`, each of the 4
+   * stats.js canvases (updated every frame with the latest sample)
+   * invalidates the surrounding toolbar layer, forcing Firefox to
+   * re-rasterise the whole sidebar on every viewer frame. Combined
+   * with `will-change: contents` this puts the perf row on its own
+   * compositor layer — canvas redraws stay GPU-local. */
+  contain: paint;
+  will-change: contents;
+}
+.vw-perf-host > div {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  cursor: default !important;
+}
+.vw-perf-host > div > canvas {
+  display: block !important;          /* override stats.js display:none */
+  width: 100% !important;             /* fill grid cell */
+  height: 72px !important;
+  image-rendering: pixelated;
+}
+.vw-perf-info {
+  font-size: 10px;
+  color: var(--fg-1);
+  margin: 4px 0 0;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.vw-sun-y {
+  width: 60px;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 2px 4px;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+}
+.vw-sun-y:focus { border-color: var(--accent); }
+
+/* Action buttons + filter */
+.vw-toolbar-actions { display: flex; gap: 3px; flex-wrap: wrap; }
+.vw-mini-btn {
+  background: var(--bg-0);
+  color: var(--fg-1);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.vw-mini-btn:hover { background: var(--bg-2); border-color: var(--accent); }
+.vw-filter {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 3px 5px;
+  font-size: 10px;
+  font-family: inherit;
+  outline: none;
+}
+.vw-filter:focus { border-color: var(--accent); }
+
+/* Tree */
+.vw-tree-empty {
+  padding: 6px 4px;
+  font-size: 10px;
+  color: var(--fg-2);
+  font-style: italic;
+}
+.vw-tree { display: flex; flex-direction: column; gap: 1px; max-height: 240px; overflow-y: auto; }
+.vw-node { display: flex; flex-direction: column; }
+.vw-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 2px;
+  border-radius: 2px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.vw-row:hover { background: var(--bg-2); }
+.vw-tri-arrow { font-size: 8px; width: 10px; color: var(--fg-2); display: inline-block; flex-shrink: 0; text-align: center; }
+.vw-tri-spacer { color: transparent; pointer-events: none; }
+.vw-cb { margin: 0; width: 12px; height: 12px; flex-shrink: 0; }
+.vw-label { flex: 1; word-break: break-word; }
+/* Group label — bold + white so the container row stands out from
+   leaf rows under it. The visible-bg tint on .vw-group-row (below)
+   carries the "this is a container" cue, so the label colour can be
+   plain --fg-0 for contrast with the leaf rows' default colour. */
+.vw-group-row .vw-label { font-weight: 700; color: var(--fg-0, #f0f6fc); }
+.vw-leaf-row { cursor: pointer; }
+.vw-count { font-size: 9px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+
+/* Children container — vertical "indent guide" line on the left
+   edge + a constant per-level indent. The total per-level indent is
+   margin-left + padding-left + border = 8 + 6 + 1 = 15 px. The
+   border-left line brightens to accent when the user hovers the
+   parent group row, anchoring the parent→child relationship.
+   Per-level indent is constant by construction: there's NO depth-
+   dependent padding on .vw-node (see _renderGroup / _renderLeaf in
+   viewer-toolbar.js). */
+.vw-children {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 1px;
+  margin-left: 8px;
+  border-left: 1px solid var(--border, #30363d);
+  padding-left: 6px;
+}
+.vw-group:hover > .vw-children { border-left-color: var(--accent, #58a6ff); }
+
+/* Group row gets a clearly visible bg tint so each hierarchy level
+   reads as a labelled container. The accent-tinted 14% / 22% range
+   stands out against the (dark) panel background without competing
+   with the indent guide. Inset shadow gives a subtle "card edge"
+   without adding a border that would shift label positions. */
+.vw-group > .vw-group-row {
+  background: rgba(88, 166, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.10);
+}
+.vw-group > .vw-group-row:hover { background: rgba(88, 166, 255, 0.22); }
+
+/* Composite-views panel — L10 (per VISUALIZERS.md §6.4) */
+.composite-views-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  overflow-y: auto;
+}
+.composite-views-empty {
+  font-size: 11px;
+  color: var(--fg-2);
+  font-style: italic;
+}
+.composite-views-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fg-0);
+  cursor: pointer;
+  user-select: none;
+}
+.composite-views-row:hover { background: var(--bg-2); }
+.composite-views-label { flex: 1; }
+.composite-views-requires {
+  font-size: 9px;
+  color: var(--fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
+}

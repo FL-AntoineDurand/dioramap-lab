@@ -1,0 +1,83 @@
+{
+  "type": "real",
+  "id": "real-14118-caen-colombage-501",
+  "dataFile": "real-14118-caen-colombage-501.bin",
+  "footprint": [
+    {
+      "x": 7.212563290842809,
+      "z": -21.532054523937404
+    },
+    {
+      "x": 10.412563280842733,
+      "z": -18.132054524496198
+    },
+    {
+      "x": 11.212563280831091,
+      "z": -18.832054524682462
+    },
+    {
+      "x": 13.112563280854374,
+      "z": -20.532054523937404
+    },
+    {
+      "x": 17.01256328081945,
+      "z": -23.832054524682462
+    },
+    {
+      "x": 14.51256328081945,
+      "z": -27.23205452412367
+    },
+    {
+      "x": 14.112563280854374,
+      "z": -27.73205452412367
+    },
+    {
+      "x": 7.212563290842809,
+      "z": -21.532054523937404
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 45,
+    "point_count": 20872,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 49.183,
+    "lng": -0.37,
+    "commune_code": "14118",
+    "commune_name": "Caen",
+    "building_surface_m2": 42.6,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 454354.28763372917,
+      "y": 6903382.572559086
+    },
+    "imported_at": "2026-02-25T08:59:30.930Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 8.1,
+    "nature": "Indifférenciée",
+    "usage_1": "Indifférencié",
+    "materiaux_de_la_toiture": null,
+    "nombre_d_etages": null,
+    "altitude_minimale_sol": 15.4,
+    "altitude_minimale_toit": 23.5,
+    "altitude_maximale_toit": 25.2
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 298,
+    "height": 296,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 454351.50019702,
+      "maxX": 454381.30019701,
+      "minZ": 6903390.70461361,
+      "maxZ": 6903420.30461361
+    }
+  }
+}

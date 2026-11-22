@@ -1,0 +1,30 @@
+# Valgrind suppressions for dioramap integration scenarios.
+#
+# Add suppressions here ONLY for known third-party noise (jansson
+# string interner, libwebsockets internal allocations, etc.) that
+# we've audited and confirmed harmless.  NEVER add a suppression
+# without a comment explaining (a) what tool fired it, (b) why it's
+# safe to ignore, (c) the source-level reason.
+#
+# Format:
+#   {
+#       <suppression-name>
+#       Memcheck:Leak
+#       fun:malloc
+#       fun:third_party_init
+#       ...
+#   }
+#
+# Reference: https://valgrind.org/docs/manual/manual-core.html#manual-core.suppress
+#
+# Empty file by design — populate as the matrix runs surface real
+# noise.  Keep it short; every entry is a deferred decision.
+
+{
+    # placeholder — the file must be valid; parser tolerates an empty
+    # suppression with a name.  Remove once a real suppression lands.
+    placeholder-empty
+    Memcheck:Leak
+    match-leak-kinds: reachable
+    fun:never_called_function_______
+}

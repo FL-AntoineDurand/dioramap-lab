@@ -1,0 +1,21 @@
+{
+  "name": "viewer-shadows",
+  "description": "B8a end-to-end demo: full pipeline through detect-photo-shadows + cast-shadows-from-dsm. Sun direction supplied as params (placeholder until B8b ships find-best-sun-time). Default sun is roughly south-southwest at 35° altitude (June afternoon in Paris).",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+    { "step": "fetch-ortho-rgb", "params": { "size_px": 1024 } },
+    { "step": "fetch-ortho-irc", "params": { "size_px": 1024 } },
+    { "step": "build-lidar-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "compute-ndsm", "params": { "local_min_window": 3 } },
+    { "step": "compute-building-mask" },
+    { "step": "build-ortho-rgb-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "build-ortho-irc-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "detect-photo-shadows", "params": { "radius_cells": 12, "threshold": 0.65 } },
+    { "step": "cast-shadows-from-dsm",
+      "params": { "sun_dx": -0.3, "sun_dy": -0.7, "sun_dz": 0.65,
+                  "cell_size_m": 0.5, "epsilon_m": 0.1 } }
+  ]
+}

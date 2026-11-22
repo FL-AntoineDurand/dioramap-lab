@@ -1,0 +1,28 @@
+{
+  "id":          "wsd-with-hole-excludes-correctly",
+  "category":    "unit-wsd",
+  "description": "10x10 outer with a 4x4 hole centered at (3,3)-(7,7). 1 group point at (5,5) is INSIDE the hole → counts as wrong-side. Distance from (5,5) to nearest edge of hole is 2.0 (the inner 4x4 is closer than the outer 10x10).",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "anchors": [
+      { "id": 0, "x": 0.0,  "y": 0.0,  "z": 0.0, "source": "concave" },
+      { "id": 1, "x": 10.0, "y": 0.0,  "z": 0.0, "source": "concave" },
+      { "id": 2, "x": 10.0, "y": 10.0, "z": 0.0, "source": "concave" },
+      { "id": 3, "x": 0.0,  "y": 10.0, "z": 0.0, "source": "concave" }
+    ],
+    "cycle": [0, 1, 2, 3],
+    "holes": [
+      {
+        "vertices_uv": [
+          [3.0, 3.0],
+          [7.0, 3.0],
+          [7.0, 7.0],
+          [3.0, 7.0]
+        ]
+      }
+    ],
+    "group_pts": [ [5.0, 5.0, 0.0] ],
+    "nearby_pts": []
+  },
+  "expected": { "wsd": 2.0, "tol": 1e-9 }
+}

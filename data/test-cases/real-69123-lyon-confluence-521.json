@@ -1,0 +1,75 @@
+{
+  "type": "real",
+  "id": "real-69123-lyon-confluence-521",
+  "dataFile": "real-69123-lyon-confluence-521.bin",
+  "footprint": [
+    {
+      "x": -11.445749571779743,
+      "z": -30.88754435721785
+    },
+    {
+      "x": -14.04574957175646,
+      "z": -44.787544356659055
+    },
+    {
+      "x": -38.045749551733024,
+      "z": -40.88754435721785
+    },
+    {
+      "x": -29.64574956172146,
+      "z": 8.112455642782152
+    },
+    {
+      "x": -4.745749581721611,
+      "z": 3.9124556435272098
+    },
+    {
+      "x": -11.445749571779743,
+      "z": -30.88754435721785
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 29,
+    "point_count": 105447,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 45.738,
+    "lng": 4.815,
+    "commune_code": "69123",
+    "commune_name": "Lyon",
+    "building_surface_m2": 1228.9,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 841124.5456403818,
+      "y": 6517000.617205683
+    },
+    "imported_at": "2026-02-25T15:03:18.983Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 19.5,
+    "nature": "Indifférenciée",
+    "usage_1": "Commercial et services",
+    "materiaux_de_la_toiture": "",
+    "nombre_d_etages": 4,
+    "altitude_minimale_sol": 165.1,
+    "altitude_minimale_toit": null,
+    "altitude_maximale_toit": 187
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 533,
+    "height": 729,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 841076.49989083,
+      "maxX": 841129.7998908,
+      "minZ": 6516982.50475004,
+      "maxZ": 6517055.40475004
+    }
+  }
+}

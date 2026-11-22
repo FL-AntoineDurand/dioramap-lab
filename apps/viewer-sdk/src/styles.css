@@ -1,0 +1,299 @@
+/* dioramap-viewer.css — bundled stylesheet shipped with the viewer SDK.
+ *
+ * Embedders load this once via:
+ *   <link rel="stylesheet"
+ *         href="dist/dioramap-viewer.css">
+ *
+ * Theming surface: override --dioramap-* custom properties on :root (or
+ * any ancestor of the SDK container) AFTER our stylesheet to retune the
+ * UI. See SDK-THEMING.md for the full list. Internal class names
+ * (.dioramap-attr-*, .dioramap-controls-*, .dioramap-fb-*,
+ *  .dioramap-compass-*, .dioramap-loading-*, .dioramap-action-*) are
+ * stable within a major version; refactors are called out in CHANGELOG.
+ *
+ * CSP note: shipping these rules as a static <link>'d stylesheet means
+ * embedders can drop 'unsafe-inline' from style-src. There is no inline
+ * <style>, no setAttribute('style'), and no .style.cssText assignment in
+ * the SDK source. Per-frame transforms still use el.style.X = ... (style
+ * property), which is CSP-safe under CSP3.
+ */
+
+/* ── Theming variables (public API) ──────────────────────────────────
+ * Colours of the overlay surfaces (dark glassy panels). Embedders
+ * commonly retune --dioramap-accent (default indigo) to their brand.
+ */
+:root {
+  /* Surface colours (panels, modals, pills). */
+  --dioramap-surface-bg: rgba(20, 20, 28, 0.85);
+  --dioramap-surface-bg-strong: rgba(13, 17, 23, 0.95);
+  --dioramap-surface-border: #30363d;
+  --dioramap-surface-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+
+  /* Text on dark surfaces. */
+  --dioramap-text-primary: #e6edf3;
+  --dioramap-text-secondary: #8b949e;
+  --dioramap-text-muted: #6e7681;
+
+  /* Light-surface text (modal body — picker UI uses white surfaces). */
+  --dioramap-text-on-light: #1a1a2e;
+  --dioramap-text-on-light-secondary: #6b7280;
+
+  /* Accents. */
+  --dioramap-accent: #4f46e5;            /* primary button, focus ring */
+  --dioramap-accent-hover: #4338ca;
+  --dioramap-accent-disabled: #a5b4fc;
+  --dioramap-danger: #f85149;            /* north arrow + error states */
+  --dioramap-success: #fbbf24;           /* star fill */
+
+  /* Shape. */
+  --dioramap-radius: 6px;
+  --dioramap-radius-lg: 10px;
+  --dioramap-radius-pill: 999px;
+
+  /* Typography. */
+  --dioramap-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --dioramap-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ── Attribution overlay (D5a) ───────────────────────────────────── */
+.dioramap-attr-overlay {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--dioramap-radius);
+  background: var(--dioramap-surface-bg);
+  color: #ffffff;
+  font: 11px/1.3 var(--dioramap-font-ui);
+  font-weight: 400;
+  pointer-events: none;
+  user-select: none;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+}
+.dioramap-attr-overlay a {
+  color: #ffffff;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.5);
+  pointer-events: auto;
+}
+.dioramap-attr-overlay a:hover { text-decoration-color: #ffffff; }
+.dioramap-attr-sep { opacity: 0.55; }
+.dioramap-attr-data-label { white-space: nowrap; }
+.dioramap-attr-overlay.dioramap-attr-compact {
+  font-size: 10px;
+  padding: 3px 6px;
+  gap: 4px;
+}
+.dioramap-attr-overlay.dioramap-attr-compact .dioramap-attr-prefix { display: none; }
+
+/* ── Controls panel (sun slider, layer toggles) ──────────────────── */
+.dioramap-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--dioramap-surface-bg);
+  color: var(--dioramap-text-primary);
+  font: 12px/1.4 var(--dioramap-font-ui);
+  border: 1px solid var(--dioramap-surface-border);
+  border-radius: var(--dioramap-radius);
+  min-width: 220px;
+  z-index: 10;
+  user-select: none;
+  overflow: hidden;
+}
+.dioramap-controls-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  text-align: left;
+}
+.dioramap-controls-toggle:hover { background: rgba(255, 255, 255, 0.05); }
+.dioramap-controls-toggle .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dioramap-text-secondary);
+  font-weight: 600;
+}
+.dioramap-controls-toggle .caret {
+  font-size: 10px;
+  color: var(--dioramap-text-secondary);
+  transition: transform 0.15s;
+}
+.dioramap-controls.is-collapsed .dioramap-controls-toggle .caret {
+  transform: rotate(-90deg);
+}
+.dioramap-controls-body {
+  padding: 0 12px 10px 12px;
+}
+.dioramap-controls.is-collapsed .dioramap-controls-body {
+  display: none;
+}
+.dioramap-controls.is-collapsed {
+  min-width: 0;
+}
+.dioramap-controls h4 {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dioramap-text-secondary);
+}
+.dioramap-controls .row {
+  display: grid;
+  grid-template-columns: 50px 1fr 40px;
+  gap: 6px;
+  align-items: center;
+  margin: 4px 0;
+}
+.dioramap-controls .row label { font-size: 11px; color: #c9d1d9; }
+.dioramap-controls .row input[type=range] { width: 100%; }
+.dioramap-controls .row .val {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--dioramap-text-secondary);
+}
+.dioramap-controls .toggles { margin-top: 8px; }
+.dioramap-controls .toggle-empty {
+  color: var(--dioramap-text-muted);
+  font-style: italic;
+}
+
+/* ── Compass HUD ─────────────────────────────────────────────────── */
+.dioramap-compass {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 4;
+  pointer-events: none;
+  perspective: 360px;
+  perspective-origin: 50% 50%;
+}
+.dioramap-compass-tilt {
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+.dioramap-compass-bg {
+  fill: rgba(13, 17, 23, 0.78);
+  stroke: var(--dioramap-surface-border);
+  stroke-width: 1;
+}
+.dioramap-compass-minor    { stroke: var(--dioramap-text-muted); stroke-width: 0.6; }
+.dioramap-compass-major    { stroke: var(--dioramap-text-primary); stroke-width: 1; }
+.dioramap-compass-cardinal { stroke: var(--dioramap-text-primary); stroke-width: 1.6; }
+.dioramap-compass-label {
+  fill: var(--dioramap-text-secondary);
+  font: 9px var(--dioramap-font-mono);
+}
+.dioramap-compass-cardinal-label {
+  fill: var(--dioramap-text-primary);
+  font: 700 11px var(--dioramap-font-ui);
+}
+.dioramap-compass-north-label {
+  fill: var(--dioramap-danger);
+  font: 800 12px var(--dioramap-font-ui);
+}
+.dioramap-compass-n-arrow {
+  fill: var(--dioramap-danger);
+  stroke: var(--dioramap-danger);
+  stroke-width: 0.5;
+}
+.dioramap-compass-readout {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font: 600 14px var(--dioramap-font-mono);
+  color: var(--dioramap-text-primary);
+  pointer-events: none;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.75);
+}
+
+/* ── Loading overlay ─────────────────────────────────────────────── */
+.dioramap-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 25vh;
+  pointer-events: none;
+  transition: opacity 0.6s;
+}
+.dioramap-loading-overlay.is-visible { display: flex; }
+.dioramap-loading-card {
+  width: 80%;
+  max-width: 600px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-family: var(--dioramap-font-ui);
+}
+.dioramap-loading-label {
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.9;
+}
+.dioramap-loading-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.dioramap-loading-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2a8a2a, #4cce4c);
+  border-radius: 3px;
+  transition: width 0.3s ease-out;
+}
+.dioramap-loading-pct {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  margin-top: 8px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Model action-buttons (CSS2DObject above selected model) ─────── */
+.dioramap-action-buttons {
+  display: flex;
+  gap: 4px;
+  transform: translateY(-12px);
+  pointer-events: none;
+}
+.dioramap-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}

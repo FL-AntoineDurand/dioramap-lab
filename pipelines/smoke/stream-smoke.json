@@ -1,0 +1,7 @@
+{
+  "name": "stream-smoke",
+  "description": "B9 streaming primitive smoke. Single stream-demo step that emits N chunks via step_write_output_stream. WS clients should receive STREAM_CHUNK text frames + binary frames in order, with the last carrying final=true and the artifact's content hash.",
+  "steps": [
+    { "step": "stream-demo" }
+  ]
+}

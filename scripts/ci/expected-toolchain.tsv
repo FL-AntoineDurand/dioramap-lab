@@ -1,0 +1,29 @@
+# Expected toolchain for the dioramap v3 quality suite — SINGLE SOURCE OF TRUTH.
+#
+# Read by:
+#   - scripts/ci/steps/precheck-toolchain.sh  (run-tier.sh's fail-fast gate)
+#   - docs/quality/setup-quality-vm.sh         (provisioner verify step)
+#
+# Target: Ubuntu 26.04 LTS. A run on any other target (e.g. a 24.04 box with
+# gcc-13 / clang-18 / cmake-3) fails the precheck immediately instead of dying
+# deep in a build. Bump these rows when the supported target LTS changes.
+#
+# Columns:  tool <TAB> expected <TAB> mode
+#   mode=exact    actual string must equal `expected`        (used for os)
+#   mode=major    actual MAJOR version must equal `expected` (int compare)
+#   mode=present  tool must merely exist on PATH             (`expected` ignored)
+#
+# Node + PostgreSQL track the 24.04 *deployment* box (agri-map + control-plane
+# deploy there), NOT the 26.04 build host — hence node=24 (prod runs 24.15).
+# PG is not exercised by run-tier (the quality suite installs no postgres), so
+# it is intentionally absent here; it is pinned in the dev Dockerfile instead.
+os	26.04	exact
+gcc	15	major
+g++	15	major
+clang	21	major
+cmake	4	major
+llvm	21	major
+node	24	major
+ninja	-	present
+valgrind	-	present
+frama-c	-	present

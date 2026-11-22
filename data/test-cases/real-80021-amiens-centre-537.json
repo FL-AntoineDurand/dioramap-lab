@@ -1,0 +1,91 @@
+{
+  "type": "real",
+  "id": "real-80021-amiens-centre-537",
+  "dataFile": "real-80021-amiens-centre-537.bin",
+  "footprint": [
+    {
+      "x": -27.180385232670233,
+      "z": -12.909784371964633
+    },
+    {
+      "x": -28.180385232670233,
+      "z": -11.009784371592104
+    },
+    {
+      "x": -17.080385242588818,
+      "z": -5.809784381650388
+    },
+    {
+      "x": -16.580385242588818,
+      "z": -6.809784381650388
+    },
+    {
+      "x": -17.080385242588818,
+      "z": -8.209784371778369
+    },
+    {
+      "x": -17.880385242635384,
+      "z": -8.509784381836653
+    },
+    {
+      "x": -18.880385242635384,
+      "z": -10.909784371964633
+    },
+    {
+      "x": -23.180385232670233,
+      "z": -13.009784371592104
+    },
+    {
+      "x": -25.480385232600383,
+      "z": -12.109784372150898
+    },
+    {
+      "x": -27.180385232670233,
+      "z": -12.909784371964633
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 70,
+    "point_count": 46012,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 49.8942,
+    "lng": 2.3022,
+    "commune_code": "80021",
+    "commune_name": "Amiens",
+    "building_surface_m2": 37.2,
+    "building_nature": "Eglise",
+    "l93_center": {
+      "x": 649820.5804256226,
+      "y": 6977498.494783598
+    },
+    "imported_at": "2026-02-25T15:08:26.337Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": null,
+    "nature": "Eglise",
+    "usage_1": "Religieux",
+    "materiaux_de_la_toiture": null,
+    "nombre_d_etages": null,
+    "altitude_minimale_sol": 32.4,
+    "altitude_minimale_toit": null,
+    "altitude_maximale_toit": null
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 316,
+    "height": 272,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 649782.40004039,
+      "maxX": 649814.00004038,
+      "minZ": 6977494.30456798,
+      "maxZ": 6977521.50456797
+    }
+  }
+}

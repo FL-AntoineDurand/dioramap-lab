@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "step": "v7-score-intrinsic",
+  "step_version": 1,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/metrics/index.js",
+    "version": null,
+    "extracted_from": "computeNoGTMetrics() — the no-ground-truth (intrinsic) metric set: completeness + residualRMS + footprint coverage/overshoot + plane overlap"
+  },
+  "summary": "Per-building intrinsic (no-GT) model-quality scoring. Computes completeness (assigned/total points) and residual RMS (point-to-plane distances) on any (planes, owner) pair routed in via wiring — same step instance, re-wired, can score the seed, post-grow, post-merge, or post-regularize stage. Rasterisation metrics (footprint coverage / overshoot / plane overlap) are placeholders today (NaN) — see TODO in impl. This is the in-pipeline half of the hybrid scoring design (docs/quality/SCORING-DESIGN.md §6); the external GT comparator in tests/v7-model-validity/ remains the regression net.",
+  "phases": [
+    {
+      "id": "1",
+      "name": "Extract plane equations",
+      "description": "Walk the per-bldg `model-planes` blob_next-framed records and pull the first 32 bytes (normal[3] f64 + d f64) out of each. Tolerant of any extra trailing data — the v7 record family (seed / grow-refit-merge / regularize plane records) all share this prefix, so wiring can route any of them here without a schema bump."
+    },
+    {
+      "id": "2",
+      "name": "Build per-bldg local positions",
+      "description": "Standard v7 pattern: per-bldg n_pts + global indices from per-building-records → gather lidar-positions into a contiguous F64×3·n_pts buffer that the impl can iterate. Out-of-range global indices defensively zero-fill."
+    },
+    {
+      "id": "3",
+      "name": "Score (impl call)",
+      "description": "One v7_score_intrinsic_compute() call per building. completeness = assigned / total; residual_rms = sqrt(mean(signed_distance² for owned points)); residual_score = clamp01(1 - rms / RMS_REFERENCE) (RMS_REFERENCE = 0.15 m, matches v2 residual.js). composite = adaptive weighted blend over finite metrics, mirrors v2 compositeScoreV3's null-drop redistribution. Pure compute, no v3-runtime deps."
+    },
+    {
+      "id": "4",
+      "name": "Pack 72-byte record",
+      "description": "Fixed-size little-endian layout: u32 version, u32 n_planes, u32 n_points_total, u32 n_points_assigned, 7×f64 (completeness, residual_rms, residual_score, footprint_coverage, footprint_overshoot, plane_overlap, composite). One record per building. Emitted into the per-bldg `model-score` ARRAY_INLINE — the step-visualizer at steps/v7/viz/model-score.viz.js renders an HTML scorecard from it."
+    }
+  ],
+  "parameters": [],
+  "reads": [
+    { "name": "lidar-positions",       "kind": "OPAQUE",       "summary": "Global F64×3·N point cloud — needed to compute point-to-plane distances on owned points." },
+    { "name": "per-building-records",  "kind": "ARRAY_INLINE", "summary": "Per-bldg footprint + n_pts + global indices; we read schema + n_verts + n_pts + gidx." },
+    { "name": "grm-plane-equations",   "kind": "ARRAY_INLINE", "summary": "Per-bldg blob of 32-byte plane records (normal[3] f64 + d f64) — exactly what pack_plane_eq emits in v7-grow-refit-merge.c. Boundary-chain steps downstream of grow-refit-merge don't modify plane equations, so this is the final v7 plane state." },
+    { "name": "grm-owner",             "kind": "ARRAY_INLINE", "summary": "Per-bldg Int16×n_pts; building-local plane id (−1 = unassigned). Final v7 owner state IN THE CURRENT PIPELINES — the boundary-* chain only modifies the roof-graph, not owners. CAVEAT: v7-wall-detect (not in any current pipeline) writes wd-owner with wall-grabbed points reassigned; any pipeline that runs wall-detect needs to score against wd-owner, not this." }
+  ],
+  "writes": [
+    { "name": "model-score", "kind": "ARRAY_INLINE", "summary": "Per-bldg one 72-byte fixed record (V7_SCORE_INTRINSIC_RECORD_BYTES). Schema versioned via the leading u32 — bump V7_SCORE_INTRINSIC_VERSION in the impl when any metric formula changes." }
+  ],
+  "outputs": [
+    {
+      "id": "model_score",
+      "tlv_section": "ARRAY_INLINE record (72 B / bldg)",
+      "bucket": "load-bearing-optional",
+      "summary": "Self-consistency confidence score per building. Wireable into production pipelines so the served model carries a score with NO ground-truth dependency; wireable multiple times in a test pipeline (after seed / grow / merge / regularize) for in-graph variant comparison. Rendered by the step-visualizer model-score.viz.js."
+    }
+  ],
+  "downstream": [],
+  "notes": [
+    "Cache-leaf: nothing reads model-score downstream, so version bumps invalidate ONLY this step's cache entry — preserves v2's 'scorer changes don't invalidate pipeline caches' property (SCORING-DESIGN §6.2).",
+    "Versioned via the leading u32 in the record + V7_SCORE_INTRINSIC_VERSION in the impl. Bump in lockstep with any formula change (same discipline as bench-v2's CLAUDE.md per-metric VERSION rule).",
+    "Rasterisation metrics (footprint_coverage / footprint_overshoot / plane_overlap) are TODO — placeholders return NaN today, the composite formula skips them via the same finite-only redistribution v2 uses, so the field shape is forward-compatible.",
+    "Wired into pipelines/smoke/v7.json as the final step (after v7-wall-detect). Reads route to grow-refit-merge's grm-plane-equations + grm-owner automatically (v3 wires globally by artifact name; position in the pipeline is cosmetic). CAVEAT: the v7 pipeline includes v7-wall-detect which writes wd-owner (mutated grm-owner with wall-grabbed points reassigned to wall planes). This step still reads grm-owner, so what we score here is the ROOF reconstruction quality BEFORE wall extrusion — wall planes and their reassigned points are not counted. A follow-up sibling step (v7-score-intrinsic-postwall) reading wd-owner + the post-wall-detect augmented plane set (grm planes + wall planes appended to the roof-graph) is the right next iteration. Per-step artifact-name aliasing in the v3 runtime would also enable the SCORING-DESIGN.md §6.2 'wire as we wish, multiple times for comparison' lever."
+  ]
+}

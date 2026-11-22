@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "step": "v7-tile-signals",
+  "step_version": 4,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/tile-signals.js",
+    "version": 10
+  },
+  "summary": "Computes per-point PCA-derived geometric signals (eigenvalues, planarity/linearity/scattering, normals, multi-K curvatures, Voronoi-area point weights, reliability, ternary RGB) for every LiDAR point in a building. Uses one kNN at K=32 with 3D spherical KDE weighting to compensate for anisotropic scan-line density, plus progressive K expansion (32→48→64→96→128) when the neighbourhood is physically elongated. Direct port of v2's unified tile-signals step that replaced three earlier steps (compute-tile-normals + compute-curvatures + compute-eigenvalues).",
+  "phases": [
+    {
+      "id": "0",
+      "name": "Per-building gather + F32 cast",
+      "description": "For each building, gather global point indices from per-building-records, subtract the centroid from building-local-frames, and cast each (x,y,z) to Float32 then back to Float64. The F32 truncation matches v2's Float32Array positions byte-for-byte. The kd-tree from building-kd-trees is deserialised against the same F32-truncated values."
+    },
+    {
+      "id": "1",
+      "name": "kNN at K_STAGES[0]=32 + Voronoi point weight",
+      "description": "Query the pre-built per-building kd-tree for the 32 nearest neighbours. Emit ts-weights as π·d_k²/k from the k-th neighbour's squared distance (k=weight_k=8) — this is each point's local Voronoi cell area, used downstream by grow-refit-merge.",
+      "params_used": ["weightK"]
+    },
+    {
+      "id": "2",
+      "name": "Progressive K expansion (scan-line correction)",
+      "description": "Compute unweighted spatial linearity (λ1−λ2)/λ1 of the K=eigen_k neighbours. If it exceeds linearity_threshold, walk through K_STAGES = [32,48,64,96,128] re-fetching neighbours until linearity drops below threshold or K_MAX is reached. Once `expanded` trips, the curvature K-loop uses the full expanded neighbour set for slices ≥ K. Fixes LiDAR HD's 3-line/0.15m banding which produced 100% false linearity on flat surfaces.",
+      "params_used": ["eigenK", "eigenSpatialLinearityThreshold"],
+      "see_also": ["2026-03-12-spatial-linearity-k-expansion"]
+    },
+    {
+      "id": "3",
+      "name": "Spherical KDE direction weights",
+      "description": "Once the neighbour set is settled, build unit direction vectors from query to each neighbour. For each direction j, density_j = Σ_k exp(−chord²(j,k) / 2σ²), and weights = 1/density_j normalised to sum to 1. Equivalent to a von Mises-Fisher kernel on the sphere; compensates for angular clustering of scan lines in 3D regardless of surface tilt.",
+      "params_used": ["eigenAngularBandwidth"],
+      "see_also": ["2026-03-12-spherical-kde-scan-line-compensation"]
+    },
+    {
+      "id": "4",
+      "name": "Weighted PCA at each K slice",
+      "description": "For each ck in CURVATURE_KS = [8,16,32], run KDE-weighted PCA. Cardano closed-form eigensolver (pca.h port of v2 lib/geometry/pca.js). Emit ts-curv-k{ck} = λ3/(λ1+λ2+λ3) at every K. Smaller slices (k=8) stay at their own K — too local to benefit from expansion."
+    },
+    {
+      "id": "5",
+      "name": "Primary K outputs (K=eigen_k=16)",
+      "description": "On the eigen_k slice only: emit ts-eigen-l1/l2/l3, ts-planarity = (λ2−λ3)/λ1, ts-linearity = (λ1−λ2)/λ1, ts-scattering = λ3/λ1, ts-normals (smallest eigenvector, flipped along +up_axis), ts-eigen-rel = densityFactor × angularIsotropy, and ts-eigen-ternary (RGB packing of lin/plan/scat into 0..255). Degenerate points (<3 neighbours or λ1≈0) default to normal along +up_axis, scattering=1, blue ternary."
+    },
+    {
+      "id": "6",
+      "name": "ts-lidar-density emit",
+      "description": "After the per-building loop, compute tile-wide horizontal density = total_points / (Δh0·Δh1) on the two non-up axes (mirrors v2's lidar-density meta-artifact). Emitted as a public OPAQUE_JSON output; v7-grow-refit-merge consumes it for search-radius derivation.",
+      "params_used": ["upAxis"]
+    }
+  ],
+  "parameters": [
+    {
+      "name": "eigenK",
+      "type": "int",
+      "default": 16,
+      "summary": "Primary K for eigenvalues, normals, planarity/linearity/scattering, reliability and ternary.",
+      "rationale": "K=16 is the sweet spot for LiDAR HD density (~20 pts/m²): large enough for stable PCA, small enough that ridges/edges remain locally distinguishable. Curvatures are also computed at K=8 and K=32 for multi-scale signals."
+    },
+    {
+      "name": "eigenMaxRadius",
+      "type": "double",
+      "default": 1.0,
+      "unit": "m",
+      "summary": "Spatial radius cap used in the reliability density factor (count of K neighbours within this radius / K).",
+      "rationale": "1m balances 'this point has enough nearby support' against the largest expected K=128 reach on sparse fringes."
+    },
+    {
+      "name": "eigenAngularBandwidth",
+      "type": "double",
+      "default": 0.39269908169872414,
+      "unit": "rad",
+      "summary": "Gaussian σ for 3D spherical KDE (π/8 ≈ 22.5°), applied to squared chord length between unit direction vectors.",
+      "rationale": "σ = π/8 → vMF concentration κ ≈ 6.5. Resolves scan-line clustering (typical angular spread < 30°) without over-penalising moderate angular variation. See companion journal entry for the bandwidth derivation.",
+      "see_also": ["2026-03-12-spherical-kde-scan-line-compensation"]
+    },
+    {
+      "name": "eigenSpatialLinearityThreshold",
+      "type": "double",
+      "default": 0.5,
+      "summary": "Unweighted spatial linearity above which K is progressively expanded.",
+      "rationale": "Scan-line bands at K=16 score 0.72–0.74; truly isotropic neighbourhoods score ~0.05. Threshold of 0.5 catches scan-line-elongated neighbourhoods while leaving genuinely planar/edge regions undisturbed. On dahouet 77% of points trigger expansion, 73% resolve at K=32.",
+      "history": [
+        {
+          "commit": "8da325b",
+          "date": "2026-03-12",
+          "note": "Introduced together with the spatial-linearity trigger that replaced the earlier direction-scatter trigger (which missed 99.98% of scan-line cases)."
+        }
+      ],
+      "see_also": ["2026-03-12-spatial-linearity-k-expansion"]
+    },
+    {
+      "name": "weightK",
+      "type": "int",
+      "default": 8,
+      "summary": "k for the Voronoi-area point weight w_i = π·d_k²/k. Piggybacks on the K_STAGES[0]=32 kNN already fetched.",
+      "rationale": "k=8 gives a stable per-point inverse-density estimate without paying for a separate kNN. Output (ts-weights) is consumed downstream as an inverse local density signal."
+    },
+    {
+      "name": "upAxis",
+      "type": "int",
+      "default": 2,
+      "summary": "Axis index (0=x, 1=y, 2=z) used to orient normals upward and to choose the two horizontal axes for tile-wide density.",
+      "rationale": "v3 lidar-positions are in LAZ L93 frame (east, north, altitude) so altitude is axis 2. The pure-compute default in impl.c is 1 (v2 y-up) so the v2 bench harness gets byte-identical normals; the step wrapper overrides to 2 for v3 prod."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64 interleaved x,y,z (L93). Building-points are gathered from this via the global indices in per-building-records."
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building record (schema, n_verts, n_pts, footprint, then a Uint32 array of global inlier indices into lidar-positions).",
+      "array": true,
+      "produced_by": "extract-buildings"
+    },
+    {
+      "name": "building-local-frames",
+      "description": "Per-building fixed-stride record: centroid_xyz (24B) + bbox_min_xyz (24B) + bbox_max_xyz (24B) in L93. Centroid is subtracted from gathered points to match v2's local-frame F32 precision.",
+      "array": true,
+      "produced_by": "extract-buildings"
+    },
+    {
+      "name": "building-kd-trees",
+      "description": "Per-building pre-built kd-tree node array. Built over the same F32-truncated centroid-shifted positions this step gathers, so deserialisation is byte-consistent.",
+      "array": true,
+      "produced_by": "build-building-kd-trees"
+    }
+  ],
+  "writes": [
+    {
+      "name": "ts-eigen-l1",
+      "description": "Largest PCA eigenvalue λ1 at K=eigen_k (Float32, per-building inline).",
+      "array": true
+    },
+    {
+      "name": "ts-eigen-l2",
+      "description": "Middle PCA eigenvalue λ2 at K=eigen_k.",
+      "array": true
+    },
+    {
+      "name": "ts-eigen-l3",
+      "description": "Smallest PCA eigenvalue λ3 at K=eigen_k.",
+      "array": true
+    },
+    {
+      "name": "ts-planarity",
+      "description": "(λ2−λ3)/λ1 — high on flat surfaces.",
+      "array": true
+    },
+    {
+      "name": "ts-linearity",
+      "description": "(λ1−λ2)/λ1 — high on edges/ridges.",
+      "array": true
+    },
+    {
+      "name": "ts-scattering",
+      "description": "λ3/λ1 — high on noisy/3D-blob regions.",
+      "array": true
+    },
+    {
+      "name": "ts-curv-k8",
+      "description": "Scattering ratio λ3/(λ1+λ2+λ3) at K=8 (stays at k=8 even when expanded).",
+      "array": true
+    },
+    {
+      "name": "ts-curv-k16",
+      "description": "Scattering ratio at K=16, uses expanded neighbourhood when K-expansion triggered.",
+      "array": true
+    },
+    {
+      "name": "ts-curv-k32",
+      "description": "Scattering ratio at K=32, uses expanded neighbourhood when K-expansion triggered.",
+      "array": true
+    },
+    {
+      "name": "ts-normals",
+      "description": "Float32 3·n_pts interleaved (nx,ny,nz). Smallest eigenvector of weighted covariance, flipped along +up_axis. Public visibility (consumed widely downstream).",
+      "array": true
+    },
+    {
+      "name": "ts-eigen-rel",
+      "description": "Reliability = (neighbours within max_radius / K) × (1/Σw² / n). 1 = ideal isotropic, dense neighbourhood.",
+      "array": true
+    },
+    {
+      "name": "ts-weights",
+      "description": "Per-point Voronoi cell area π·d_k²/k in m² (k=weightK=8 from K_STAGES[0]=32 kNN). Inverse-density signal used downstream.",
+      "array": true
+    },
+    {
+      "name": "ts-eigen-ternary",
+      "description": "Uint8 3·n_pts — RGB packing of (linearity, planarity, scattering) clamped to 0..255 via JS-Math.round semantics.",
+      "array": true
+    },
+    {
+      "name": "ts-lidar-density",
+      "description": "Tile-wide horizontal density (pts/m²) computed on the two non-up axes of lidar-positions. Single OPAQUE_JSON float (stringified %.17g).",
+      "consumed_by": ["v7-grow-refit-merge", "v7-derive-thresholds"]
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "Per-building processing instead of full-cloud",
+      "task": "Phase 5.1c",
+      "commit": "2e8bb10",
+      "rationale": "v2 runs PCA across the entire tile point cloud in one pass. v3 iterates per building, gathering only that building's points from lidar-positions via per-building-records and using the per-building kd-tree from build-building-kd-trees. Each kd-tree is shared across the v7 chain (Phase 5.2+ steps reuse the same artifact) instead of being a transient rebuilt by every downstream step."
+    },
+    {
+      "topic": "kd-tree + centroid factored out into upstream steps",
+      "task": "Phase 5.1c",
+      "commit": "2e8bb10",
+      "rationale": "v2's tile-signals built its own kd-tree internally as a transient artifact. v3 reads building-local-frames (centroid + bbox) and building-kd-trees, which are produced once by extract-buildings + build-building-kd-trees and shared across the v7 pipeline."
+    },
+    {
+      "topic": "Up-axis is z (LAZ L93) in v3 prod, y in bench harness",
+      "task": "Phase 5.0",
+      "commit": "2e8bb10",
+      "rationale": "v3 lidar-positions are in L93 (east, north, altitude). The step wrapper sets up_axis=2 by default; v7_ts_params_default in impl.c keeps up_axis=1 so the standalone v7-tile-signals-bench CLI is byte-identical with v2 dumps. Up-axis only affects normal orientation and the horizontal-axis pair used for tile-wide density."
+    },
+    {
+      "topic": "Artifact rename to ts-* prefix",
+      "task": "Phase 1",
+      "commit": "0f2d3c4",
+      "rationale": "v2 emitted bare names like 'eigenvalue-l1' / 'planarity' / 'tile-normals' / 'point-weights'. v3 prefixes every v7 emit with the step tag (ts-*) so downstream resolution is unambiguous — needed because v3 has both a tile-wide path and per-building paths that would otherwise clash on the same artifact name."
+    },
+    {
+      "topic": "ts-lidar-density emit (step_version 4)",
+      "task": "v7-derive-thresholds migration",
+      "commit": "4ac68ab",
+      "rationale": "Added in Phase 5 follow-up. v3 prod's extract-buildings reduces the working set per-building, so tile-wide density is no longer implicit. v7-grow-refit-merge and v7-derive-thresholds previously auto-computed density at point of use; centralising it here mirrors v2's lidar-density meta-artifact and lets downstream steps (and DERIV_LOG) read it instead of re-deriving."
+    },
+    {
+      "topic": "ARRAY_INLINE record padding (step_version 3)",
+      "task": "Phase 5.1d",
+      "commit": "2e8bb10",
+      "rationale": "ARRAY_INLINE writer now pads records to 8-byte alignment. Output bytes change vs. earlier v3 unpadded layout — step version bumped accordingly. Does not affect v2 parity since v2 doesn't share the on-disk container."
+    }
+  ],
+  "related": [
+    {
+      "type": "journal",
+      "id": "2026-03-12-tile-signals-unified-pca",
+      "link": "docs/journal/2026/03/2026-03-12-tile-signals-unified-pca.md",
+      "tags": ["tile-signals", "design", "unified-pca"],
+      "summary": "Design journal: merged compute-tile-normals + compute-curvatures + compute-eigenvalues into the single tile-signals step. One kd-tree, one kNN at K_MAX=32, 17 artifacts, full cascade compatibility."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-12-spherical-kde-scan-line-compensation",
+      "link": "docs/journal/2026/03/2026-03-12-spherical-kde-scan-line-compensation.md",
+      "tags": ["kde", "spherical", "scan-line", "anisotropy"],
+      "summary": "Why 3D spherical KDE replaces 2D circular KDE: 2D fails on slopes and walls, 3D vMF kernel with σ=π/8 correctly compensates scan-line anisotropy regardless of surface tilt."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-12-spatial-linearity-k-expansion",
+      "link": "docs/journal/2026/03/2026-03-12-spatial-linearity-k-expansion.md",
+      "tags": ["k-expansion", "scan-line", "linearity-trigger"],
+      "summary": "Trigger for adaptive K expansion. Direction scatter (v3-v4) missed 99.98% of scan-line cases because 3-line bands still have angular diversity. Replaced with spatial linearity (λ1-λ2)/λ1 of neighbour positions — directly measures elongation. Progressive stages [32,48,64,96,128]."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-12-cardano-eigensolver",
+      "link": "docs/journal/2026/03/2026-03-12-cardano-eigensolver.md",
+      "tags": ["pca", "eigensolver", "cardano"],
+      "summary": "Closed-form Cardano eigensolver used by all the PCA paths in this step. Replaces earlier power iteration; O(1) per point, numerically stable."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-12-eliminate-transient-artifacts",
+      "link": "docs/journal/2026/03/2026-03-12-eliminate-transient-artifacts.md",
+      "tags": ["pipeline", "kd-tree", "transient"],
+      "summary": "Architectural context: in v2 the kd-tree was an explicit transient artifact emitted by tile-signals. v3 lifts it into the shared building-kd-trees artifact."
+    },
+    {
+      "type": "commit",
+      "sha": "ebc515a",
+      "date": "2026-03-12",
+      "summary": "v2: initial unified tile-signals step — merges compute-tile-normals + compute-curvatures + compute-eigenvalues with 3D spherical KDE weighting."
+    },
+    {
+      "type": "commit",
+      "sha": "c27a09e",
+      "date": "2026-03-12",
+      "summary": "v2: first attempt at dynamic K expansion using direction scatter dimensionality (later replaced — see 8da325b)."
+    },
+    {
+      "type": "commit",
+      "sha": "8da325b",
+      "date": "2026-03-12",
+      "summary": "v2: spatial-linearity trigger replaces direction-scatter trigger. Progressive K stages [32,48,64,96,128]."
+    },
+    {
+      "type": "commit",
+      "sha": "fc26657",
+      "date": "2026-03-13",
+      "summary": "v2: R2 global-index refactor — building-indices Uint32Array replaces building-points Array<{x,y,z}>. ptWeightsArr/normalsArr/curvature arrays become globally indexed (length = total tile points)."
+    },
+    {
+      "type": "commit",
+      "sha": "2e8bb10",
+      "date": "2026-05-08",
+      "summary": "v3: Phase 5.0–5.1d — port v7-tile-signals to v3 (per-building processing, factored kd-tree + local-frames, ARRAY_INLINE 8-byte alignment)."
+    },
+    {
+      "type": "commit",
+      "sha": "0f2d3c4",
+      "date": "2026-05-10",
+      "summary": "v3: Phase 1 — eager rename pass. tile-signals artifacts gain ts-* prefix (ts-normals, ts-weights, ts-curv-k8/16/32, ts-linearity, ts-planarity, ts-scattering, ts-eigen-rel/l1/l2/l3, ts-eigen-ternary)."
+    },
+    {
+      "type": "commit",
+      "sha": "4ac68ab",
+      "date": "2026-05-16",
+      "summary": "v3: add ts-lidar-density emit (step version 4). Mirrors v2 lidar-density; consumed by v7-grow-refit-merge and v7-derive-thresholds."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "summary": "Phase 5 V7 port plan — 33-step → 26-main-path mapping, validation strategy, where v7-tile-signals fits in the pipeline."
+    }
+  ],
+  "open_questions": []
+}

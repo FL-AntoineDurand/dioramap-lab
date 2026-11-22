@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dioramap · location picker (dev)</title>
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; }
+      body { font: 13px system-ui, -apple-system, sans-serif; background: #0d1117; color: #e6edf3; }
+      header {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 12px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+      }
+      main { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; }
+      #picker { width: 100%; height: 100%; }
+      .readout { font-family: ui-monospace, Menlo, monospace; color: #8b949e; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>location-picker dev</strong>
+      <span class="readout" id="readout">waiting…</span>
+    </header>
+    <main>
+      <div id="picker"></div>
+    </main>
+
+    <script type="module">
+      import { init } from './src/sdk.js';
+
+      const readout = document.getElementById('readout');
+
+      await init({
+        container: '#picker',
+        radius: 75,
+        basemap: 'both',
+        center: [2.2, 46.6],
+        zoom: 6,
+        onPick: ({ lat, lon, radius }) => {
+          readout.textContent = `pick: ${lat.toFixed(5)}, ${lon.toFixed(5)} · r=${radius}m`;
+        },
+        onConfirm: ({ lat, lon, radius }) => {
+          readout.textContent = `CONFIRMED: ${lat.toFixed(5)}, ${lon.toFixed(5)} · r=${radius}m`;
+        },
+      });
+    </script>
+  </body>
+</html>

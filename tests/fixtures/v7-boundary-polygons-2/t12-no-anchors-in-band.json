@@ -1,0 +1,30 @@
+{
+  "id":          "t12-no-anchors-in-band",
+  "category":    "topology",
+  "description": "bp3 edge case: a contour exists but no anchor projects within V7_BP2_CORNER_TO_FRAGMENT_RANGE_M (0.75m) of any contour edge. The contour gets skipped silently and no polygon is emitted. Tests that bp3 doesn't fabricate polygons from far-away anchors.",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "anchors": [
+      { "id": 0, "x": 100.0, "y": 100.0, "z": 0.0, "source": "concave" },
+      { "id": 1, "x": 110.0, "y": 100.0, "z": 0.0, "source": "concave" },
+      { "id": 2, "x": 110.0, "y": 110.0, "z": 0.0, "source": "concave" },
+      { "id": 3, "x": 100.0, "y": 110.0, "z": 0.0, "source": "concave" }
+    ],
+    "contours": [
+      {
+        "is_hole": false,
+        "polyU": [0.0, 10.0, 10.0, 0.0],
+        "polyV": [0.0, 0.0,  10.0, 10.0]
+      }
+    ],
+    "group_pts": [
+      [1.0, 1.0, 0.0], [9.0, 1.0, 0.0], [9.0, 9.0, 0.0], [1.0, 9.0, 0.0]
+    ],
+    "nearby_pts": [
+      [-1.0, 5.0, 0.0], [11.0, 5.0, 0.0]
+    ]
+  },
+  "expected": {
+    "polygons": []
+  }
+}

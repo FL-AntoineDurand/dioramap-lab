@@ -1,0 +1,19 @@
+{
+  "name": "@dioramap/protocol",
+  "license": "Apache-2.0",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "v3 WebSocket protocol client + kind-dispatched artifact decoder. Shared by lab-ui and viewer-sdk.",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./ws-client": "./src/ws-client.js",
+    "./artifact-decoder": "./src/artifact-decoder.js"
+  },
+  "sideEffects": false,
+  "files": [
+    "src"
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "type": "real",
+  "id": "real-17300-farm-charentemaritime-539",
+  "dataFile": "real-17300-farm-charentemaritime-539.bin",
+  "footprint": [
+    {
+      "x": -10.204660079150926,
+      "z": 1.2697678478434682
+    },
+    {
+      "x": -9.704660079150926,
+      "z": 1.4697678480297327
+    },
+    {
+      "x": -9.704660079150926,
+      "z": 1.5697678476572037
+    },
+    {
+      "x": -8.40466007910436,
+      "z": 2.0697678476572037
+    },
+    {
+      "x": -7.90466007910436,
+      "z": 0.9697678480297327
+    },
+    {
+      "x": -9.704660079150926,
+      "z": -0.03023214265704155
+    },
+    {
+      "x": -10.204660079150926,
+      "z": 1.2697678478434682
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 2297,
+    "point_count": 24089,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 46.16,
+    "lng": -1.15,
+    "commune_code": "17300",
+    "commune_name": "La Rochelle",
+    "building_surface_m2": 2.7,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 379900.5049093391,
+      "y": 6570655.574506068
+    },
+    "imported_at": "2026-02-25T15:08:58.018Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 8.4,
+    "nature": "Indifférenciée",
+    "usage_1": "Indifférencié",
+    "materiaux_de_la_toiture": null,
+    "nombre_d_etages": null,
+    "altitude_minimale_sol": 6.5,
+    "altitude_minimale_toit": 14.9,
+    "altitude_maximale_toit": null
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 223,
+    "height": 221,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 379880.30024926,
+      "maxX": 379902.60024926,
+      "minZ": 6570643.50473822,
+      "maxZ": 6570665.60473821
+    }
+  }
+}

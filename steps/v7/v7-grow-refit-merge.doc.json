@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "step": "v7-grow-refit-merge",
+  "step_version": 6,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/grow-refit-merge.js",
+    "version": 9,
+    "extracted_from": "competitive-grow.js → grow-steal-resolve (GSR-1) → grow-refit-merge (GSR-2, commit a481f2e, 2026-04-20)"
+  },
+  "summary": "Iterative plane segmentation: alternates mini-resolve → diffusion-limited grow → per-PSID LS refit (with RMS-revert) → coplanar merge (angle+offset+connexity+RMS-cap, looser wall-wall thresholds) until stable. Post-loop: min-residual resolve, kNN majority-vote spatial coherence, final per-plane refit, ridge mask, per-point residual. Direct port of bench-v2 grow-refit-merge.js v9 (GSR-2). Runs per-building in v3 (vs tile-wide in v2) and consumes cascade seeds (cs-planes) plus optional pre-GRM RANSAC ghost seeds (dv2-ghost-planes).",
+  "phases": [
+    {
+      "id": "init",
+      "name": "Claim-set + initial RMS seeding",
+      "description": "Build per-plane claim_set_t (ordered append-list + bitmap, replicating JS Set insertion-order including post-delete gaps) from each seed's seedIndices. Compute initial RMS of each plane against its seed points. Cascade-seed planes come first, ghost-planes-2 entries appended last (preserves v2 ordering)."
+    },
+    {
+      "id": "iter.mini-resolve",
+      "name": "Mini-resolve (per iteration)",
+      "description": "For each currently claimed point, compute |residual| to its claiming plane(s); record the best-residual owner per point. Subsequent grow only expands from points where this plane is the best owner — prevents long-range leakage through foreign territory."
+    },
+    {
+      "id": "iter.grow",
+      "name": "Diffusion-limited grow",
+      "description": "Each plane expands from its best-owner frontier (LIFO via stack matching JS frontier.pop()). For each frontier point, kd_radius_search up to searchRadius=min(searchRadiusMax, searchRadiusScale·√weight/√density). Neighbors with |dist-to-plane| ≤ distThreshold are added to the plane's claim set — but NOT pushed back to the frontier (one wavefront per iteration; next mini-resolve decides if they propagate).",
+      "params_used": ["search_radius_scale", "search_radius_max", "density", "dist_threshold"]
+    },
+    {
+      "id": "iter.refit",
+      "name": "Per-PSID LS refit + sign-aligned strip averaging",
+      "description": "Split claimed points by point-source-id (LAZ flight strip), LS-fit a plane per strip, then equal-weight average the per-strip equations. Compensates ~5cm inter-strip calibration offsets in IGN LiDAR HD. Falls back to single LS when PSIDs are absent or only one strip. RMS is computed over ALL claimed points against the averaged equation. If new RMS > previousRMS + maxDegradation, REVERT: eject points that no longer fit the previous equation within distThreshold, refit the remainder.",
+      "params_used": ["max_degradation", "dist_threshold"]
+    },
+    {
+      "id": "iter.merge",
+      "name": "Coplanar merge (angle + offset + connexity + RMS-cap)",
+      "description": "Pairwise i<j scan over alive planes. Candidate accepted iff: (1) |dot(n_i, n_j)| ≥ cos(mergeAngleDeg), or cos(mergeWallAngleDeg) when both tilts > wallTiltDeg; (2) |signed_dist(centroid_j → plane_i)| ≤ mergeOffsetScale·distThreshold; (3) at least mergeMinSharedPts of plane j's members have a plane i member within their searchRadius; (4) union LS fit RMS ≤ max(RMS_i, RMS_j) + maxDegradation. On accept, i absorbs j, tombstone j.",
+      "params_used": ["merge_angle_deg", "merge_wall_angle_deg", "wall_tilt_deg", "merge_offset_scale", "merge_min_shared_pts", "max_degradation"]
+    },
+    {
+      "id": "iter.stable",
+      "name": "Stability check",
+      "description": "Terminate the outer loop when Δclaims ≤ stableThreshold·n_pool AND zero merges AND zero refit-reverts in the iteration. Hard cap at maxIterations (=5; v2 meta says 10 but v2 body actually uses 5 — bake the body's value)."
+    },
+    {
+      "id": "resolve",
+      "name": "Min-residual resolve",
+      "description": "Each pooled point → plane with smallest |residual| among alive planes that claim it. No size tiebreaker, no per-plane priority — pure min-residual."
+    },
+    {
+      "id": "coherence",
+      "name": "Spatial coherence (kNN majority vote)",
+      "description": "Up to coherenceMaxRounds rounds. For each assigned point, query searchRadius neighbors; if ≥ coherenceMinVotes total and ≥ coherenceMajority (=70%) of votes go to a single different plane AND that plane fits this point within distThreshold, reassign. Dissolves isolated fragments that won min-residual by a tiny margin but are spatially surrounded by another plane. Safety dissolve (minPlaneSize) is intentionally disabled — coherence handles it; small surviving planes (dormers, chimneys) are real.",
+      "params_used": ["coherence_majority", "coherence_max_rounds", "coherence_min_votes"]
+    },
+    {
+      "id": "final-refit",
+      "name": "Final per-plane LS refit",
+      "description": "Plain LS on each alive plane's resolved owner set (no strip averaging — strip balance has been achieved through iter refits). Equation written into grm-plane-equations."
+    },
+    {
+      "id": "boundary-scan",
+      "name": "Ridge mask + residual emit",
+      "description": "Ridge mask: for each assigned point, mark 1 iff any searchRadius neighbor has a different (non-unassigned) owner. Residual array: |signed_dist(point → owner_eq)|, +Inf for unassigned. Both consumed downstream — residual is load-bearing for boundary-polygons/regularize WSD trust weighting (bench-v2 commit 251efb6)."
+    }
+  ],
+  "parameters": [
+    {
+      "name": "distThreshold",
+      "type": "double",
+      "default": 0.12,
+      "unit": "m",
+      "summary": "Max point-to-plane distance for growth, residual checks, coherence gate, and merge offset scaling.",
+      "rationale": "v2 hardcoded literal (0.12m). Was 0.09 derived from zNoise=0.02, raised to 0.12 to absorb IGN LiDAR HD ~5cm inter-strip calibration offsets. v3: sentinel -1 means 'auto from per-bldg bldg-thresholds artifact' (v7-derive-thresholds.dist_threshold_grm); explicit pipeline param wins."
+    },
+    {
+      "name": "maxDegradation",
+      "type": "double",
+      "default": 0.04,
+      "unit": "m",
+      "summary": "Max RMS worsening tolerated per refit, and merge RMS-cap headroom.",
+      "rationale": "v2: 2 × zNoise(0.02) = 0.04. RMS-revert gate: if refit RMS > previousRMS + maxDegradation, treat the growth as runaway and reject."
+    },
+    {
+      "name": "maxIterations",
+      "type": "int32",
+      "default": 5,
+      "summary": "Hard cap on grow→refit→merge iterations.",
+      "rationale": "Diffusion-limited growth needs one wavefront per iteration. v2 meta.js claims 10, but v2 body's actual fallback is 5 — v3 bakes the body's value (faithful port). One iteration handles ~searchRadiusMax of wavefront propagation."
+    },
+    {
+      "name": "stableThreshold",
+      "type": "double",
+      "default": 0.002,
+      "summary": "Stop when Δclaims/n_pool drops below this fraction and zero merges/reverts.",
+      "rationale": "v2 default, unchanged."
+    },
+    {
+      "name": "searchRadiusScale",
+      "type": "double",
+      "default": 3.0,
+      "summary": "Growth neighborhood scale: radius = scale × √weight / √density.",
+      "rationale": "v2 default. Density compensation lineage tracks back to ransac-density-compensation (commit 30ae88a, 2026-03-15)."
+    },
+    {
+      "name": "searchRadiusMax",
+      "type": "double",
+      "default": 1.0,
+      "unit": "m",
+      "summary": "Clamp on growth neighborhood radius.",
+      "rationale": "Prevents pathologically large radii at low-density tiles or high point-weights."
+    },
+    {
+      "name": "density",
+      "type": "double",
+      "default": -1,
+      "unit": "pts/m²",
+      "summary": "Density used to scale search radius. -1 sentinel = auto from bldg-thresholds (v7-derive-thresholds).",
+      "rationale": "v3 GRM is per-building while v2 is tile-wide. Using full-tile density would mis-scale radius by √(tile_area/bldg_area) (1.4× on dahouet). The v7-derive-thresholds step emits per-bldg density (n_pts / bbox_area over the two non-up axes, matching v2 tile-signals formula applied to GRM's actual operating set). Pipeline param overrides if explicitly set. Old hardcoded default 25.0 (impl.c:25) was dropped at step v4 — see commit 4ac68ab."
+    },
+    {
+      "name": "mergeAngleDeg",
+      "type": "double",
+      "default": 10.0,
+      "unit": "deg",
+      "summary": "Max angle between normals for coplanar merge candidacy (non-wall pairs)."
+    },
+    {
+      "name": "mergeWallAngleDeg",
+      "type": "double",
+      "default": 15.0,
+      "unit": "deg",
+      "summary": "Looser angle threshold for wall-wall merge pairs (both tilts > wallTiltDeg).",
+      "rationale": "Wall LS fits have ~5° extra normal-direction jitter from sparse grazing-angle returns; 15° accommodates without over-merging roofs (commit a481f2e)."
+    },
+    {
+      "name": "mergeOffsetScale",
+      "type": "double",
+      "default": 2.0,
+      "summary": "Max plane-to-plane offset for merge = scale × distThreshold."
+    },
+    {
+      "name": "mergeMinSharedPts",
+      "type": "int32",
+      "default": 3,
+      "summary": "Connexity gate: ≥ this many of plane j's points must touch plane i within searchRadius."
+    },
+    {
+      "name": "wallTiltDeg",
+      "type": "double",
+      "default": 70.0,
+      "unit": "deg",
+      "summary": "Threshold above which a plane is wall-classified for merge thresholds."
+    },
+    {
+      "name": "coherenceMajority",
+      "type": "double",
+      "default": 0.70,
+      "summary": "Required majority fraction of kNN votes to trigger reassignment in coherence pass."
+    },
+    {
+      "name": "coherenceMaxRounds",
+      "type": "int32",
+      "default": 5,
+      "summary": "Cap on coherence-smoothing rounds (early-stop on zero moves)."
+    },
+    {
+      "name": "coherenceMinVotes",
+      "type": "int32",
+      "default": 3,
+      "summary": "Minimum number of assigned kNN votes required before a coherence decision is taken."
+    },
+    {
+      "name": "upAxis",
+      "type": "int32",
+      "default": 2,
+      "summary": "0/1/2 = x/y/z — used for tilt computation in wall classification.",
+      "rationale": "v3 prod LAZ is z-up (=2); v2 bench frame is y-up (impl default =1). step wrapper overrides to 2 for prod. Tilt is rotation-invariant for the segmentation algorithm itself."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64×3·N point positions."
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building record (header + footprint verts + global point indices).",
+      "array": true
+    },
+    {
+      "name": "building-local-frames",
+      "description": "Per-building centroid (F64×3). Positions are centroid-shifted then F32-cast for the per-bldg kd-tree compatibility, then re-promoted to F64 for the algorithm.",
+      "array": true
+    },
+    {
+      "name": "building-kd-trees",
+      "description": "Per-building serialised kd-tree.",
+      "array": true
+    },
+    {
+      "name": "cs-planes",
+      "description": "Per-building ARRAY_INLINE of cascade-seed plane records (header + LOCAL seedIndices). Each entry seeds one plane of the iterative segmentation.",
+      "array": true,
+      "produced_by": "v7-normal-cascade-seed"
+    },
+    {
+      "name": "dv2-ghost-planes",
+      "description": "Per-building ARRAY_INLINE of pre-GRM RANSAC ghost-plane seeds (from density-voids-2). Appended after cascade seeds; flagged is_ghost in the output seed-planes record.",
+      "array": true,
+      "produced_by": "v7-density-voids-2"
+    },
+    {
+      "name": "point-source-ids",
+      "description": "U16 globals — flight strip ID per point. NULL → single-strip refit fallback (skips PSID averaging path)."
+    },
+    {
+      "name": "bldg-thresholds",
+      "description": "Per-building ARRAY_INLINE: density, spacing, z_noise, dist_threshold_seed, dist_threshold_grm. Single source of truth for sensor-derived thresholds (added at step v4, commit 4ac68ab).",
+      "array": true,
+      "produced_by": "v7-derive-thresholds"
+    },
+    {
+      "name": "ts-weights",
+      "description": "Per-building F32 per-point density weight (Voronoi cell area π·d_k²/k) from v7-tile-signals. Wired 0c3e28a (2026-05-28); area-weights the iterative LS plane refit (v7-plane-fit). REQUIRED — the fit primitive aborts on NULL.",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    }
+  ],
+  "writes": [
+    {
+      "name": "grm-owner",
+      "description": "Per-building Int16 plane id per point (-1 = unassigned).",
+      "array": true,
+      "visibility": "public"
+    },
+    {
+      "name": "grm-ridge-candidates",
+      "description": "Per-building Uint8 mask: 1 if any neighbor has a different owner.",
+      "array": true,
+      "visibility": "public"
+    },
+    {
+      "name": "grm-residual",
+      "description": "Per-building F32 |signed-dist| to the assigned plane. +Inf for unassigned. Load-bearing for downstream WSD trust weighting.",
+      "array": true,
+      "visibility": "public"
+    },
+    {
+      "name": "grm-plane-equations",
+      "description": "Per-building ARRAY_INLINE, fixed-stride 32B per plane (f64×3 normal + f64 d). Tombstoned planes keep their last-known equation (matches v2 layout).",
+      "array": true,
+      "visibility": "public"
+    },
+    {
+      "name": "grm-seed-planes",
+      "description": "Per-building ARRAY_INLINE — full plane record (header with normal/d/tilt/azimuth/rms/inlier_count/source_seed_index/is_ghost/tombstoned + LOCAL seedIndices). One entry per plane including tombstoned ones.",
+      "array": true,
+      "visibility": "debug"
+    },
+    {
+      "name": "grm-distance-threshold",
+      "description": "Per-building F64 scalar — echoes effective distThreshold. Picked up by boundary-chain WSD trust normaliser.",
+      "array": true,
+      "visibility": "debug"
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "Per-building scope (v3) vs tile-wide (v2)",
+      "task": "Phase 5.5",
+      "commit": "3190435",
+      "rationale": "v3 extract-buildings runs upstream and reduces the working set to per-bldg subsets. GRM runs per-bldg; positions are centroid-shifted to that bldg's local frame. Density must be per-bldg or radii mis-scale by √(tile_area/bldg_area)."
+    },
+    {
+      "topic": "Drops lidar-density / lidar-z-noise reads",
+      "task": "Phase 5.5 / Phase 5.5 audit",
+      "commit": "3190435",
+      "rationale": "Sensor-derived thresholds become direct step params (density, dist_threshold, max_degradation). Same trim as the seed step. Later (commit 4ac68ab) re-centralized via the bldg-thresholds artifact emitted by v7-derive-thresholds — pipeline params still win if explicitly set."
+    },
+    {
+      "topic": "Drops the duplicate plane-equations read",
+      "task": "Phase 5.5",
+      "commit": "3190435",
+      "rationale": "v2 read plane-equations alongside seed-planes (both held the equation prefix). v3 lives on the cascade-seed record which already carries normal/d. Emission still happens (grm-plane-equations) for downstream consumers."
+    },
+    {
+      "topic": "Single grm-seed-planes record fuses v2's seed-planes-out + plane-equations",
+      "task": "Phase 5.5",
+      "commit": "3190435",
+      "rationale": "v2 emitted both as separate artifacts. v3 carries one ARRAY_INLINE with a 64B header whose {normal,d} prefix doubles as the plane-equations record (also re-emitted separately as fixed-stride 32B for cache locality). Tombstoned planes are kept (not compacted) — boundary downstream depends on stable plane indices."
+    },
+    {
+      "topic": "maxIterations defaults to 5, not 10",
+      "task": "Phase 5.5",
+      "commit": "3190435",
+      "rationale": "v2 meta.js advertises 10 but v2 body's actual fallback is 5 (`params.maxIterations ?? 5`). v3 bakes the body's actual value — keeps byte-id'l output."
+    },
+    {
+      "topic": "STRIP_ALIGN_MIN=0.5 reject path in per-PSID averaging (audit #274)",
+      "task": "audit #274",
+      "commit": "(working tree — step bumped to v4, v2 bumped to v9)",
+      "rationale": "FP-coin-flip guard: `sign = dot > 0 ? 1 : -1` is undefined behavior when |dot| ≈ 0 (a strip's normal nearly perpendicular to ref). For co-planar strips that's pathological — reject strips with |dot| < 0.5 (≈ 60° from ref) from the averaged equation rather than letting FP rounding flip their sign. If <2 strips survive, fall through to single-LSQ. 0.5 chosen tight enough to reject pathology, loose enough to keep noisy-but-co-planar fits. Backported to v2 grow-refit-merge.js v9. See impl.c:267 and grow-refit-merge.js:269."
+    },
+    {
+      "topic": "ts-weights wired through (RESOLVED — was previously NULL)",
+      "task": "(wiring quirk resolved)",
+      "commit": "0c3e28a",
+      "rationale": "RESOLVED 2026-05-28 (commit 0c3e28a 'unify plane-fit weighting — area-weighted PCA everywhere'). Previously the v3 wrapper passed point_weights=NULL (matching v2's unwired bench behaviour). Now ts-weights is plumbed through and every v7_plane_fit_lsq refit in the grow/refit/merge loop is area-weighted; the fit primitive aborts on NULL. FIXED in v6 (2026-06-01): the degradation gate and coplanar-merge gate now judge fit quality with a WEIGHT-FREE geometric RMS (geom_rms_plane = sqrt(Σ perpendicular_dist²/n)), and the reported plane rms is geometric too. Only the plane FIT stays area-weighted (correct — de-biases the sampling when estimating tilt/offset). Rationale: the per-point weight is a tangential Voronoi-area quantity with no bearing on perpendicular fit quality, it up-weights the noisiest (sparse swath-edge) points, and max_degradation=0.04 is calibrated as 2·σ_z in real metres — which only the geometric RMS reports. Earlier (v4→v5) the gate compared the weighted eigenvalue rms against an unweighted baseline."
+    },
+    {
+      "topic": "F32-cast positions before re-promotion to F64",
+      "task": "(byte-parity)",
+      "commit": "3190435",
+      "rationale": "Per-bldg positions are centroid-shifted, cast to F32, then re-cast to F64 before the algorithm runs. Matches v2's behavior where the kd-tree's underlying positions are F32. Drops ~12 bits of mantissa per coord — measurable but not visible at dist_threshold=0.12m scale."
+    }
+  ],
+  "related": [
+    {
+      "type": "commit",
+      "sha": "3190435",
+      "date": "2026-05-10",
+      "summary": "v3 Phase 5.5 — initial port. All 6 outputs byte-identical to v2 on dahouet (0/45696 mismatches on owner/ridge-mask/residual, 90/90 plane equations within 1e-12, identical seedIndices, line-by-line matching iteration log)."
+    },
+    {
+      "type": "commit",
+      "sha": "a481f2e",
+      "date": "2026-04-20",
+      "summary": "v2 GRM v7 — the four core improvements over GSR-1: diffusion-limited grow, per-PSID refit, spatial coherence, wall-wall merge relaxation. distThreshold hardcoded to 0.12m here."
+    },
+    {
+      "type": "commit",
+      "sha": "251efb6",
+      "date": "2026-05-08",
+      "summary": "v2 GRM v7→v8 — adds point-plane-residual + point-plane-distance-threshold emissions for downstream WSD trust weighting in boundary-polygons + boundary-regularize."
+    },
+    {
+      "type": "commit",
+      "sha": "4ac68ab",
+      "date": "2026-05-16",
+      "summary": "Adds v7-derive-thresholds step. v3 GRM migrates from sentinel-auto-compute to per-bldg bldg-thresholds artifact (density, dist_threshold_grm). Step bumped to v4. Pipeline params still override."
+    },
+    {
+      "type": "commit",
+      "sha": "0f9ddf9",
+      "date": "2026-05-15",
+      "summary": "Bench-harness fix: boundary-* benches were reading PRE-GRM normals from grow-refit-merge_0.seed-planes.json (v2 spreads seedPlanesIn unchanged through normal/d). Real refitted normals live in plane-equations.json. Caused divergent ridge directions on bench output."
+    },
+    {
+      "type": "commit",
+      "sha": "30ae88a",
+      "date": "(history)",
+      "summary": "Original RANSAC density compensation — NaN bug fix + selective weighting + OwnerArray typedef. searchRadius = scale·√weight/√density formula lineage."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-16-grow-steal-resolve",
+      "link": "docs/journal/2026/03/2026-03-16-grow-steal-resolve.md",
+      "tags": ["GRM", "predecessor"],
+      "summary": "GSR-1: original unified plane expansion with equation refit and spatial coherence — the immediate predecessor of GRM (GSR-2). Documents the design GRM dropped (size-first resolve tiebreaker, per-20-pt refit during grow, Phase 2b smoothing, Phase 3 dissolve)."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-05-psid-metadata-deep-analysis",
+      "link": "docs/journal/2026/03/2026-03-05-psid-metadata-deep-analysis.md",
+      "tags": ["psid"],
+      "summary": "Background: why per-strip refit matters — IGN LiDAR HD ~5cm inter-strip calibration offsets bias single-LS fits toward the dominant strip."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "summary": "Port-level documentation: v3 v7 pipeline phasing and what's still pending."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/THRESHOLD-INVESTIGATION-DAHOUET.md",
+      "summary": "Threshold investigation that produced v7-derive-thresholds: per-bldg vs tile-wide density on dahouet, validation that v3 GRM bench is byte-id'l to v2 (algorithm correct) while v3 prod diverged due to threshold wiring."
+    }
+  ],
+  "open_questions": [
+    "Is the F32-cast of per-bldg positions necessary? The kd-tree is F32 but the algorithm runs in F64 — the cast drops ~12 bits of mantissa. Worth re-checking for byte-parity vs v2 when v3 prod kd-tree internal layout is finalised.",
+    "STRIP_ALIGN_MIN=0.5 is a heuristic — is 60° from ref actually the right cutoff? The rationale (audit #274) prevents FP-sign-of-zero pathology but the magnitude of the threshold has not been swept against ground-truth.",
+    "ts-weights IS wired through GRM (0c3e28a, 2026-05-28) — every plane FIT is area-weighted. The gates' RMS-weighting leak was FIXED in v6 (2026-06-01): degradation + merge gates and the reported rms now use a weight-free geometric residual; the fit stays weighted. Open: A/B v6 (geometric-gate) vs v5 (weighted-gate) on dahouet to confirm the regression direction.",
+    "Final-refit uses plain LS, not per-PSID. Is single-LS at this stage actually correct, or should the strip-averaging carry through? v2 makes the same choice (rationale: strip balance has already been achieved through iter refits) — but unverified on multi-strip pathological cases.",
+    "Per memory finding_v3_prod_grm_diverges: ~53% of v3-prod's owner divergence vs v2 remains unattributed after density + seed-16 fixes. Suspect kd-tree node-order (qsort non-stable on equal keys) — would resolve the remaining dahouet 7-vs-11 shared-edges gap."
+  ]
+}

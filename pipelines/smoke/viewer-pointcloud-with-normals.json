@@ -1,0 +1,11 @@
+{
+  "name": "viewer-pointcloud-with-normals",
+  "description": "B4 demo: viewer-pointcloud + per-point PCA normals. Adds compute-normals to the disc-extraction chain. Subscribe: lidar-normals (F32 interleaved nx,ny,nz). Requires network access to data.geopf.fr.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+    { "step": "compute-normals", "params": { "k": 16 } }
+  ]
+}

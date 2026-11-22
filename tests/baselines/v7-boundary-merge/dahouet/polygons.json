@@ -1,0 +1,363 @@
+[
+  {
+    "planeId": 1,
+    "nCorners": 4,
+    "cornerIds": [
+      13,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "planeId": 2,
+    "nCorners": 6,
+    "cornerIds": [
+      6,
+      7,
+      206,
+      1,
+      202,
+      34
+    ]
+  },
+  {
+    "planeId": 3,
+    "nCorners": 10,
+    "cornerIds": [
+      46,
+      57,
+      55,
+      59,
+      0,
+      51,
+      3,
+      52,
+      45,
+      58
+    ]
+  },
+  {
+    "planeId": 4,
+    "nCorners": 7,
+    "cornerIds": [
+      67,
+      72,
+      86,
+      52,
+      3,
+      95,
+      74
+    ]
+  },
+  {
+    "planeId": 5,
+    "nCorners": 6,
+    "cornerIds": [
+      59,
+      113,
+      4,
+      5,
+      2,
+      0
+    ]
+  },
+  {
+    "planeId": 7,
+    "nCorners": 4,
+    "cornerIds": [
+      115,
+      116,
+      117,
+      118
+    ]
+  },
+  {
+    "planeId": 9,
+    "nCorners": 4,
+    "cornerIds": [
+      132,
+      121,
+      95,
+      3
+    ]
+  },
+  {
+    "planeId": 10,
+    "nCorners": 4,
+    "cornerIds": [
+      61,
+      135,
+      134,
+      60
+    ]
+  },
+  {
+    "planeId": 11,
+    "nCorners": 7,
+    "cornerIds": [
+      51,
+      148,
+      138,
+      150,
+      140,
+      132,
+      3
+    ]
+  },
+  {
+    "planeId": 12,
+    "nCorners": 6,
+    "cornerIds": [
+      158,
+      161,
+      7,
+      6,
+      152,
+      160
+    ]
+  },
+  {
+    "planeId": 15,
+    "nCorners": 4,
+    "cornerIds": [
+      165,
+      164,
+      163,
+      162
+    ]
+  },
+  {
+    "planeId": 16,
+    "nCorners": 5,
+    "cornerIds": [
+      173,
+      172,
+      171,
+      169,
+      170
+    ]
+  },
+  {
+    "planeId": 17,
+    "nCorners": 4,
+    "cornerIds": [
+      177,
+      179,
+      2,
+      176
+    ]
+  },
+  {
+    "planeId": 19,
+    "nCorners": 4,
+    "cornerIds": [
+      184,
+      183,
+      180,
+      182
+    ]
+  },
+  {
+    "planeId": 20,
+    "nCorners": 5,
+    "cornerIds": [
+      189,
+      185,
+      188,
+      186,
+      187
+    ]
+  },
+  {
+    "planeId": 21,
+    "nCorners": 5,
+    "cornerIds": [
+      195,
+      196,
+      202,
+      1,
+      201
+    ]
+  },
+  {
+    "planeId": 23,
+    "nCorners": 4,
+    "cornerIds": [
+      206,
+      5,
+      4,
+      1
+    ]
+  },
+  {
+    "planeId": 31,
+    "nCorners": 3,
+    "cornerIds": [
+      217,
+      186,
+      221
+    ]
+  },
+  {
+    "planeId": 32,
+    "nCorners": 5,
+    "cornerIds": [
+      2,
+      179,
+      138,
+      148,
+      0
+    ]
+  },
+  {
+    "planeId": 37,
+    "nCorners": 4,
+    "cornerIds": [
+      232,
+      238,
+      235,
+      236
+    ]
+  },
+  {
+    "planeId": 42,
+    "nCorners": 3,
+    "cornerIds": [
+      12,
+      247,
+      248
+    ]
+  },
+  {
+    "planeId": 43,
+    "nCorners": 5,
+    "cornerIds": [
+      150,
+      252,
+      250,
+      251,
+      151
+    ]
+  },
+  {
+    "planeId": 46,
+    "nCorners": 5,
+    "cornerIds": [
+      255,
+      253,
+      160,
+      6,
+      44
+    ]
+  },
+  {
+    "planeId": 50,
+    "nCorners": 4,
+    "cornerIds": [
+      261,
+      259,
+      260,
+      257
+    ]
+  },
+  {
+    "planeId": 59,
+    "nCorners": 5,
+    "cornerIds": [
+      262,
+      265,
+      263,
+      264,
+      266
+    ]
+  },
+  {
+    "planeId": 63,
+    "nCorners": 5,
+    "cornerIds": [
+      118,
+      267,
+      268,
+      269,
+      117
+    ]
+  },
+  {
+    "planeId": 69,
+    "nCorners": 4,
+    "cornerIds": [
+      272,
+      274,
+      270,
+      271
+    ]
+  },
+  {
+    "planeId": 70,
+    "nCorners": 4,
+    "cornerIds": [
+      277,
+      275,
+      276,
+      278
+    ]
+  },
+  {
+    "planeId": 76,
+    "nCorners": 3,
+    "cornerIds": [
+      283,
+      280,
+      279
+    ]
+  },
+  {
+    "planeId": 77,
+    "nCorners": 4,
+    "cornerIds": [
+      287,
+      289,
+      288,
+      286
+    ]
+  },
+  {
+    "planeId": 78,
+    "nCorners": 4,
+    "cornerIds": [
+      292,
+      290,
+      291,
+      293
+    ]
+  },
+  {
+    "planeId": 81,
+    "nCorners": 3,
+    "cornerIds": [
+      294,
+      222,
+      295
+    ]
+  },
+  {
+    "planeId": 83,
+    "nCorners": 3,
+    "cornerIds": [
+      298,
+      297,
+      299
+    ]
+  },
+  {
+    "planeId": 87,
+    "nCorners": 4,
+    "cornerIds": [
+      247,
+      300,
+      301,
+      248
+    ]
+  }
+]

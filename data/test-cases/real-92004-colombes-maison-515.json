@@ -1,0 +1,79 @@
+{
+  "type": "real",
+  "id": "real-92004-colombes-maison-515",
+  "dataFile": "real-92004-colombes-maison-515.bin",
+  "footprint": [
+    {
+      "x": -10.628674126463011,
+      "z": -15.486245838925242
+    },
+    {
+      "x": -10.828674126416445,
+      "z": -15.386245838366449
+    },
+    {
+      "x": -4.428674126509577,
+      "z": -5.586245848797262
+    },
+    {
+      "x": 1.8713258635252714,
+      "z": -9.98624584916979
+    },
+    {
+      "x": -4.628674126463011,
+      "z": -19.686245839111507
+    },
+    {
+      "x": -8.128674126463011,
+      "z": -17.186245839111507
+    },
+    {
+      "x": -10.628674126463011,
+      "z": -15.486245838925242
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 60,
+    "point_count": 38335,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 48.905,
+    "lng": 2.287,
+    "commune_code": "92004",
+    "commune_name": "Asnières-sur-Seine",
+    "building_surface_m2": 88.7,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 647733.8287159865,
+      "y": 6867458.218389211
+    },
+    "imported_at": "2026-02-25T09:05:32.180Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 13.8,
+    "nature": "Indifférenciée",
+    "usage_1": "Commercial et services",
+    "materiaux_de_la_toiture": null,
+    "nombre_d_etages": null,
+    "altitude_minimale_sol": 29.6,
+    "altitude_minimale_toit": 43.4,
+    "altitude_maximale_toit": null
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 327,
+    "height": 341,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 647713.00004186,
+      "maxX": 647745.70004185,
+      "minZ": 6867453.80463506,
+      "maxZ": 6867487.90463505
+    }
+  }
+}

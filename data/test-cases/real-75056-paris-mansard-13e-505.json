@@ -1,0 +1,71 @@
+{
+  "type": "real",
+  "id": "real-75056-paris-mansard-13e-505",
+  "dataFile": "real-75056-paris-mansard-13e-505.bin",
+  "footprint": [
+    {
+      "x": -38.020775470882654,
+      "z": 28.8517781579867
+    },
+    {
+      "x": -37.12077547085937,
+      "z": 27.95177815761417
+    },
+    {
+      "x": -38.22077547083609,
+      "z": 26.8517781579867
+    },
+    {
+      "x": -39.12077547085937,
+      "z": 27.751778157427907
+    },
+    {
+      "x": -38.020775470882654,
+      "z": 28.8517781579867
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 2297,
+    "point_count": 38333,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 48.846,
+    "lng": 2.356,
+    "commune_code": "75056",
+    "commune_name": "Paris",
+    "building_surface_m2": 2,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 652738.2208133308,
+      "y": 6860854.356416818
+    },
+    "imported_at": "2026-02-25T09:00:30.058Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": null,
+    "nature": "Indifférenciée",
+    "usage_1": "Indifférencié",
+    "materiaux_de_la_toiture": null,
+    "nombre_d_etages": null,
+    "altitude_minimale_sol": 36.8,
+    "altitude_minimale_toit": null,
+    "altitude_maximale_toit": null
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 220,
+    "height": 220,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 652689.10003786,
+      "maxX": 652711.10003786,
+      "minZ": 6860815.50463866,
+      "maxZ": 6860837.50463866
+    }
+  }
+}

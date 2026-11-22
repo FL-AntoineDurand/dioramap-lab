@@ -1,0 +1,9 @@
+{
+  "name": "viewer-surround",
+  "description": "B10 smoke: canonicalize-location + the two surround fetchers (ortho + elevation). Wider-radius context tiles for the lab UI backdrop — defaults 600m radius, 1024-px ortho, 256-cell elevation. Clients that subscribe only to core artifacts should see these steps pruned from the DAG plan (validated by surround_gating_test).",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "fetch-ortho-surround",     "params": { "size_px": 1024, "radius_m": 600 } },
+    { "step": "fetch-elevation-surround", "params": { "grid_size": 256, "radius_m": 600 } }
+  ]
+}

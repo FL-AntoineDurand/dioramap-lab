@@ -1,0 +1,105 @@
+{
+  "name": "v7",
+  "description": "The canonical v7 roof-recon pipeline. Drives the full v7 chain (tile-signals \u2192 beam-incidence \u2192 hemisphere-segment \u2192 seed \u2192 density-voids \u2192 grow-refit-merge \u2192 boundary-topology \u2192 -signals \u2192 -corners \u2192 -polygons-2 \u2192 -regularize \u2192 -classify \u2192 wall-detect) from a bench-v2 real test case (.json + .bin sidecar), then emits two intrinsic-quality scores: v7-score-intrinsic on grm-* (the pre-wall-detect ROOF reconstruction quality) and v7-score-intrinsic-postwall on the post-wall-detect TLV + wd-owner (the FULL post-wall model quality). The delta tells you what wall-detect changed. Renamed from research-v7-tile-signals-real \u2014 the old name traced the historical extraction order. As of task #71 bp1 (v7-boundary-polygons) is retired; bp2 (v7-boundary-polygons-2) is the canonical polygon step and the v7-bp2 sibling pipeline was retired in the same task. See v3/docs/plan/PHASE-5-V7-PORT.md.",
+  "attributions": [
+    {
+      "label": "IGN \u2014 LiDAR HD",
+      "url": "https://geoservices.ign.fr/lidarhd"
+    },
+    {
+      "label": "Cadastre",
+      "url": "https://cadastre.gouv.fr/"
+    }
+  ],
+  "steps": [
+    {
+      "step": "v7-load-real-test-case",
+      "params": {
+        "spec": "data/test-cases/real-22186-dahouet-502.json"
+      }
+    },
+    {
+      "step": "extract-buildings",
+      "params": {
+        "min_points": 50,
+        "buffer_m": 5.0
+      }
+    },
+    {
+      "step": "build-building-kd-trees"
+    },
+    {
+      "step": "v7-derive-thresholds"
+    },
+    {
+      "step": "v7-tile-signals"
+    },
+    {
+      "step": "v7-beam-incidence"
+    },
+    {
+      "step": "v7-hemisphere-segment"
+    },
+    {
+      "step": "v7-normal-cascade-seed"
+    },
+    {
+      "step": "v7-density-voids-2"
+    },
+    {
+      "step": "v7-grow-refit-merge"
+    },
+    {
+      "step": "v7-boundary-topology"
+    },
+    {
+      "step": "v7-boundary-signals"
+    },
+    {
+      "step": "v7-boundary-corners"
+    },
+    {
+      "step": "v7-boundary-polygons-2"
+    },
+    {
+      "step": "v7-boundary-regularize",
+      "params": {
+        "cornerInsert": true,
+        "compactGate": true,
+        "compactGateEps": 0.05
+      }
+    },
+    {
+      "step": "v7-boundary-classify",
+      "params": {
+        "perimDist3D": 0.3,
+        "perimDistXZ": 0.3,
+        "perimCollinearMinDeg": 15.0,
+        "perimMinOverlapM": 0.3,
+        "wallTiltMinDeg": 72.0,
+        "pipProbeOffsetM": 0.15,
+        "pipStepLenM": 0.1,
+        "pipCoverageThreshold": 0.5
+      }
+    },
+    {
+      "step": "v7-wall-detect",
+      "params": {
+        "searchWidthM": 2.0,
+        "searchLengthBufferM": 1.0,
+        "overhangCapM": 1.5,
+        "mergeAngleDeg": 10.0,
+        "minBeamDownness": 0.05,
+        "yTopBufferM": 0.1,
+        "wallTiltMinDeg": 72.0,
+        "upAxis": 1
+      }
+    },
+    {
+      "step": "v7-score-intrinsic"
+    },
+    {
+      "step": "v7-score-intrinsic-postwall"
+    }
+  ]
+}

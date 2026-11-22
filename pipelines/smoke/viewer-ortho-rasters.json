@@ -1,0 +1,11 @@
+{
+  "name": "viewer-ortho-rasters",
+  "description": "B5b demo: ortho RGB + IRC raster channels at the LiDAR grid resolution. Subscribe: ortho-rgb-rasters, ortho-irc-rasters. Requires network access to data.geopf.fr.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "fetch-ortho-rgb", "params": { "size_px": 1024 } },
+    { "step": "fetch-ortho-irc", "params": { "size_px": 1024 } },
+    { "step": "build-ortho-rgb-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "build-ortho-irc-rasters", "params": { "cell_size_m": 0.5 } }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "selfint-collinear-parallel",
+  "category": "unit-self-intersect",
+  "description": "Documents the detector's design: parallel/collinear edges (denom~0) are NOT flagged as crossings. A thin rectangle whose long edges are parallel.",
+  "inputs": {
+    "vertices_uv": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        10,
+        0.001
+      ],
+      [
+        0,
+        0.001
+      ]
+    ]
+  },
+  "expected": {
+    "self_intersects": false
+  }
+}

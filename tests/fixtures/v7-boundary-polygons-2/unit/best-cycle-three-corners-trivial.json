@@ -1,0 +1,15 @@
+{
+  "id":          "best-cycle-three-corners-trivial",
+  "category":    "unit-best-cycle",
+  "description": "3 anchors forming a triangle. The only Hamiltonian cycle is [0,1,2] (mod rot+ref).",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "mode": "geometric",
+    "anchors": [
+      { "id": 10, "x": 0.0, "y": 0.0, "z": 0.0, "source": "concave" },
+      { "id": 11, "x": 5.0, "y": 0.0, "z": 0.0, "source": "concave" },
+      { "id": 12, "x": 2.5, "y": 4.0, "z": 0.0, "source": "concave" }
+    ]
+  },
+  "expected": { "cycle": [10, 11, 12] }
+}

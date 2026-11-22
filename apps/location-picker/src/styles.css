@@ -1,0 +1,151 @@
+/* dioramap-location-picker.css — bundled stylesheet shipped with the picker.
+ *
+ * Embedders load this once via:
+ *   <link rel="stylesheet"
+ *         href="dist/dioramap-location-picker.css">
+ *
+ * Theming surface: override --dioramap-picker-* custom properties on
+ * :root (or any ancestor of the picker container) AFTER our stylesheet.
+ * The picker uses its own variable namespace so it can coexist with the
+ * viewer's --dioramap-* variables without collision (the viewer accent
+ * defaults to indigo; the picker accent defaults to green).
+ *
+ * CSP note: shipping these rules as a static <link>'d stylesheet means
+ * embedders can drop 'unsafe-inline' from style-src. There is no inline
+ * <style>, no setAttribute('style'), and no .style.cssText assignment in
+ * the SDK source.
+ */
+
+/* ── Theming variables (public API) ────────────────────────────────── */
+:root {
+  /* Confirm-button accent (defaults to forest green). */
+  --dioramap-picker-confirm-bg: #2d5016;
+  --dioramap-picker-confirm-bg-hover: #3a6b1e;
+  --dioramap-picker-disabled-bg: #666666;
+
+  /* Surface (white panels — search, dropdown). */
+  --dioramap-picker-surface-bg: #ffffff;
+  --dioramap-picker-surface-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --dioramap-picker-dropdown-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --dioramap-picker-divider: #eeeeee;
+  --dioramap-picker-hover-bg: #f0f7ff;
+
+  /* Hint banner (red — "zoom in to confirm"). */
+  --dioramap-picker-hint-bg: rgba(220, 60, 60, 0.85);
+  --dioramap-picker-hint-text: #ffffff;
+
+  /* Bottom-of-map "click to pick" banner. */
+  --dioramap-picker-banner-bg: rgba(0, 0, 0, 0.6);
+  --dioramap-picker-banner-text: #ffffff;
+
+  /* Shape. */
+  --dioramap-picker-radius: 8px;
+
+  /* Typography. */
+  --dioramap-picker-font: system-ui, sans-serif;
+}
+
+/* ── Map container ─────────────────────────────────────────────────── */
+.dioramap-picker-map {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* ── Search bar (top-centre overlay) ───────────────────────────────── */
+.dioramap-picker-search {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: min(380px, calc(100% - 80px));
+}
+.dioramap-picker-search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--dioramap-picker-radius);
+  font-size: 14px;
+  box-shadow: var(--dioramap-picker-surface-shadow);
+  outline: none;
+  background: var(--dioramap-picker-surface-bg);
+}
+.dioramap-picker-search-dropdown {
+  background: var(--dioramap-picker-surface-bg);
+  border-radius: 0 0 var(--dioramap-picker-radius) var(--dioramap-picker-radius);
+  box-shadow: var(--dioramap-picker-dropdown-shadow);
+  overflow: hidden;
+  display: none;
+}
+.dioramap-picker-search-dropdown.is-active { display: block; }
+.dioramap-picker-search-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-top: 1px solid var(--dioramap-picker-divider);
+  background: var(--dioramap-picker-surface-bg);
+}
+.dioramap-picker-search-item:hover {
+  background: var(--dioramap-picker-hover-bg);
+}
+
+/* ── Confirm marker (next to picked point) ─────────────────────────── */
+.dioramap-picker-confirm-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+}
+.dioramap-picker-confirm-btn {
+  padding: 8px 18px;
+  background: var(--dioramap-picker-confirm-bg);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--dioramap-picker-radius);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--dioramap-picker-font);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  transition: opacity 0.2s, background 0.2s;
+}
+.dioramap-picker-confirm-btn:hover:not(:disabled) {
+  background: var(--dioramap-picker-confirm-bg-hover);
+}
+.dioramap-picker-confirm-btn:disabled {
+  background: var(--dioramap-picker-disabled-bg);
+  cursor: not-allowed;
+}
+
+/* ── "Zoom in to confirm" hint shown above disabled confirm ────────── */
+.dioramap-picker-zoom-hint {
+  font-size: 12px;
+  color: var(--dioramap-picker-hint-text);
+  background: var(--dioramap-picker-hint-bg);
+  padding: 5px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-family: var(--dioramap-picker-font);
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* ── Bottom banner ("Click to pick") ───────────────────────────────── */
+.dioramap-picker-banner {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: var(--dioramap-picker-banner-bg);
+  padding: 8px 20px;
+  border-radius: var(--dioramap-picker-radius);
+  color: var(--dioramap-picker-banner-text);
+  font-size: 13px;
+  font-family: var(--dioramap-picker-font);
+  pointer-events: none;
+}

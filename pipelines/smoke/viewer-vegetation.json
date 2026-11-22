@@ -1,0 +1,23 @@
+{
+  "name": "viewer-vegetation",
+  "description": "B6 end-to-end: full viewer pipeline through compute-normals + classify-vegetation. Produces per-point canopy + grass flags. Requires network access to data.geopf.fr + COPC.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+    { "step": "fetch-ortho-rgb", "params": { "size_px": 1024 } },
+    { "step": "fetch-ortho-irc", "params": { "size_px": 1024 } },
+    { "step": "fetch-cadastre-buildings", "params": { "max_count": 5000 } },
+    { "step": "build-lidar-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "compute-ndsm", "params": { "local_min_window": 3 } },
+    { "step": "compute-building-mask" },
+    { "step": "rasterize-cadastre-edges", "params": { "cell_size_m": 0.5, "thickness": 2 } },
+    { "step": "fit-cadastre-to-lidar", "params": { "cell_size_m": 0.5, "search_range_m": 15 } },
+    { "step": "compute-normals", "params": { "k": 16 } },
+    { "step": "build-tile-ndvi", "params": { "cell_size_m": 1.0 } },
+    { "step": "compute-normal-scatter", "params": { "cell_size_m": 1.0 } },
+    { "step": "compute-near-building-mask", "params": { "cell_size_m": 1.0, "dilate_r": 3 } },
+    { "step": "classify-vegetation", "params": { "cell_size_m": 1.0 } }
+  ]
+}

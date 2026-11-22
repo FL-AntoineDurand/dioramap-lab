@@ -1,0 +1,99 @@
+{
+  "type": "real",
+  "id": "real-06088-nice-vieuxnice-528",
+  "dataFile": "real-06088-nice-vieuxnice-528.bin",
+  "footprint": [
+    {
+      "x": 2.4400217360816896,
+      "z": -41.96176395379007
+    },
+    {
+      "x": 6.0400217360584065,
+      "z": -43.361763953231275
+    },
+    {
+      "x": 12.840021726093255,
+      "z": -46.361763953231275
+    },
+    {
+      "x": 15.240021726116538,
+      "z": -47.56176395341754
+    },
+    {
+      "x": 16.54002172604669,
+      "z": -44.861763953231275
+    },
+    {
+      "x": 20.04002172604669,
+      "z": -38.06176395341754
+    },
+    {
+      "x": 23.340021726093255,
+      "z": -31.761763953603804
+    },
+    {
+      "x": 8.640021736151539,
+      "z": -25.56176395341754
+    },
+    {
+      "x": 7.340021736104973,
+      "z": -25.96176395379007
+    },
+    {
+      "x": 5.140021736151539,
+      "z": -26.56176395341754
+    },
+    {
+      "x": 3.9400217360816896,
+      "z": -26.661763953976333
+    },
+    {
+      "x": 2.4400217360816896,
+      "z": -41.96176395379007
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 98,
+    "point_count": 89893,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 43.7102,
+    "lng": 7.262,
+    "commune_code": "06088",
+    "commune_name": "Nice",
+    "building_surface_m2": 295.8,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 1043410.1597223439,
+      "y": 6299400.042972826
+    },
+    "imported_at": "2026-02-25T15:05:24.180Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 21,
+    "nature": "Indifférenciée",
+    "usage_1": "Résidentiel",
+    "materiaux_de_la_toiture": "10",
+    "nombre_d_etages": 6,
+    "altitude_minimale_sol": 22.1,
+    "altitude_minimale_toit": 43.2,
+    "altitude_maximale_toit": 44.8
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 409,
+    "height": 420,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 1043402.59974408,
+      "maxX": 1043443.49974407,
+      "minZ": 6299415.60473678,
+      "maxZ": 6299457.60473678
+    }
+  }
+}

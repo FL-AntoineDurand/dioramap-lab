@@ -1,0 +1,71 @@
+{
+  "type": "real",
+  "id": "real-31555-toulouse-rangueil-523",
+  "dataFile": "real-31555-toulouse-rangueil-523.bin",
+  "footprint": [
+    {
+      "x": -11.111310746171512,
+      "z": -6.212808679789305
+    },
+    {
+      "x": -9.611310746171512,
+      "z": -9.112808680161834
+    },
+    {
+      "x": -8.111310756066814,
+      "z": -8.312808680348098
+    },
+    {
+      "x": -9.51131074607838,
+      "z": -5.412808679975569
+    },
+    {
+      "x": -11.111310746171512,
+      "z": -6.212808679789305
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 330,
+    "point_count": 38512,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 43.583,
+    "lng": 1.468,
+    "commune_code": "31555",
+    "commune_name": "Toulouse",
+    "building_surface_m2": 5.7,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 576232.8114027361,
+      "y": 6277194.09193148
+    },
+    "imported_at": "2026-02-25T15:03:56.158Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 15.3,
+    "nature": "Indifférenciée",
+    "usage_1": "Indifférencié",
+    "materiaux_de_la_toiture": null,
+    "nombre_d_etages": null,
+    "altitude_minimale_sol": 150.7,
+    "altitude_minimale_toit": 166,
+    "altitude_maximale_toit": 167.8
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 230,
+    "height": 237,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 576211.70009199,
+      "maxX": 576234.70009198,
+      "minZ": 6277189.50474016,
+      "maxZ": 6277213.20474016
+    }
+  }
+}

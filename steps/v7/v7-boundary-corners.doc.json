@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "step": "v7-boundary-corners",
+  "step_version": 6,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/boundary-corners.js",
+    "version": 3,
+    "extracted_from": "boundary-3d.js Phase D (commit c6ee72d, 2026-04-25)"
+  },
+  "summary": "Builds the unified per-building corner pool from upstream anchor sources: ridge-intersection corners, ridge-end corners, concave/convex anchors (from boundary-signals), and wall-bbox synthetic corners. Snaps remaining anchors onto nearby ridges, filters wrong-side convex anchors, then imports foreign-plane corners that fall on this plane (coplanar import). Emits a unified CORNERS section plus a new CORNER_MEMBERS section (per-corner pool-merge decomposition with source/authority/axis/ridge_id for boundary-regularize). Consumed downstream by boundary-polygons and boundary-merge.",
+  "phases": [
+    {
+      "id": "D.0",
+      "name": "Wall-bbox corners",
+      "description": "For vertical planes only (tilt ≥ wall_tilt_min_deg), synthesizes corners at the plane's group bbox extents projected back into world space (gated by wall_min_h_extent on bbox width). Gives walls a deterministic polygon when signal-derived corners are too sparse.",
+      "params_used": ["wall_tilt_min_deg", "wall_side_margin", "wall_min_h_extent"]
+    },
+    {
+      "id": "D.1a",
+      "name": "Ridge-intersection (RI) corner enrichment",
+      "description": "Pre-existing RI corners from boundary-topology get their planeIds, ridgeIds, dirsByPlane filled in by walking the ridges that meet at this corner."
+    },
+    {
+      "id": "D.1b",
+      "name": "Ridge-end corners",
+      "description": "Ridges with no intersection coverage at one end get a synthetic 'ridge-end' corner emitted at that end's clamped t-value."
+    },
+    {
+      "id": "D.2",
+      "name": "Ridge snap",
+      "description": "For each unsnapped concave/convex anchor, finds the nearest ridge within snap_radius. If found, snaps the anchor onto the ridge's clamped t-projection, records ridgeId, marks anchor as snapped.",
+      "params_used": ["snap_radius"]
+    },
+    {
+      "id": "D.2b",
+      "name": "Ridge-side filter (wrong-side kill)",
+      "description": "For each remaining unsnapped CONVEX anchor on plane g, tests against each ridge R of plane g: if perp distance to R's infinite line is ≤ ridge_side_max_dist AND the anchor is on the wrong side of R (opposite the plane interior, per RIDGE_LINES side_vec/side_sign), kill the anchor. Skipped on the anchor's snap-target ridge to avoid FP-sign-of-zero coin flips.",
+      "params_used": ["ridge_side_max_dist"],
+      "see_also": ["2026-05-17-wrong-side-corner-killing-review"]
+    },
+    {
+      "id": "D.3",
+      "name": "Pool registration",
+      "description": "All surviving anchors (RI, ridge-end, concave, convex, wall-bbox) are inserted into the per-building corner pool via v7p_entry_register* — within pool_merge_dist of any existing member, higher-priority sources (v7p_src_priority: RI > ridge-end > polygon-merge > concave/convex > coplanar) absorb lower-priority entries; otherwise a new pool entry is opened. Each pool entry carries a per-plane source_per_plane[] parallel to plane_ids[].",
+      "params_used": ["pool_merge_dist"]
+    },
+    {
+      "id": "D.4",
+      "name": "Coplanar import",
+      "description": "Scan the pool for foreign-plane corners that lie within coplanar_dist_threshold of this plane's equation AND have balance ≥ coplanar_balance_min on this plane's grid. Such corners get a 'coplanar' source label for this plane and are registered as members of this plane.",
+      "params_used": ["coplanar_dist_threshold", "coplanar_balance_min"]
+    }
+  ],
+  "parameters": [
+    {
+      "name": "snap_radius",
+      "type": "double",
+      "default": 0.30,
+      "unit": "m",
+      "summary": "Snap distance for concave/convex anchors to nearest ridge (D.2). Overridable via params JSON key snapRadius.",
+      "rationale": "Loose enough to capture anchors near a ridge but not yet on it (typical detector noise is 5–20 cm); tight enough to avoid snapping across a different ridge of the same plane. Empirically tuned on dahouet."
+    },
+    {
+      "name": "wall_tilt_min_deg",
+      "type": "double",
+      "default": 72.0,
+      "unit": "deg",
+      "summary": "Minimum tilt-from-horizontal for a plane to be treated as a wall in D.0. Overridable via params JSON key wallTiltMinDeg.",
+      "rationale": "72° matches the wall classification threshold used by boundary-classify; below this, normals are too horizontal to qualify."
+    },
+    {
+      "name": "wall_side_margin",
+      "type": "double",
+      "default": 0.30,
+      "unit": "m",
+      "summary": "Lateral inset for wall-bbox corners (D.0). Not overridable via params JSON in v3 (compile-time default only).",
+      "rationale": "Walls' edges are rarely perfectly aligned with the group's bbox extremes; small inward inset avoids placing corners on noise."
+    },
+    {
+      "name": "wall_min_h_extent",
+      "type": "double",
+      "default": 0.50,
+      "unit": "m",
+      "summary": "Minimum horizontal bbox width for a wall plane to emit D.0 corners. Not overridable via params JSON in v3.",
+      "rationale": "Guard against degenerate vertical strips whose group bbox is too narrow to yield meaningful 4-corner geometry."
+    },
+    {
+      "name": "pool_merge_dist",
+      "type": "double",
+      "default": 0.20,
+      "unit": "m",
+      "summary": "3D radius within which a new anchor merges into an existing pool entry (D.3). Overridable via params JSON key poolMergeDist.",
+      "rationale": "Slightly tighter than snap_radius so post-snap anchors that fell onto distinct ridge endpoints don't collapse together."
+    },
+    {
+      "name": "coplanar_dist_threshold",
+      "type": "double",
+      "default": 0.12,
+      "unit": "m",
+      "summary": "Max perpendicular distance from foreign corner to this plane's equation for coplanar import (D.4). Overridable via params JSON key coplanarDistThreshold.",
+      "rationale": "Tight: only corners physically on the plane should be imported. Loose values cause cross-plane corner pollution."
+    },
+    {
+      "name": "coplanar_balance_min",
+      "type": "double",
+      "default": 0.30,
+      "unit": "(dimensionless, [0,1])",
+      "summary": "Min balance-grid value at the foreign corner's projected location to qualify for coplanar import. Overridable via params JSON key coplanarBalanceMin.",
+      "rationale": "Ensures the foreign corner sits in a *populated* region of this plane's grid, not on a sparse fringe."
+    },
+    {
+      "name": "ridge_side_max_dist",
+      "type": "double",
+      "default": 1.5,
+      "unit": "m",
+      "summary": "Local-neighborhood radius for the ridge-side filter (D.2b). Overridable via params JSON key ridgeSideMaxDist.",
+      "rationale": "Guard against courtyard-scale parallel ridges of the same plane — beyond this radius, two ridge-side relationships within a single plane are not meaningful constraints on each other. See related journal entry for the detailed design discussion; the value itself is a heuristic and the gate is under review.",
+      "see_also": ["2026-05-17-wrong-side-corner-killing-review"],
+      "history": [
+        {
+          "commit": "0378804",
+          "date": "2026-04-13",
+          "note": "Introduced at 0.6 m in boundary-3d's polygon optimization pipeline."
+        },
+        {
+          "commit": "0378804..c6ee72d",
+          "date": "2026-04-13 — 2026-04-25",
+          "note": "Widened to 1.5 m (commit not bisected — change happened during the boundary-3d → boundary-corners extraction)."
+        }
+      ]
+    },
+    {
+      "name": "up_axis",
+      "type": "int32",
+      "default": 2,
+      "summary": "World up axis: 1 = y-up (bench-parity mode), 2 = z-up (v3 prod default). Overridable via params JSON key upAxis.",
+      "rationale": "v3 prod data is z-up; bench-v2 parity testing uses y-up like the JS pipeline. Selected per-pipeline by the wrapper default (z-up) or by params override."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64×3·N point positions.",
+      "produced_by": "v7-tile-signals (upstream)"
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building record (point indices, bbox).",
+      "array": true
+    },
+    {
+      "name": "building-local-frames",
+      "description": "Per-building local frame (centroid + axes).",
+      "array": true
+    },
+    {
+      "name": "grm-owner",
+      "description": "Per-building Int16 owner array (which plane each building-point belongs to after grow-refit-merge).",
+      "array": true,
+      "produced_by": "v7-grow-refit-merge"
+    },
+    {
+      "name": "boundary-signals-roof-graph",
+      "description": "Per-building TLV — PLANES, RIDGES, RIDGE_LINES, CORNERS (RI seeds), PLANE_GRIDS (group + nearby + balance), NEARBY_PROJECTIONS, CONCAVE/CONVEX anchors.",
+      "array": true,
+      "produced_by": "v7-boundary-signals"
+    }
+  ],
+  "writes": [
+    {
+      "name": "boundary-corners-roof-graph",
+      "description": "Per-building TLV (ARRAY_INLINE). CORNERS section (0x06) replaced by the unified pool — records carry: position, planeIds, ridgeIds, source_per_plane, name, n_merged, dirsByPlane, com_bisector_by_plane. NEW: CORNER_MEMBERS section (0x07) added — per-corner pool-merge decomposition (point, source, authority, axis, ridge_id at 48B/member) for boundary-regularize. All other upstream sections (PLANES, RIDGES, RIDGE_LINES, NEARBY_PROJECTIONS, PLANE_GRIDS) pass through unchanged.",
+      "array": true,
+      "consumed_by": ["v7-boundary-polygons", "v7-boundary-merge"]
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "useMrAnchors / D.1c multi-return anchors removed",
+      "task": "(none)",
+      "commit": "",
+      "rationale": "Per v7-boundary-corners-impl.h:51 — 'useMrAnchors is GONE — MR points are an edge slide signal for boundary-regularize, not corners; they're emitted by an upstream step that boundary-regularize will own.' v2's optional D.1c phase and useMrAnchors param are not ported. The v2 default was already off (6c4dd2c), so this is a removal of dead-by-default code."
+    },
+    {
+      "topic": "mrPointsByPlane on CORNERS dropped",
+      "task": "(none)",
+      "commit": "",
+      "rationale": "Per v7-boundary-corners-impl.h:54 — handled in boundary-regularize. Not part of the v3 corner pool wire format."
+    },
+    {
+      "topic": "CORNER_MEMBERS section (0x07) added as a new write",
+      "task": "(none)",
+      "commit": "",
+      "rationale": "v3 externalizes the pool-merge decomposition (point + source + authority + axis + ridge_id, 48B/member) into its own roof-graph section so boundary-regularize can re-derive per-anchor degrees of freedom without re-running pool merging. v2 kept this implicit in JS object refs."
+    },
+    {
+      "topic": "PLANE_ANCHORS section dropped from upstream contract",
+      "task": "#237",
+      "commit": "116bcfa",
+      "rationale": "v2 boundary-signals emitted a separate PLANE_ANCHORS section; v3 folds anchors into the CORNERS section directly. Avoids a dead section in the wire format."
+    },
+    {
+      "topic": "source_per_plane parallel array added to CORNERS",
+      "task": "#254..#263",
+      "commit": "6187ffc",
+      "rationale": "The same pool entry needs different source labels for different planes (e.g., a corner that is 'convex' on plane 3 and 'coplanar' on plane 5). v2 had a single global source field; v3 makes it per-plane. Boundary-polygons reads per-plane source to honor priority correctly at init."
+    },
+    {
+      "topic": "D.2b skips side test on snap-target ridge",
+      "task": "(none)",
+      "commit": "1ea4570",
+      "rationale": "After snap, anchor sits *on* the ridge by construction so side_d is mathematically zero; FP rounding decides sign and randomly kills corners. Skip is a correctness fix, also backported to v2 (boundary-corners.js bumped 2 → 3)."
+    }
+  ],
+  "related": [
+    {
+      "type": "journal",
+      "id": "2026-05-17-wrong-side-corner-killing-review",
+      "link": "docs/journal/2026/05/2026-05-17-wrong-side-corner-killing-review.md",
+      "tags": ["D.2b", "ridge-side", "open-question", "anchors"],
+      "summary": "Comprehensive review of the wrong-side-corner-killing problem: two failure modes (segment range, courtyard parallel ridges), three candidate gates with pros/cons, U-shape counterexample, and the meta-critique that D.2b is treating an upstream symptom. Decision: keep current code aligned with v2 until v3 byte-parity is reached."
+    },
+    {
+      "type": "journal",
+      "id": "2026-04-14-roof-graph-prepass-boundary-3d",
+      "link": "docs/journal/2026/04/2026-04-14-roof-graph-prepass-boundary-3d.md",
+      "tags": ["roof-graph", "topology"],
+      "summary": "The roof-graph pre-pass that v7-boundary-corners + v7-boundary-polygons build on top of."
+    },
+    {
+      "type": "commit",
+      "sha": "d0a634a",
+      "date": "2026-05-13",
+      "summary": "Root-cause fix for dahouet 7-shared-edges bug: v7-boundary-topology was emitting has_side=0 unconditionally, so every D.2b side test was silently skipped."
+    },
+    {
+      "type": "commit",
+      "sha": "e692c24",
+      "date": "2026-05-13",
+      "summary": "Add asserts on flag conditions at all RIDGE_LINES consumer sites to prevent future has_side-style silent-skip bugs."
+    },
+    {
+      "type": "commit",
+      "sha": "6187ffc",
+      "date": "2026-05-12",
+      "summary": "Per-plane corner source — fixes coplanar-import label loss for corners that participate in multiple planes."
+    },
+    {
+      "type": "commit",
+      "sha": "1ea4570",
+      "date": "2026-05-13",
+      "summary": "D.2b skip side test on the snap-target ridge — FP-sign-of-zero protection."
+    },
+    {
+      "type": "commit",
+      "sha": "c6ee72d",
+      "date": "2026-04-25",
+      "summary": "v2: extract Pass 1 + coplanar import from boundary-3d into the standalone boundary-corners step."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/ROOF-GRAPH-FORMAT.md",
+      "section": "§4.6 CORNERS",
+      "summary": "Wire format spec for the CORNERS section (including source_per_plane and dirsByPlane subrecords) and §4.7 CORNER_MEMBERS."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "summary": "Port-level documentation: where v7-boundary-corners fits in the v3 v7 pipeline and what's still pending."
+    }
+  ],
+  "open_questions": [
+    "Should D.2b's perpendicular-distance test use the ridge SEGMENT (clamped t) instead of the infinite line? (See journal 2026-05-17, failure mode 1.)",
+    "Should outward-direction (com_bisector_by_plane) be a third stacked gate on D.2b, on top of segment-distance + max-distance? (Has a known U-shape failure mode — see journal.)",
+    "Should D.2b exist at all? Could upstream changes (boundary-signals weighting by plane-interior consistency, more aggressive D.2 snap) make wrong-side anchors rare enough that the filter becomes unnecessary?",
+    "What is the false-positive rate of D.2b across the bench corpus (legitimate corners killed vs spurious convex anchors correctly killed)? Currently unmeasured."
+  ]
+}

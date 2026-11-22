@@ -1,0 +1,18 @@
+{
+  "id":          "wsd-zero-perfect-enclose",
+  "category":    "unit-wsd",
+  "description": "Square polygon perfectly enclosing 100 group points + 20 nearby outside → WSD = 0",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "anchors": [
+      { "id": 0, "x": 0.0,  "y": 0.0,  "z": 0.0, "source": "concave" },
+      { "id": 1, "x": 10.0, "y": 0.0,  "z": 0.0, "source": "concave" },
+      { "id": 2, "x": 10.0, "y": 10.0, "z": 0.0, "source": "concave" },
+      { "id": 3, "x": 0.0,  "y": 10.0, "z": 0.0, "source": "concave" }
+    ],
+    "cycle": [0, 1, 2, 3],
+    "group_pts":  { "generator": "synth_cloud_inside",  "params": { "density": 4.0 } },
+    "nearby_pts": { "generator": "synth_cloud_outside", "params": { "offset": 0.5, "per_edge": 5 } }
+  },
+  "expected": { "wsd": 0.0, "tol": 1e-6 }
+}

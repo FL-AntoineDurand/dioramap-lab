@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "step": "v7-density-voids-2",
+  "step_version": 4,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/density-voids-2.js",
+    "version": 3,
+    "extracted_from": "density-voids.js (v1, meta.version=8) — same detect-rasterize-flood-rim pipeline, but v2 grew owner-claim + post-RANSAC re-emission of owner/plane-equations (commit d5bd492, 2026-04-18). density-voids-2.js (created in commit 835c50a, 2026-04-19) was forked to drop the owner dependency so it could run BEFORE segmentation as a pre-GSR seed source for grow-refit-merge."
+  },
+  "summary": "Pre-GSR ghost-plane seed detection. Rasterizes building points on a horizontal grid (XZ in y-up, XY in z-up), finds low-density patches via core-anchored 4-connected flood fill, dilates a Chebyshev rim around each surviving void, and RANSAC-fits a plane through rim-and-interior-survivor candidates pre-filtered by per-point normal tilt (drops walls and near-horizontal ground). Surviving fits are emitted as ghost-planes-2 with hull lifted onto each ghost equation. The canonical use case is south-facing slate dropout on dahouet, where specular solar reflection wipes out most returns and conventional segmentation never sees the plane; the void IS the signal. Designed to run pre-segmentation so grow-refit-merge consumes ghost equations as first-class seeds rather than grafting them on after the fact.",
+  "phases": [
+    {
+      "id": "1",
+      "name": "Horizontal bounds + grid sizing",
+      "description": "Compute (h0, h1) min/max over the per-building point pool (h0/h1 are the two non-up axes selected by up_axis: y-up → XZ, z-up → XY). Pad by one cell, compute cols/rows from cell_size."
+    },
+    {
+      "id": "2",
+      "name": "Rasterize (CSR)",
+      "description": "Bin each pool point into a cell, build CSR offsets + per-cell point lists. cell_size defaults to max(0.3, 2/√density); auto-derived from per-bldg `bldg-thresholds.density` (single source of truth) when density param is left at the sentinel −1.",
+      "params_used": ["cellSize", "density"]
+    },
+    {
+      "id": "3",
+      "name": "Occupancy + core cells",
+      "description": "OCCUPIED = count ≥ occupiedMinCount. CORE = empty cell with ≥ coreMinEmpty empty 8-neighbors. coreMinEmpty=6 rejects 1- and 2-cell-wide scan-stripe gaps (which have at most 5 empty 8-neighbors), keeping only real dropout patches.",
+      "params_used": ["occupiedMinCount", "coreMinEmpty"]
+    },
+    {
+      "id": "4",
+      "name": "Core-anchored 4-connected flood fill",
+      "description": "Seed BFS from core cells; propagate ONLY through cores. Non-core empty cells get absorbed as terminal 1-hop halo but don't themselves spread. Effect: a stripe gap attached to a real void absorbs exactly one stripe cell and stops — no bleed along stripe lines."
+    },
+    {
+      "id": "5",
+      "name": "Prune + reindex",
+      "description": "Drop components with < minVoidCells cells; reindex the survivors into a dense [0..n_voids) range.",
+      "params_used": ["minVoidCells"]
+    },
+    {
+      "id": "6",
+      "name": "Chebyshev rim extraction",
+      "description": "For each void cell, dilate a Chebyshev ball of radius rimDilation. Each touched occupied cell records its min Chebyshev distance and owning void id (closest-wins). Also records void cell centers (h0, h1) per void for the hull step.",
+      "params_used": ["rimDilation"]
+    },
+    {
+      "id": "7",
+      "name": "Candidate pools with normal pre-filter",
+      "description": "Two pools per void. Rim pass: occupied cells in the rim band contribute points; inner pool is the dist==1 rim ring. Interior-survivor pass: cells INSIDE the void with 0 < count < occupiedMinCount also contribute — those points sit directly on the ghost plane. Each candidate is normal-pre-filtered: |normal[up]| ∈ [roofTiltMin, roofTiltMax] keeps roof-tilt-like points and drops walls (|ny| near 0) and near-flat ground (|ny| near 1). NO owner dependency (unlike v1 density-voids) — this step runs before any segmentation exists.",
+      "params_used": ["roofTiltMin", "roofTiltMax"]
+    },
+    {
+      "id": "8",
+      "name": "RANSAC + LSQ refit per void",
+      "description": "Per void with ≥ minFitPts inner candidates, run ransacIterations of 3-point cross-product plane RANSAC against distThreshold. If ≥ minInliers inliers, LSQ-refit on the inlier set (keeping the RANSAC plane on degenerate refit). RANSAC uses the bit-faithful v7-mulberry32 PRNG so inlier sequences match v2's exactly. The RANSAC pool is the inner ring only — widening it to the full Chebyshev band lets distant ground/wall points dominate (a known failure mode: pulled a dahouet void from 43° to 0.8° tilt; see commit d5bd492 rationale).",
+      "params_used": ["minFitPts", "ransacIterations", "distThreshold", "minInliers", "seed"]
+    },
+    {
+      "id": "9",
+      "name": "Build ghost-planes-2 + viz blob",
+      "description": "For each fit with |normal[up]| ≥ minNormalY, compute the convex hull of the void's cell centers (monotone chain), lift each hull vertex onto the plane equation, and emit a ghost-plane record carrying normal/d/tilt/azimuth/rms, void_id, area = n_cells·cell_size², LOCAL inlier_indices, and the 3D hull. The 2D viz blob (counts grid, void_ids grid, rim_mask, per-rim-point classification: inlier/survivor/dist/filtered) is gated by emitVizArtifacts.",
+      "params_used": ["minNormalY", "emitVizArtifacts"]
+    }
+  ],
+  "parameters": [
+    {
+      "name": "cellSize",
+      "type": "double",
+      "default": 0.0,
+      "unit": "m",
+      "summary": "Horizontal grid cell size. 0 → derive from density: max(0.3, 2/√density).",
+      "rationale": "~2× point spacing keeps cells coarse enough that a single missing-point cell is statistically significant but fine enough to resolve typical roof-face dropout patches. Lower bound 0.3 m guards against pathologically dense data where 2/√density falls below sensor noise scale."
+    },
+    {
+      "name": "density",
+      "type": "double",
+      "default": -1.0,
+      "unit": "pts/m²",
+      "summary": "Tile/building point density. Sentinel −1 → look up from per-bldg `bldg-thresholds` artifact.",
+      "rationale": "Centralized via v7-derive-thresholds (commit 4ac68ab, 2026-05-16) so density and dist_threshold derive identically across DV2, GRM, boundary-topology. v3-prod's extract-buildings reduces the working set to per-bldg points (16092 pts on dahouet) so per-bldg density (19.872 pts/m²) calibrates cell-size correctly; pinning the impl default to 25 would over-coarsen."
+    },
+    {
+      "name": "distThreshold",
+      "type": "double",
+      "default": 0.09,
+      "unit": "m",
+      "summary": "RANSAC inlier distance threshold. Per-bldg auto from `bldg-thresholds.dist_threshold_seed` when 0/unset.",
+      "rationale": "= 4.5 × σ_z(0.02). Matches the seed-side threshold used by the rest of the v7 chain (v2 derives identically via deriveDistThreshold(zNoise)). Tighter than GRM's grow threshold because ghost-plane fits start from a heterogeneous rim cloud and need to reject more aggressively."
+    },
+    {
+      "name": "occupiedMinCount",
+      "type": "int32",
+      "default": 2,
+      "summary": "Min points per cell to be OCCUPIED.",
+      "rationale": "Default 2 treats single-point cells as empty so voids fill out cleanly. Lone survivors inside a dropout zone are the strongest signal that a ghost plane exists — they must NOT plug their own cell or the void fragments."
+    },
+    {
+      "name": "coreMinEmpty",
+      "type": "int32",
+      "default": 6,
+      "summary": "Min empty 8-neighbors for an empty cell to be a CORE.",
+      "rationale": "1- and 2-cell-wide scan-stripe gaps (a different LiDAR artifact) have at most 5 empty 8-neighbors per cell. coreMinEmpty=6 rejects them; real dropout patches have 7–8."
+    },
+    {
+      "name": "minVoidCells",
+      "type": "int32",
+      "default": 8,
+      "summary": "Discard void components smaller than this many cells.",
+      "rationale": "Smallest real dropout zone on dahouet is ~10 cells at ~0.4 m cell size (≈1.6 m²). 8 is a slight margin below."
+    },
+    {
+      "name": "rimDilation",
+      "type": "int32",
+      "default": 2,
+      "unit": "cells",
+      "summary": "Chebyshev rim band width around void cells.",
+      "rationale": "1 = immediate 8-neighbor ring (≈ inner-only pool); 2 picks up a thicker outer band. Used for the 2D viz + (in v1 density-voids) a separate outer pool for plane-claim evidence. DV2 only RANSACs the inner ring — see phase 8 rationale."
+    },
+    {
+      "name": "minFitPts",
+      "type": "int32",
+      "default": 10,
+      "summary": "Min inner candidates required to attempt RANSAC for a void.",
+      "rationale": "Below this RANSAC's 3-point sampling on a tiny candidate set degenerates into LSQ-on-everything; 10 is the empirical floor where the sampling actually explores hypotheses."
+    },
+    {
+      "name": "ransacIterations",
+      "type": "int32",
+      "default": 200,
+      "summary": "RANSAC iterations.",
+      "rationale": "Inherited from v2 _ransacPlaneGlobal default. Sufficient for the typical 10–80 candidate pools at the ~50% inlier ratio seen on dahouet ghost voids."
+    },
+    {
+      "name": "minInliers",
+      "type": "int32",
+      "default": 6,
+      "summary": "Min RANSAC inliers for a fit to be accepted.",
+      "rationale": "Below 6 the LSQ refit is rank-degenerate in practice for plane fits with realistic noise."
+    },
+    {
+      "name": "seed",
+      "type": "int32",
+      "default": 42,
+      "summary": "RNG seed for RANSAC sampling.",
+      "rationale": "Fixed for reproducibility. v7-mulberry32 self-checks the first 10 outputs against V8 reference values, so v3 inlier sequences match v2's bit-for-bit."
+    },
+    {
+      "name": "minNormalY",
+      "type": "double",
+      "default": 0.15,
+      "summary": "Min |normal[up_axis]| for hull lifting / ghost emission.",
+      "rationale": "Hull lift solves p[up] = −(n·p_horiz + d)/n[up]; |n[up]| < 0.15 makes this numerically unstable AND signals a near-vertical fit unlikely to be a roof plane. Drops these as invalid ghosts."
+    },
+    {
+      "name": "roofTiltMin",
+      "type": "double",
+      "default": 0.20,
+      "summary": "Min |normal[up]| of candidate points to qualify for the inner/outer pools. Set to 0 to disable.",
+      "rationale": "Excludes wall-like points (|ny| near 0) bleeding into the rim from adjacent walls. Without this, RANSAC on a rim that mixes wall + roof-tilt points often locks onto the wall."
+    },
+    {
+      "name": "roofTiltMax",
+      "type": "double",
+      "default": 0.98,
+      "summary": "Max |normal[up]| of candidate points. Set to 1 to disable.",
+      "rationale": "Excludes near-flat ground bleeding in from below the eave. Symmetric with roofTiltMin on the other end of the tilt spectrum."
+    },
+    {
+      "name": "upAxis",
+      "type": "int32",
+      "default": 2,
+      "summary": "Up axis index (1 = y-up bench frame; 2 = z-up LAZ production frame).",
+      "rationale": "Wrapper sets up_axis=2 (z-up) for v3 prod. The impl default is 1 (y-up) so the bench harness can byte-cmp against v2 dumps directly. Affects rasterization (uses the two non-up components), normal filtering (reads n[up]), and hull lift (solves for p[up])."
+    },
+    {
+      "name": "emitVizArtifacts",
+      "type": "bool",
+      "default": true,
+      "summary": "Emit the bulky 2D viz blob (counts grid + rim arrays + per-void summary).",
+      "rationale": "Mirrors v7-hemisphere-segment's emit-viz gate. Off in production runs to save serialization cost; on in the lab UI for the dv2-viz-2d inspector SVG (viz/dv2-viz-2d.viz.js)."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64×3·N point positions."
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building record (schema header + global point indices into lidar-positions).",
+      "array": true
+    },
+    {
+      "name": "building-local-frames",
+      "description": "Per-building F64×3 centroid used to centroid-shift positions for the per-bldg F32→F64 cast (matches hemisphere-segment's byte-consistency convention).",
+      "array": true
+    },
+    {
+      "name": "ts-normals",
+      "description": "Per-building F32×3·n_pts unit normals from v7-tile-signals, used by the per-point roofTilt pre-filter.",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    },
+    {
+      "name": "bldg-thresholds",
+      "description": "Per-building density + dist_threshold_seed/grm + z_noise. Sourced when density/distThreshold params are unset.",
+      "array": true,
+      "produced_by": "v7-derive-thresholds"
+    },
+    {
+      "name": "ts-weights",
+      "description": "Per-building F32 per-point density weight (Voronoi cell area π·d_k²/k) from v7-tile-signals. Wired 0c3e28a (2026-05-28); area-weights the post-RANSAC LS refit of each ghost plane. NOTE: the RANSAC itself (v7_ransac_plane) stays UNWEIGHTED — uniform sampling + inlier-count scoring — per the selective-weighting rule (journal 2026-03-15-v7-compare-segmentation-arena §4.0: never weight RANSAC sampling/scoring). Only the refit is weighted. REQUIRED — the fit primitive aborts on NULL.",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    }
+  ],
+  "writes": [
+    {
+      "name": "dv2-ghost-planes",
+      "description": "Per-building ARRAY_INLINE of ghost-plane records. 104-byte fixed-stride header (normal, d, tilt, azimuth, rms, centroid, area, void_id, inlier_count, hull_vert_count, reserved) followed by hull_vert_count×F64×3 hull verts and inlier_count×U32 LOCAL inlier_indices (into the building's point slice). Consumed by v7-grow-refit-merge as an additional seed source.",
+      "array": true,
+      "consumed_by": ["v7-grow-refit-merge"]
+    },
+    {
+      "name": "dv2-viz-2d",
+      "description": "Per-building ARRAY_INLINE viz blob (debug visibility). Fixed 56 B header (bounds, cell_size, cols, rows, rim_dilation, n_points) + counts grid (Int32) + void_ids grid (Int16) + rim_mask grid (U8) + per-void summary (120 B/record) + per-rim-point arrays (XY positions + void_id/inlier/survivor/dist/filtered flags). Rendered by viz/dv2-viz-2d.viz.js. Gated by emitVizArtifacts.",
+      "array": true
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "Dropped tile-wide `lidar-density` + `lidar-z-noise` artifact reads in favour of per-bldg `bldg-thresholds`",
+      "task": "(none)",
+      "commit": "4ac68ab",
+      "rationale": "v2 reads tile-wide artifacts and derives cellSize/distThreshold internally. v3-prod's extract-buildings reduces the working set to a per-bldg subset (16092 pts on dahouet); per-bldg density/z_noise from v7-derive-thresholds calibrates DV2 to its actual operating set. Pipeline params still override per-bldg, with sentinel −1 meaning 'auto from bldg-thresholds'. Initial port (commit 4515a4e) baked density=25 + distThreshold=0.09 as static defaults; 4ac68ab replaced that with the per-bldg source. Bumped step version 1 → 2."
+    },
+    {
+      "topic": "Output artifact rename: density-voids-2-2d → dv2-viz-2d, ghost-planes-2 → dv2-ghost-planes",
+      "task": "(none)",
+      "commit": "0f2d3c4",
+      "rationale": "Phase 1 eager rename pass — v3 artifact names are step-prefixed for unambiguous wiring. Lab UI viz files map back to the v2 bare-name for the inline SVG renderer."
+    },
+    {
+      "topic": "Axis-parameterized (up_axis) for dual-frame service",
+      "task": "(none)",
+      "commit": "4515a4e",
+      "rationale": "Same pure-compute impl serves both the bench harness (up_axis=1, y-up, byte-cmp against v2 dump) and the production wrapper (up_axis=2, z-up LAZ frame). Affects raster axes, normal-filter axis, and hull-lift axis. v2 was y-up-only."
+    },
+    {
+      "topic": "Emit-viz gating via emitVizArtifacts param",
+      "task": "(none)",
+      "commit": "4515a4e",
+      "rationale": "Mirrors v7-hemisphere-segment's emit-viz pattern. The 2D viz blob is bulky (counts/void_ids grids scale as cols·rows + rim arrays scale as n_rim); production runs skip it for serialization savings."
+    },
+    {
+      "topic": "Inlier indices stored LOCAL to building, not global",
+      "task": "(none)",
+      "commit": "4515a4e",
+      "rationale": "v3 per-bldg ARRAY_INLINE format stores indices into the building's point slice. v2's tile-wide step emitted global indices. Visualizers/consumers resolve LOCAL→3D via the sibling per-building-records + lidar-positions."
+    }
+  ],
+  "related": [
+    {
+      "type": "journal",
+      "id": "2026-04-02-density-dropout-physics-final",
+      "link": "docs/journal/2026/04/2026-04-02-density-dropout-physics-final.md",
+      "tags": ["physics", "slate", "specular", "dahouet", "ghost-plane"],
+      "summary": "Two-session physics modeling effort to predict where slate-dropout will occur (beam incidence + solar bisector + specular BRDF). All fits hit the absolute S/N paradox: standard link budget says dropout shouldn't happen. Conclusion: physics prediction is intractable; the geometric workaround (find the void shape and fit a plane through the rim) is what DV2 implements."
+    },
+    {
+      "type": "journal",
+      "id": "2026-04-01-lidar-point-density-physics-model",
+      "link": "docs/journal/2026/04/2026-04-01-lidar-point-density-physics-model.md",
+      "tags": ["physics", "density-model", "fitting"],
+      "summary": "First-session physics modeling — cos(θ_i) signal × SNR-degradation noise model on 14 plane samples. RMSE 1.95 with per-building D₀ but fails on ghost_SE."
+    },
+    {
+      "type": "journal",
+      "id": "2026-04-01-lidar-slate-physics-research",
+      "link": "docs/journal/2026/04/2026-04-01-lidar-slate-physics-research.md",
+      "tags": ["physics", "BRDF", "slate"],
+      "summary": "Background research on slate optics + LiDAR detection theory feeding the physics model attempts."
+    },
+    {
+      "type": "commit",
+      "sha": "dd630f3",
+      "date": "2026-04-17",
+      "summary": "v1 density-voids: original XZ-density-dropout step. Established the rasterize → occupancy → core cells → core-anchored flood → rim → RANSAC pipeline that DV2 inherits unchanged."
+    },
+    {
+      "type": "commit",
+      "sha": "d5bd492",
+      "date": "2026-04-18",
+      "summary": "v1 density-voids v8: split inner/outer candidate pools, owner-claim for connex planes, post-claim LSQ refit + ejection, re-emit owner/plane-equations. Established the inner-only-for-RANSAC rule that DV2 keeps (widening pulled a dahouet void from tilt 43° to 0.8°)."
+    },
+    {
+      "type": "commit",
+      "sha": "835c50a",
+      "date": "2026-04-19",
+      "summary": "v2 density-voids-2 created. Forked from density-voids to drop the owner dependency so detection can run BEFORE segmentation. Added the per-point roofTilt normal pre-filter to compensate for losing the owner-based wall/ground rejection. ghost-planes-2 reads as extra seeds in grow-refit-merge — wires into the main v7 path."
+    },
+    {
+      "type": "commit",
+      "sha": "4515a4e",
+      "date": "2026-05-09",
+      "summary": "v3 Phase 5.4 port — v7-density-voids-2. Byte-identical against v2 dump: 5/5 ghost planes match, all field diffs ≤ 1e-15. Introduces v7-mulberry32 + v7-ransac-plane shared primitives (RNG-call pattern preserved bit-for-bit so inlier sequences match v2's)."
+    },
+    {
+      "type": "commit",
+      "sha": "4ac68ab",
+      "date": "2026-05-16",
+      "summary": "v3 step_version 1 → 2: migrated from sentinel-auto density-compute to per-bldg `bldg-thresholds` consumption. Centralizes density/dist_threshold across DV2 + GRM + boundary-topology."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "section": "§5.4 + Decisions/gates",
+      "summary": "v7 port plan — DV2 sits between normal-cascade-seed and grow-refit-merge in the main segmentation path. Notes that DV2 was in active v2 iteration at port time."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/THRESHOLD-INVESTIGATION-DAHOUET.md",
+      "summary": "Threshold-investigation log: per-bldg density vs tile-wide on dahouet, validates DV2's per-bldg consumption against v2 bldgonly TCBD (19.872 pts/m²)."
+    },
+    {
+      "type": "test-case",
+      "link": "data/test-cases/real-22186-dahouet-502.json",
+      "summary": "Canonical dahouet test case: 7 slate roof planes at 45° tilt, south-facing planes (bay_cat P16, zero_gap P16) lose 35:1 of their points to specular dropout. ghost_SE plane has 10 P15 / 0 P16 points and is the textbook DV2 target (recovered as void #1 in commit 835c50a's run, 60/73 RANSAC inliers)."
+    }
+  ],
+  "open_questions": [
+    "Should DV2 widen the RANSAC pool past the inner ring once roofTilt-pre-filtering is in place? The d5bd492 rationale (wide pool dragged a dahouet void from 43° to 0.8°) predates the normal pre-filter — with walls/ground rejected per-point, the failure mode may be neutralized and a wider pool could rescue voids that lack enough inner-ring inliers.",
+    "Is the cell-size floor of 0.3 m still right for the per-bldg density regime (19–30 pts/m² typical)? Auto formula gives ≈0.36–0.40 m here, so the floor never kicks in on real cases; it only matters for synthetic high-density inputs.",
+    "Should ghost-plane RANSAC use weighted sampling biased toward interior-survivor points? They sit directly on the ghost plane (highest inlier confidence) and could anchor the hypothesis better than rim points (heterogeneous mix of adjacent planes).",
+    "Should the roofTilt band be auto-derived from each building's normal-cascade tilt histogram rather than fixed at [0.20, 0.98]? Wide-eave buildings on dahouet (45° slate) sit at |ny|≈0.71, comfortably inside the band, but the band would be wrong for flatter Mediterranean tile roofs.",
+    "DV2 has no claim mechanism (intentionally — it precedes segmentation). If a void's recovered ghost equation duplicates a normal-cascade seed within GRM's coplanar threshold, the duplicate seeds get merged in iter 1 anyway. Worth measuring duplicate-merge rate to confirm DV2 isn't just emitting noise that GRM filters out."
+  ]
+}

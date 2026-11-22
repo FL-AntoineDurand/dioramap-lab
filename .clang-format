@@ -1,0 +1,58 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Width
+ColumnLimit: 100
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+# Braces (K&R-ish: opening brace on same line except custom rules)
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: false
+  AfterControlStatement: Never
+  AfterStruct: false
+  AfterEnum: false
+  AfterUnion: false
+  BeforeElse: false
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignOperands: Align
+
+# Includes
+IncludeBlocks: Regroup
+SortIncludes: CaseSensitive
+IncludeCategories:
+  - Regex: '^<[a-z_]+\.h>$'       # C stdlib
+    Priority: 1
+  - Regex: '^<.*\.h>$'             # Other system
+    Priority: 2
+  - Regex: '^"v3/.*"$'             # Project public headers
+    Priority: 3
+  - Regex: '.*'                    # Project internal / local
+    Priority: 4
+
+# Pointers / spacing
+PointerAlignment: Left             # char* x, not char *x
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: false
+SpaceInEmptyParentheses: false
+
+# Line breaking
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+BinPackArguments: true
+BinPackParameters: true
+
+# Other
+KeepEmptyLinesAtTheStartOfBlocks: false
+ReflowComments: true

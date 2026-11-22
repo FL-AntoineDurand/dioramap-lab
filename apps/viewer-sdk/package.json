@@ -1,0 +1,22 @@
+{
+  "name": "@dioramap/viewer-sdk",
+  "license": "Apache-2.0",
+  "private": true,
+  "version": "0.9.0",
+  "type": "module",
+  "description": "Embeddable 3D viewer for scenes streamed by dioramap-processor. Rendering from @dioramap/scene-base, WebSocket plumbing from @dioramap/protocol.",
+  "scripts": {
+    "dev": "vite --port 5183 --host 0.0.0.0",
+    "build": "vite build",
+    "check:bundle-size": "node scripts/check-bundle-size.js",
+    "check": "npm run build && npm run check:bundle-size"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@dioramap/protocol": "file:../protocol",
+    "@dioramap/scene-base": "file:../scene-base",
+    "three": "^0.169.0"
+  }
+}

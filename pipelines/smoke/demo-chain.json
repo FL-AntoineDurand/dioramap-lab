@@ -1,0 +1,10 @@
+{
+  "name": "demo-chain",
+  "description": "Demo DAG exercising pipeline args + step params + fan-in. Input: {\"base\": int}. scale-by-factor and add-bias both read pipeline-input in parallel; multiply merges their outputs; report composes a JSON summary.",
+  "steps": [
+    { "step": "scale-by-factor", "params": { "factor": 3 } },
+    { "step": "add-bias",        "params": { "bias":   7 } },
+    { "step": "multiply" },
+    { "step": "report" }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id":          "best-cycle-self-cross-avoided",
+  "category":    "unit-best-cycle",
+  "description": "12 anchors on a circle (r=5), shuffled. Multi-start local search (n > V7_BP2_FULL_ENUM_MAX, so the full-enum path doesn't apply) must converge to a non-self-intersecting cycle (necessarily the convex hull order modulo rot+ref).",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "mode": "geometric",
+    "anchors": [
+      { "id":  0, "x":  5.0,    "y":  0.0,    "z": 0.0, "source": "concave" },
+      { "id":  3, "x":  2.5,    "y":  4.330,  "z": 0.0, "source": "concave" },
+      { "id":  6, "x": -2.5,    "y":  4.330,  "z": 0.0, "source": "concave" },
+      { "id":  9, "x": -5.0,    "y":  0.0,    "z": 0.0, "source": "concave" },
+      { "id":  1, "x":  4.330,  "y":  2.5,    "z": 0.0, "source": "concave" },
+      { "id":  4, "x":  0.0,    "y":  5.0,    "z": 0.0, "source": "concave" },
+      { "id":  7, "x": -4.330,  "y":  2.5,    "z": 0.0, "source": "concave" },
+      { "id": 10, "x": -4.330,  "y": -2.5,    "z": 0.0, "source": "concave" },
+      { "id":  2, "x":  4.330,  "y": -2.5,    "z": 0.0, "source": "concave" },
+      { "id":  5, "x":  2.5,    "y": -4.330,  "z": 0.0, "source": "concave" },
+      { "id":  8, "x": -2.5,    "y": -4.330,  "z": 0.0, "source": "concave" },
+      { "id": 11, "x":  0.0,    "y": -5.0,    "z": 0.0, "source": "concave" }
+    ]
+  },
+  "expected": { "no_self_intersect": true }
+}

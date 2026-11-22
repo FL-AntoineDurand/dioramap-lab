@@ -1,0 +1,71 @@
+{
+  "type": "real",
+  "id": "real-74010-annecy-vieilville-532",
+  "dataFile": "real-74010-annecy-vieilville-532.bin",
+  "footprint": [
+    {
+      "x": 0.4877261236542836,
+      "z": 4.483753305859864
+    },
+    {
+      "x": 0.4877261236542836,
+      "z": 5.383753316476941
+    },
+    {
+      "x": 1.4877261236542836,
+      "z": 5.383753316476941
+    },
+    {
+      "x": 1.4877261236542836,
+      "z": 4.483753316104412
+    },
+    {
+      "x": 0.4877261236542836,
+      "z": 4.483753305859864
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 21614,
+    "point_count": 76881,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 45.8992,
+    "lng": 6.1294,
+    "commune_code": "74010",
+    "commune_name": "Annecy",
+    "building_surface_m2": 0.9,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 942573.6120857063,
+      "y": 6538087.388498716
+    },
+    "imported_at": "2026-02-25T15:06:34.846Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 24.6,
+    "nature": "Indifférenciée",
+    "usage_1": "Commercial et services",
+    "materiaux_de_la_toiture": null,
+    "nombre_d_etages": null,
+    "altitude_minimale_sol": 448.3,
+    "altitude_minimale_toit": 472.9,
+    "altitude_maximale_toit": 473.1
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 210,
+    "height": 209,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 942564.09981183,
+      "maxX": 942585.09981183,
+      "minZ": 6538072.0047454,
+      "maxZ": 6538092.90474541
+    }
+  }
+}

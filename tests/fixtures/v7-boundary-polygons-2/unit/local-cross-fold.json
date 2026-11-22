@@ -1,0 +1,17 @@
+{
+  "id": "local-cross-fold",
+  "category": "unit-local-edges-cross",
+  "description": "Case (b): vertex 3 moved across the ring so edge (2->3) crosses the far edge (0->1) -> true. Base square (0,0)(10,0)(10,10)(0,10); v3 pulled down to (5,-5).",
+  "inputs": {
+    "vertices_uv": [
+      [0, 0],
+      [10, 0],
+      [10, 10],
+      [5, -5]
+    ],
+    "at_idx": 3
+  },
+  "expected": {
+    "cross": true
+  }
+}

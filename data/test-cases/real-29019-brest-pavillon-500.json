@@ -1,0 +1,71 @@
+{
+  "type": "real",
+  "id": "real-29019-brest-pavillon-500",
+  "dataFile": "real-29019-brest-pavillon-500.bin",
+  "footprint": [
+    {
+      "x": 34.360926388035296,
+      "z": -34.13998289313167
+    },
+    {
+      "x": 21.56092639802955,
+      "z": -21.63998290337622
+    },
+    {
+      "x": 26.760926388029475,
+      "z": -16.13998290337622
+    },
+    {
+      "x": 39.66092637804104,
+      "z": -28.839982903562486
+    },
+    {
+      "x": 34.360926388035296,
+      "z": -34.13998289313167
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 88,
+    "point_count": 185378,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 48.39,
+    "lng": -4.486,
+    "commune_code": "29019",
+    "commune_name": "Brest",
+    "building_surface_m2": 135.5,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 146636.13951514196,
+      "y": 6836217.364660647
+    },
+    "imported_at": "2026-02-25T08:56:24.980Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 6.3,
+    "nature": "Indifférenciée",
+    "usage_1": "Commercial et services",
+    "materiaux_de_la_toiture": "",
+    "nombre_d_etages": 1,
+    "altitude_minimale_sol": 50,
+    "altitude_minimale_toit": 56.3,
+    "altitude_maximale_toit": 59.2
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 381,
+    "height": 380,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 146647.70044154,
+      "maxX": 146685.80044152,
+      "minZ": 6836223.50464355,
+      "maxZ": 6836261.50464354
+    }
+  }
+}

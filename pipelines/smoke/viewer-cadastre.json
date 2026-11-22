@@ -1,0 +1,16 @@
+{
+  "name": "viewer-cadastre",
+  "description": "B5d end-to-end: cadastre fetch + rasterize + fit. Chains the full LiDAR pipeline through building-mask + cadastre fetcher + rasterize + fit → cadastre-fit JSON. Requires network access to data.geopf.fr + COPC.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+    { "step": "build-lidar-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "compute-ndsm", "params": { "local_min_window": 3 } },
+    { "step": "compute-building-mask" },
+    { "step": "fetch-cadastre-buildings", "params": { "max_count": 5000 } },
+    { "step": "rasterize-cadastre-edges", "params": { "cell_size_m": 0.5, "thickness": 2 } },
+    { "step": "fit-cadastre-to-lidar", "params": { "cell_size_m": 0.5, "search_range_m": 15 } }
+  ]
+}

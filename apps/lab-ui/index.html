@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>dioramap lab</title>
+    <link rel="stylesheet" href="/src/layout/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <span id="brand">dioramap · lab</span>
+        <span id="conn-status" class="status-dot" data-state="idle">disconnected</span>
+        <span id="session-token" class="mono"></span>
+        <span class="topbar-spacer"></span>
+        <button id="open-history" type="button" title="History (H)">History</button>
+      </header>
+
+      <main>
+        <!-- Column 1 — Pipelines (collapsible). The header is clickable
+             when expanded; the whole column is clickable when collapsed. -->
+        <aside id="pane-left" data-collapsed="false">
+          <section class="pane-block pane-collapsible-content">
+            <div id="pane-left-header"
+                 class="pane-header pane-header-clickable"
+                 role="button"
+                 tabindex="0"
+                 title="collapse pipelines column">
+              <span>Pipelines</span>
+            </div>
+            <div class="pane-block-body">
+              <input id="filter-pipelines" type="search" placeholder="filter…" class="pane-filter-input" />
+              <ul id="pipeline-list" class="list"></ul>
+            </div>
+          </section>
+          <div id="pane-left-spine"
+               class="pane-collapsed-spine"
+               role="button"
+               tabindex="0"
+               title="expand pipelines column">PIPELINES</div>
+        </aside>
+
+        <!-- Column 2 — Run + Timeline + Log. -->
+        <aside id="pane-run">
+          <section class="pane-block">
+            <div class="pane-header"><span>Run</span></div>
+            <div id="run-host"></div>
+          </section>
+          <section class="pane-block">
+            <div class="pane-header"><span>Timeline</span></div>
+            <div id="timeline-host"></div>
+          </section>
+          <section class="pane-block">
+            <div class="pane-header"><span>Log</span></div>
+            <div id="log-host"></div>
+          </section>
+        </aside>
+
+        <!-- Column 3 — DAG view ⇆ inspect-row.
+             Inspect: Artifacts | Renders | Viewer | (3D Scene Controls + Composite Views + Layers). -->
+        <section id="pane-center" data-mode="dag">
+          <div id="dag-host"></div>
+          <div id="layer-list-host"></div>
+          <div id="viewer-host"></div>
+          <div id="stack-host">
+            <div class="pane-header"><span>Renders</span></div>
+            <div id="stack-body"></div>
+          </div>
+          <!-- Right column: three same-size sections (3D Scene Controls
+               for viewer settings only; then Composite Views; then
+               Layers visibility tree). The viewer-toolbar splits
+               itself into two hosts: settings + layers tree. -->
+          <div id="scene-controls-host">
+            <div class="pane-header"><span>3D Scene Controls</span></div>
+            <div id="viewer-settings-host"></div>
+
+            <div class="pane-header"><span>Composite Views</span></div>
+            <div id="composite-views-host"></div>
+
+            <div class="pane-header"><span>Layers</span></div>
+            <div id="viewer-layers-host"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+# All third-party libraries are fetched by scripts/fetch-third-party.sh.
+# Pinned URLs + commits live in that script; patches live next to it.
+# Nothing under third_party/ should be tracked in git (except this .gitignore).
+#
+# To fetch every dep into this directory, run from the repo root:
+#   ./scripts/fetch-third-party.sh
+#
+# Re-run to update after a pin bump; --force to wipe + refetch; --check to
+# verify everything is present at the right SHA.
+#
+# laz-perf is fetched into third_party/copc-lib/libs/laz-perf/ as part of
+# the copc-lib clone block — see the script.
+
+copc-lib/
+PolyFit/
+cgal/
+roofer/

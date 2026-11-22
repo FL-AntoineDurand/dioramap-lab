@@ -1,0 +1,120 @@
+{
+  "n_planes": 49,
+  "n_ridges": 34,
+  "n_corners": 337,
+  "corners_by_source": {
+    "ridge_intersection": 11,
+    "concave": 207,
+    "convex": 119
+  },
+  "nearby_per_plane": [
+    {
+      "planeId": 0,
+      "nItems": 1907
+    },
+    {
+      "planeId": 2,
+      "nItems": 1195
+    },
+    {
+      "planeId": 3,
+      "nItems": 1241
+    },
+    {
+      "planeId": 4,
+      "nItems": 1380
+    },
+    {
+      "planeId": 5,
+      "nItems": 728
+    },
+    {
+      "planeId": 6,
+      "nItems": 559
+    },
+    {
+      "planeId": 7,
+      "nItems": 727
+    },
+    {
+      "planeId": 8,
+      "nItems": 767
+    },
+    {
+      "planeId": 9,
+      "nItems": 521
+    },
+    {
+      "planeId": 10,
+      "nItems": 269
+    },
+    {
+      "planeId": 11,
+      "nItems": 332
+    },
+    {
+      "planeId": 12,
+      "nItems": 282
+    },
+    {
+      "planeId": 13,
+      "nItems": 294
+    },
+    {
+      "planeId": 14,
+      "nItems": 144
+    },
+    {
+      "planeId": 15,
+      "nItems": 282
+    },
+    {
+      "planeId": 16,
+      "nItems": 462
+    },
+    {
+      "planeId": 17,
+      "nItems": 176
+    },
+    {
+      "planeId": 18,
+      "nItems": 91
+    },
+    {
+      "planeId": 22,
+      "nItems": 53
+    },
+    {
+      "planeId": 24,
+      "nItems": 95
+    },
+    {
+      "planeId": 25,
+      "nItems": 181
+    },
+    {
+      "planeId": 30,
+      "nItems": 13
+    },
+    {
+      "planeId": 36,
+      "nItems": 102
+    },
+    {
+      "planeId": 37,
+      "nItems": 70
+    },
+    {
+      "planeId": 38,
+      "nItems": 105
+    },
+    {
+      "planeId": 42,
+      "nItems": 51
+    },
+    {
+      "planeId": 47,
+      "nItems": 777
+    }
+  ]
+}

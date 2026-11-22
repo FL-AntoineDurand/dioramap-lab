@@ -1,0 +1,23 @@
+# Speed up the build context — don't ship dev artifacts into the image.
+build/
+build-asan/
+build-tsan/
+core/build/
+core/build-asan/
+core/build-tsan/
+*/node_modules/
+**/node_modules/
+*/dist/
+**/dist/
+**/.vite/
+.git/
+.idea/
+.vscode/
+**/*.log
+**/.cache/
+
+# laz-perf is cloned at Docker build time (Dockerfile RUN git clone),
+# pinned to a specific commit. If a developer cloned it locally for
+# out-of-Docker cmake builds, exclude that copy so COPY . doesn't
+# pre-populate the path and break the build's `git clone`.
+third_party/copc-lib/libs/laz-perf/

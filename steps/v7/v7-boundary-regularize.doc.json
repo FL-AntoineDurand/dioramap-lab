@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "step": "v7-boundary-regularize",
+  "step_version": 13,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/regularize.js",
+    "version": 0,
+    "extracted_from": "regularize-replay.js parity baseline + R.0/R.0b/R.1 cost terms; v3 evolved beyond v2 with the make-shared cascade (T0..T8 + L1) in 2026-06"
+  },
+  "summary": "DOF-aware corner-position optimiser over the roof-graph. Tags each corner's degrees of freedom from path topology + ridge incidence (R.0), reconciles plane-membership down to path-membership (R.0b), then runs a coordinate-descent loop (R.1) over corner positions minimising a weighted sum of cost terms: WSD (Wasserstein support distance to LiDAR), angle priors, neighbour-angle priors, horizontal-edge priors, joint two-corner moves, plus three coplanarity costs (horizontal/vertical/collinear). After each accepted move, runs CHASE_AFTER_MOVE: MERGE_CORNER cross-plane weld (T5) → DROP_REDUNDANT_ON_RIDGE (T6) → SPLIT_TO_SHARE_CORNER (T7) → R.2 proximity merge → R.3 collinear removal → snap-in (T4). Post-loop: L1 orphan-kill, then re-emit polygon_paths + EDGES from final polys[]. Replaces the separate v7-boundary-merge step (Path B, 2026-06-12).",
+  "phases": [
+    {
+      "id": "R.0",
+      "name": "Topological DOF tag + ridge index",
+      "description": "Build cs[].ridge_ids from corners_in[].ridge_ids ∩ rg[] clipped segments at τ_in=ridge_merge_coplanar_m. Build plane→ridges CSR index. Tag each corner's DOF from path membership (planes_of(ci) = path-scan) AND ridge incidence (DOF coupling, BR_DOF_COUPLE): dof = min(plane_dof, ridge_dof); a single-plane on-ridge corner gets DOF-1 with axis = ridge.rd."
+    },
+    {
+      "id": "R.0b",
+      "name": "Plane membership reconciliation (Phase B SSoT)",
+      "description": "polygon paths are the single source of truth for per-corner plane membership. planes_dyn is computed on demand from path-scan (was a stored field, deleted in v10). R.0 DOF is TOPOLOGICAL not geometric — fixes spurious over-locks where corners coplanar with a far plane were mis-tagged junctions. PRE-LOOP DROP_REDUNDANT_ON_RIDGE sweeps the all-polys-agree midpoint cleanup ONCE before any corner motion."
+    },
+    {
+      "id": "R.1",
+      "name": "Coordinate-descent loop with CHASE_AFTER_MOVE",
+      "description": "For each non-frozen corner, sample nudge offsets in [-nudge_range_m, +nudge_range_m] at nudge_step_m granularity along its DOF axes. Evaluate cost = Σ λ_i · term_i (WSD + angle + neighbour-angle + horizontal-edge + horiz/vert/collinear coplanarity). Acceptance: r1_acceptance_strategy=GLOBAL_BEST (matches v2). After accept, CHASE_AFTER_MOVE: MERGE_CORNER (T5 cross-plane weld via v7p_solve_member_position + M5 self-int reject via v7_local_edges_cross_uv) → DROP_REDUNDANT_ON_RIDGE (T6, in-loop) → SPLIT_TO_SHARE_CORNER (T7, the only growing op) → R.2 proximity merge → R.3 collinear removal → snap-in (T4). Optionally interleave joint two-corner moves (use_joint_moves). Terminate at max_iterations OR no-accept iteration.",
+      "params_used": ["max_iterations", "nudge_range_m", "nudge_step_m", "angle_snap_thresh_deg", "lambda_wsd", "wsd_sigma_m", "lambda_angle", "angle_sigma_deg", "lambda_neighbor_angle", "lambda_horizontal_edge", "horizontal_edge_sigma_deg", "use_extended_angles", "lambda_horiz_coplanar", "horiz_coplanar_sigma_m", "lambda_vert_coplanar", "vert_coplanar_sigma_m", "lambda_collinear", "collinear_sigma_m", "cost_shape", "r1_acceptance_strategy", "use_joint_moves", "joint_samples_per_edge", "joint_move_seed", "use_trust_weighting"]
+    },
+    {
+      "id": "make-shared",
+      "name": "Make-shared cascade (T4..T8 + L1)",
+      "description": "FIVE named ops on shared corners (all wired inside CHASE_AFTER_MOVE except orphan-kill which is post-loop). T4 SNAP_IN (one-way, idempotent) + read-only M1 guard preview. T5 MERGE_CORNER (cross-plane weld with type-gate {ridge,hip,valley}, position via constraint-aware solver, M5 self-int reject). T6 DROP_REDUNDANT_ON_RIDGE (all-polys-agree midpoint cleanup, pre-loop + in-loop). T7 SPLIT_TO_SHARE_CORNER (a single-plane DOF-1 corner cA on an allow-listed ridge R lies on a B-plane edge whose both endpoints carry ridge_id R → cA's id is inserted into polys[B]; cA does NOT move; growing op, gated by BR_NO_SPLIT). T8 close-out + SETTLE cascade. L1 orphan-kill (post-loop): mark dead any still-alive corner in no live polygon path."
+    },
+    {
+      "id": "emit",
+      "name": "Re-emit roof-graph + DOF + movements",
+      "description": "Re-emit polygon_paths + EDGES from final polys[] (was a pre-loop snapshot pre-v4 — missing in-loop R.2/R.3/R.4 edits caused dead-id refs). DOF records emit only alive corners (post L1 orphan-kill). Movements record per-corner pre/post position + Δ. The downstream classify step picks up the new EDGES for INTERIOR_SHARED classification."
+    }
+  ],
+  "parameters": [
+    {"name": "maxIterations", "type": "int32", "default": 200, "unit": "iterations", "summary": "Outer R.1 loop cap. Default lowered from 1000 → 200 (2026-05-30) — ablation on dahouet-bldgonly showed 90% of cost-improvement at iter ~19; cap=200 finishes at <2% worse cost than cap=1000 for 5× less wall time. See v3/docs/plan/BOUNDARY-REGULARIZE-PROFILE-PLAN.md."},
+    {"name": "nudgeRangeM", "type": "double", "default": 0.15, "unit": "m", "summary": "Per-corner nudge offset range [-range, +range] along each DOF axis."},
+    {"name": "nudgeStepM", "type": "double", "default": 0.03, "unit": "m", "summary": "Nudge sampling granularity. nudgeRange/nudgeStep = nudge samples per axis (default 10)."},
+    {"name": "angleSnapThreshDeg", "type": "double", "default": 20.0, "unit": "deg", "summary": "Polygon-angle snap window for canonical-angle costs."},
+    {"name": "useWsdCost", "type": "bool", "default": true, "summary": "Enable WSD-to-LiDAR cost term."},
+    {"name": "lambdaWsd", "type": "double", "default": 1.0, "summary": "WSD cost weight."},
+    {"name": "wsdSigmaM", "type": "double", "default": 1.0, "unit": "m", "summary": "WSD scale (linear, NOT Gaussian)."},
+    {"name": "useAngleCost", "type": "bool", "default": true, "summary": "Enable canonical-angle cost (polygon angles snap to {45,90,135,180}, or +{30,60,120,150} if useExtendedAngles)."},
+    {"name": "lambdaAngle", "type": "double", "default": 2.0, "summary": "Angle cost weight."},
+    {"name": "angleSigmaDeg", "type": "double", "default": 5.0, "unit": "deg", "summary": "Angle cost scale."},
+    {"name": "useNeighborAngleCost", "type": "bool", "default": true, "summary": "Enable per-corner neighbour-angle agreement cost."},
+    {"name": "lambdaNeighborAngle", "type": "double", "default": 2.0, "summary": "Neighbour-angle cost weight."},
+    {"name": "useHorizontalEdgeCost", "type": "bool", "default": true, "summary": "Enable cost favouring horizontal eaves / ridges."},
+    {"name": "lambdaHorizontalEdge", "type": "double", "default": 1.0, "summary": "Horizontal-edge cost weight."},
+    {"name": "horizontalEdgeSigmaDeg", "type": "double", "default": 15.0, "unit": "deg", "summary": "Horizontal-edge cost scale (deviation from horizontal)."},
+    {"name": "useTrustWeighting", "type": "bool", "default": true, "summary": "Per-WSD-point trust weight from upstream point-plane residual buffer."},
+    {"name": "useExtendedAngles", "type": "bool", "default": false, "summary": "false → canonical {45,90,135,180}; true → adds {30,60,120,150}."},
+    {"name": "useProximityMerge", "type": "bool", "default": true, "summary": "R.2 in-CHASE: merge two corners within proximityMergeDistM."},
+    {"name": "proximityMergeDistM", "type": "double", "default": 0.30, "unit": "m", "summary": "R.2 proximity merge threshold."},
+    {"name": "useCollinearRemoval", "type": "bool", "default": true, "summary": "R.3 in-CHASE: drop single-plane corners with polygon angle within collinearRemovalThresholdDeg of 180°."},
+    {"name": "collinearRemovalThresholdDeg", "type": "double", "default": 10.0, "unit": "deg", "summary": "R.3 redundant-midpoint threshold."},
+    {"name": "useRidgeMerge", "type": "bool", "default": true, "summary": "T5/T6/T7 make-shared cascade enable (BR_NO_R4=0 default ON; SPLIT step is independently gated by BR_NO_SPLIT, default OFF)."},
+    {"name": "ridgeMergeDistM", "type": "double", "default": 0.50, "unit": "m", "summary": "T5 MERGE_CORNER cross-plane weld threshold. 0.50 m matches dahouet's clean on-crease corner pairs (~0.4 m apart). See R.4 audit 2026-06-12."},
+    {"name": "ridgeMergeCoplanarM", "type": "double", "default": 0.30, "unit": "m", "summary": "τ_in for ridge_ids reality-intersect + snap-in incidence test."},
+    {"name": "useJointMoves", "type": "bool", "default": true, "summary": "Interleave two-corner edge-aligned offset samples."},
+    {"name": "jointSamplesPerEdge", "type": "int32", "default": 30, "summary": "Joint-move sample count per polygon edge."},
+    {"name": "jointMoveSeed", "type": "int32", "default": 0, "summary": "0 → libc rand (non-reproducible); nonzero → seeded splitmix."},
+    {"name": "useHorizCoplanarCost", "type": "bool", "default": true, "summary": "Cost favouring shared horizontal planes."},
+    {"name": "lambdaHorizCoplanar", "type": "double", "default": 1.0, "summary": "Weight."},
+    {"name": "horizCoplanarSigmaM", "type": "double", "default": 0.10, "unit": "m", "summary": "Scale."},
+    {"name": "useVertCoplanarCost", "type": "bool", "default": true, "summary": "Cost favouring shared vertical planes."},
+    {"name": "lambdaVertCoplanar", "type": "double", "default": 1.0, "summary": "Weight."},
+    {"name": "vertCoplanarSigmaM", "type": "double", "default": 0.10, "unit": "m", "summary": "Scale."},
+    {"name": "useCollinearCost", "type": "bool", "default": true, "summary": "Cost favouring shared collinear edges."},
+    {"name": "lambdaCollinear", "type": "double", "default": 1.0, "summary": "Weight."},
+    {"name": "collinearSigmaM", "type": "double", "default": 0.10, "unit": "m", "summary": "Scale."},
+    {"name": "costShape", "type": "int32", "default": 0, "summary": "0 = linear (matches v2); other values reserved."},
+    {"name": "r1AcceptanceStrategy", "type": "int32", "default": 0, "summary": "0 = GLOBAL_BEST (matches v2); 1 = GREEDY (first improving)."},
+    {"name": "upAxis", "type": "int32", "default": 1, "summary": "1 = y-up (impl is hardcoded y-up; the step wrapper applies the z-up↔y-up swap)."}
+  ],
+  "reads": [
+    {"name": "lidar-positions",            "summary": "F32×3·N global positions."},
+    {"name": "per-building-records",       "array": true, "summary": "Per-bldg metadata (centroid, point-range)."},
+    {"name": "building-local-frames",      "array": true, "summary": "Per-bldg local frame (centroid offset)."},
+    {"name": "boundary-polygons-roof-graph", "array": true, "summary": "Per-bldg TLV from upstream (bp2)."},
+    {"name": "grm-owner",                  "array": true, "summary": "Per-bldg I16×N point→plane assignment."},
+    {"name": "grm-residual",               "array": true, "summary": "Per-bldg F32×N |point-plane| (trust weight)."},
+    {"name": "bldg-thresholds",            "array": true, "summary": "Per-bldg derived thresholds (sentinel -1 = auto)."}
+  ],
+  "writes": [
+    {"name": "boundary-regularize-roof-graph", "kind": "ARRAY_INLINE", "visibility": "PUBLIC", "array": true, "summary": "Per-bldg TLV: PLANES + CORNERS (post-MERGE/L1) + EDGES + POLYGON_PATHS (re-emitted from final polys[]) + PERIMETER_TAGS overlay + ridge stats."}
+  ],
+  "envvars": [
+    {"name": "BR_NO_R4",      "default": "unset", "feature_default": "ON",  "summary": "Legacy R.4 crude make-shared (now: T5 MERGE_CORNER + T6 DROP + snap-in / guard preview). Env unset → feature ON. Set BR_NO_R4=1 (any value) to disable for A/B."},
+    {"name": "BR_NO_SPLIT",   "default": "unset", "feature_default": "ON",  "summary": "T7 SPLIT_TO_SHARE_CORNER. Env unset → SPLIT ON (the growing op fires). Set BR_NO_SPLIT=1 to disable for A/B."},
+    {"name": "BR_SNAP_IN",    "default": "unset", "feature_default": "ON",  "summary": "T4 in-loop snap-in. Default ON. Set BR_SNAP_IN=0 to suppress the FREE→RIDGE tag-write inside CHASE — loop output then byte-identical to pre-T4."},
+    {"name": "BR_DOF_COUPLE", "default": "unset", "feature_default": "ON",  "summary": "R.0 DOF coupling (min-DOF, ridge-axis on single-plane on-ridge corners). Set BR_DOF_COUPLE=0 to disable."},
+    {"name": "BR_PROFILE",    "default": "unset", "feature_default": "OFF", "summary": "Per-phase wall-time + metric counters → stderr summary at end of compute. Env present (any value) → profiling ON. ~30 ns per clock_gettime, negligible vs the work."},
+    {"name": "BR_CHECK",      "default": "unset", "feature_default": "?",   "summary": "Consistency gate — dead-id / edges⇔paths invariant. Recommended ON during dev (= the green-invariant signal). See brief from Stream B Quality Agent."},
+    {"name": "BR_TEST_RESERVE_FAIL", "default": "unset", "feature_default": "OFF", "summary": "Test-only OOM injection — forces poly_reserve / ctx_reserve to be treated as failed so SPLIT REJECTs cleanly (fixture E)."}
+  ],
+  "see_also": [
+    "docs/journal/2026/06/2026-06-14-in-loop-make-shared-design.md",
+    "docs/journal/2026/06/2026-06-20-in-loop-make-shared-cascade-complete.md",
+    "v3/docs/plan/BOUNDARY-REGULARIZE-PROFILE-PLAN.md",
+    "v3/scripts/frama-c/harnesses/v7/boundary_regularize_harness.c (audit harness — Path 3 drives make-shared ops, task #93)",
+    "v3/tests/v7-model-validity/ (Stream B GT-roof regression harness, in-progress task #73)"
+  ]
+}

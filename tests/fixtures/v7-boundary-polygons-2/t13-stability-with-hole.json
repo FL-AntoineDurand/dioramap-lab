@@ -1,0 +1,45 @@
+{
+  "id":          "t13-stability-with-hole",
+  "category":    "stability",
+  "description": "Stability oracle for the K=2 (outer + hole) case from t4: 100 runs with σ=1mm anchor noise, ≥99% must produce the same outer polygon ordering. The contour is fixed across runs (only anchors perturb), so bp3's anchor-to-contour projection should stay deterministic.",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "anchors": [
+      { "id": 0, "x":  0.0, "y":  0.0, "z": 0.0, "source": "concave" },
+      { "id": 1, "x": 10.0, "y":  0.0, "z": 0.0, "source": "concave" },
+      { "id": 2, "x": 10.0, "y": 10.0, "z": 0.0, "source": "concave" },
+      { "id": 3, "x":  0.0, "y": 10.0, "z": 0.0, "source": "concave" },
+      { "id": 4, "x":  4.0, "y":  4.0, "z": 0.0, "source": "concave" },
+      { "id": 5, "x":  6.0, "y":  4.0, "z": 0.0, "source": "concave" },
+      { "id": 6, "x":  6.0, "y":  6.0, "z": 0.0, "source": "concave" },
+      { "id": 7, "x":  4.0, "y":  6.0, "z": 0.0, "source": "concave" }
+    ],
+    "contours": [
+      {
+        "is_hole": false,
+        "polyU": [0.0, 10.0, 10.0, 0.0],
+        "polyV": [0.0, 0.0,  10.0, 10.0]
+      },
+      {
+        "is_hole": true,
+        "polyU": [4.0, 6.0, 6.0, 4.0],
+        "polyV": [4.0, 4.0, 6.0, 6.0]
+      }
+    ],
+    "group_pts": [
+      [1.0, 1.0, 0.0], [9.0, 1.0, 0.0], [9.0, 9.0, 0.0], [1.0, 9.0, 0.0],
+      [5.0, 1.0, 0.0], [9.0, 5.0, 0.0], [5.0, 9.0, 0.0], [1.0, 5.0, 0.0]
+    ],
+    "nearby_pts": [
+      [-1.0,  5.0, 0.0], [11.0,  5.0, 0.0]
+    ]
+  },
+  "expected": {
+    "polygons": [ { "corner_ids": [0, 1, 2, 3], "kind": "outer" } ],
+    "stability": {
+      "runs":            100,
+      "noise_sigma_mm":  1.0,
+      "min_match_rate":  0.99
+    }
+  }
+}

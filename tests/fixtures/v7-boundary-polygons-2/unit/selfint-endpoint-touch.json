@@ -1,0 +1,32 @@
+{
+  "id": "selfint-endpoint-touch",
+  "category": "unit-self-intersect",
+  "description": "Documents the detector's design: an edge endpoint that merely TOUCHES another edge's interior (vertex (5,0) on the bottom edge) is NOT flagged as a crossing \u2014 the EPS gate excludes endpoint (t/u at 0 or 1) contacts. Only transversal crossings count.",
+  "inputs": {
+    "vertices_uv": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        10,
+        10
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        0,
+        10
+      ]
+    ]
+  },
+  "expected": {
+    "self_intersects": false
+  }
+}

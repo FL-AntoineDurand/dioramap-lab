@@ -1,0 +1,8 @@
+{
+  "name": "gpu-smoke",
+  "description": "CUDA-readiness canary (§7.6). Copies the pipeline-input bytes to 'smoke-output' via a CPU memcpy in default builds; via an H2D+kernel+D2H round trip in CUDA builds. Byte-identical output across both builds.",
+  "steps": [
+    { "step": "smoke-input-from-run-input" },
+    { "step": "gpu-smoke" }
+  ]
+}

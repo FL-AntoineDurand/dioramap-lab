@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "step": "v7-beam-incidence",
+  "step_version": 1,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/beam-incidence.js",
+    "version": 5
+  },
+  "summary": "Reconstructs the per-point LiDAR beam direction (unit vector from aircraft toward ground) from scan-angle + PSID metadata. Per flight strip (PSID), runs PCA on iso-angle bands + swath edges over the building points to recover the flight heading, derives the perpendicular cross-track axis, sign-aligns it against scan-angle ordering, then optionally refines the model with a multi-return along-track correction estimated from return-1 -> return-2 pairs. v3 keeps only the load-bearing output (beam-directions, F32x3 per global point) that v7-boundary-signals' nearby-projection consumes; all viz outputs and the sun-beam pipeline are dropped.",
+  "phases": [
+    {
+      "id": "1",
+      "name": "Group building points by PSID",
+      "description": "Walks the flattened building-indices list, looks up each point's PSID and appends the global index into a per-strip member list. Strip order is first-seen (replicates v2's Map iteration order)."
+    },
+    {
+      "id": "2a",
+      "name": "Per-strip flight-direction PCA",
+      "description": "For each strip with at least minPointsPerStrip members, sorts members by scan angle then runs 2x2 horizontal-plane PCA on 7 iso-angle bands plus the low and high swath-edge slices (top 3% by angle, min 20 members each). Each band that exceeds minBandElongation contributes its dominant eigenvector to an accumulator with sign-alignment against the running average. Result: a unit flight heading per strip; cross-track is the +90 deg perpendicular, then sign-flipped so that above-median-scan-angle points project further along it than below-median ones.",
+      "params_used": ["minPointsPerStrip", "minBandElongation"]
+    },
+    {
+      "id": "2b",
+      "name": "Multi-return along-track correction",
+      "description": "Walks consecutive (gi, gi+1) pairs where both share PSID and number-of-returns, are return 1 then return 2 respectively, and have scan-angle jitter <= mrMaxAngleJitter. The 3D vector p2-p1 IS the true beam direction. Subtracting the scan-angle model's horizontal beam (sin(alpha)*cross-track) gives a per-pair horizontal residual; averaged per strip when at least mrMinPairs survive, the mean residual becomes the strip's along-track correction (dx, dz). On dahouet this captures the ~7 deg along-track scanner tilt that the cross-track-only scan-angle model misses entirely (see journal 2026-04-02-beam-direction-multireturn).",
+      "params_used": ["mrMinPairs", "mrMaxAngleJitter", "mrMinPairDist"]
+    },
+    {
+      "id": "3b",
+      "name": "Per-point beam-direction array",
+      "description": "Pre-fills the output (n_pts x 3) with the default straight-down vector along the up-axis. For each strip with a fit, computes per-member beam = normalize(sin(alpha)*ct + corr, -cos(alpha)) and writes it into the output slot for that strip-member's global index. Points outside any building / outside any fitted strip keep the default down-vector."
+    }
+  ],
+  "parameters": [
+    {
+      "name": "minPointsPerStrip",
+      "type": "int",
+      "default": 30,
+      "summary": "Minimum building points in a strip before Phase 2a will attempt a fit.",
+      "rationale": "Tiny strips give noisy PCA bands; below ~30 building points the iso-angle bands fall under the 10-member band-floor and the fit collapses."
+    },
+    {
+      "name": "minBandElongation",
+      "type": "double",
+      "default": 3.0,
+      "summary": "Eigenvalue ratio e1/e2 a PCA band must exceed to count as a clear line in Phase 2a.",
+      "rationale": "Swath-edge / iso-angle bands should form a near-linear arrangement along the flight axis. Below 3:1 elongation the band is a blob, not a line, and its eigenvector is unreliable."
+    },
+    {
+      "name": "mrMinPairs",
+      "type": "int",
+      "default": 5,
+      "summary": "Minimum surviving return-1 -> return-2 pairs in a strip before Phase 2b commits a correction.",
+      "rationale": "With fewer than ~5 pairs the mean residual is dominated by surface-geometry noise rather than the systematic along-track tilt the correction is meant to capture."
+    },
+    {
+      "name": "mrMaxAngleJitter",
+      "type": "double",
+      "default": 0.1,
+      "unit": "deg",
+      "summary": "Max scan-angle delta between consecutive returns to count as a same-beam pair (Phase 2b).",
+      "rationale": "Returns from the same emitted pulse share a scan angle to encoder precision; a 0.1 deg gate rejects pairs that are merely adjacent in storage order but came from different beams."
+    },
+    {
+      "name": "mrMinPairDist",
+      "type": "double",
+      "default": 0.05,
+      "unit": "m",
+      "summary": "Minimum 3D separation between return 1 and return 2 to use the pair (Phase 2b).",
+      "rationale": "Coincident returns give a zero-length direction; the 5 cm floor rejects degenerate / quantization-noise pairs."
+    },
+    {
+      "name": "upAxis",
+      "type": "int",
+      "default": 2,
+      "summary": "Which of (0=x, 1=y, 2=z) is the vertical axis. v3 wrapper forces 2 (z-up) for production LAZ; the impl default is 1 (y-up) for the v2 bench frame.",
+      "rationale": "v2 ran in a y-up bench coordinate frame; v3 production reads Lambert93 LAZ in its native z-up. The horizontal-plane PCA, cross-track perpendicular, and 'straight-down' default all need to know which axis is vertical; the wrapper hardcodes 2 (see v7-beam-incidence.c:62) to match the v3 loader."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64x3 point positions."
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building records — read only to harvest each building's globalIndices block, which is concatenated into a flat tile-wide 'building points' list for the per-strip PCA. The step never iterates per-building inside the impl.",
+      "array": true
+    },
+    {
+      "name": "scan-angles",
+      "description": "Tile-wide F32 scan angle in degrees from nadir (per-point LAZ metadata)."
+    },
+    {
+      "name": "point-source-ids",
+      "description": "Tile-wide U16 PointSourceID — flight-strip identifier used to partition points before per-strip PCA."
+    },
+    {
+      "name": "return-numbers",
+      "description": "Tile-wide U8 return number (1, 2, ...). Optional; absence disables Phase 2b multi-return correction (same behaviour as v2)."
+    },
+    {
+      "name": "number-of-returns",
+      "description": "Tile-wide U8 number-of-returns per pulse. Optional; paired with return-numbers."
+    }
+  ],
+  "writes": [
+    {
+      "name": "bi-directions",
+      "description": "Tile-wide F32x3 unit beam direction per global point, pointing from aircraft toward the ground. Strip-fit points get the modeled beam (with multi-return correction if available); all other points get the default straight-down vector along the up-axis. Note: artifact name is 'bi-directions' (v3 shortened name); v2 emitted the same column as 'beam-directions'.",
+      "consumed_by": ["v7-boundary-signals"]
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "Viz-only outputs dropped",
+      "commit": "3190435",
+      "rationale": "v2 emitted four artifacts: beam-incidence (1 m edges), beam-directions, beam-psid-colors (RGB per point), beam-incidence-meta (per-strip diagnostics). Only beam-directions is on the V7 DAG (consumed by boundary-signals' nearby-projection). v3 keeps just that one output."
+    },
+    {
+      "topic": "Sun-beam pipeline dropped",
+      "commit": "3190435",
+      "rationale": "v2 Phase 5 computed solar position from GPS time + Lambert93->lat/lon and emitted yellow sun-beam edges. Pure viz; would need lidar-metadata + lambert93-origin reads that v3 doesn't surface on this path. Dropped wholesale (per the Phase 5.6 audit)."
+    },
+    {
+      "topic": "Output artifact renamed beam-directions -> bi-directions",
+      "commit": "3190435",
+      "rationale": "Standard v7 step-prefix convention in v3 (bi = beam-incidence). Consumers in v7-boundary-signals read 'bi-directions'."
+    },
+    {
+      "topic": "Compute scope vs storage scope made explicit",
+      "commit": "3190435",
+      "rationale": "v3 documents the recurring pattern (this step is held up as the cleanest example): compute runs only on building points (per-building-records globalIndices, flattened) because the per-strip PCA wants planar surfaces — but storage is tile-wide F32x3xN so downstream consumers can index by any global gi. Non-building slots keep the default straight-down vector."
+    },
+    {
+      "topic": "minR2 parameter exposed in v2 meta but unused in v5",
+      "rationale": "v2 meta.params still lists minR2 (default 0.1), a leftover from the original v1/v2 gradient-fit algorithm. v5 replaced the gradient fit with PCA-on-bands (minBandElongation) in commit 173fcbd; the minR2 param is dead in v2 and not surfaced in v3."
+    },
+    {
+      "topic": "PCA up_axis abstraction (impl default y-up, wrapper forces z-up)",
+      "commit": "3190435",
+      "rationale": "v2 hardcoded the horizontal plane as (x, z) — i.e., y-up. v3's impl is parameterised over up_axis so the same code runs under the bench harness (y-up, byte-identity test) and under production v3 (z-up LAZ). v7-beam-incidence.c:62 sets up_axis=2 unconditionally; the v2-comparison bench wrapper overrides to 1."
+    }
+  ],
+  "related": [
+    {
+      "type": "journal",
+      "id": "2026-04-02-flight-heading-reconstruction",
+      "link": "docs/journal/2026/04/2026-04-02-flight-heading-reconstruction.md",
+      "tags": ["beam-angle", "flight-heading", "cross-track", "PSID"],
+      "summary": "Survey of 5 candidate methods for recovering flight heading from per-point metadata; documents the Riegl VQ-780 II scan geometry assumptions baked into the model and the y-up/z-up coordinate-system pitfalls. The PCA-on-bands method is what landed in Phase 2a."
+    },
+    {
+      "type": "journal",
+      "id": "2026-04-02-beam-direction-multireturn",
+      "link": "docs/journal/2026/04/2026-04-02-beam-direction-multireturn.md",
+      "tags": ["beam-angle", "multi-return", "projection", "nearby-points"],
+      "summary": "Root-cause of the 'nearby ground points project inside the roof instead of at the eave' bug: the scan-angle model is purely cross-track and misses the ~7 deg along-track scanner / pitch tilt. Multi-return ret1->ret2 pairs measure the true beam directly; their mean horizontal residual vs the model becomes Phase 2b's per-strip correction (+0.128 P15, -0.131 P16 on dahouet)."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-04-flight-strip-simulation",
+      "link": "docs/journal/2026/03/2026-03-04-flight-strip-simulation.md",
+      "tags": ["flight-strips", "synthetic", "per-point-metadata"],
+      "summary": "Synthetic flight-strip generator + harmonized per-point metadata schema (PSID, scan angle, return numbers) that beam-incidence consumes."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-05-psid-metadata-deep-analysis",
+      "link": "docs/journal/2026/03/2026-03-05-psid-metadata-deep-analysis.md",
+      "tags": ["per-point-metadata", "psid"],
+      "summary": "Deep dive on PointSourceID semantics in IGN LiDAR HD — informs the per-strip grouping in Phase 1."
+    },
+    {
+      "type": "commit",
+      "sha": "11c6a65",
+      "date": "2026-04-01",
+      "summary": "v2: initial WIP — scan-angle gradient fit, 1 m beam edges, sun-position pipeline. (meta.version=1)."
+    },
+    {
+      "type": "commit",
+      "sha": "64d525b",
+      "date": "2026-04-01",
+      "summary": "v2: beam incidence + sun position + plane slugs + .bin v2 Float32 scan angles. Sets up the metadata surface."
+    },
+    {
+      "type": "commit",
+      "sha": "173fcbd",
+      "date": "2026-04-02",
+      "summary": "v2: bumps meta.version 2 -> 5 — replaces gradient fit with PCA on swath edges + iso-angle bands; adds Phase 2b multi-return correction; adds the beam-directions output the v3 port keeps."
+    },
+    {
+      "type": "commit",
+      "sha": "8fd9e70",
+      "date": "2026-04-04",
+      "summary": "v2: restored 1 m edge length default (reverted a debug 10 m bump from 173fcbd)."
+    },
+    {
+      "type": "commit",
+      "sha": "3190435",
+      "date": "2026-05-10",
+      "summary": "v3 Phase 5.6: port v7-beam-incidence. Byte-identical to v2 dump on dahouet (137088/137088 floats match exactly, no F64 noise on first try). Drops Phases 4 + 5 + viz outputs; keeps Phases 1, 2a, 2b, 3b -> single bi-directions output."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "section": "Phase 5.6 + 'boundary-signals vertical-beam fallback must be removed'",
+      "summary": "Port-level documentation. Also documents the post-port finding that v2's vertical-beam fallback in boundary-signals (when bi-directions is absent) is wrong-and-unusable; v3 should make bi-directions strictly required."
+    }
+  ],
+  "open_questions": [
+    "Should v7-boundary-signals refuse to run when bi-directions is absent, instead of falling back to (0, -1, 0)? PHASE-5-V7-PORT.md flags v2's vertical-beam fallback as 'wrong and unusable' but v3 has not yet enforced the strict-required contract."
+  ]
+}

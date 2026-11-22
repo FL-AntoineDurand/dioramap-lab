@@ -1,0 +1,9 @@
+{
+  "name": "dioramap-integration-tests",
+  "license": "Apache-2.0",
+  "private": true,
+  "description": "WS clients + helpers for the v3/core integration test scenarios.",
+  "dependencies": {
+    "ws": "^8"
+  }
+}

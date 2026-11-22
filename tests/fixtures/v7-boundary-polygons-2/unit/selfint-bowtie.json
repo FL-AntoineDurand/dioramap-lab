@@ -1,0 +1,28 @@
+{
+  "id": "selfint-bowtie",
+  "category": "unit-self-intersect",
+  "description": "Bowtie order (0,0)->(10,0)->(0,10)->(10,10): edges 0-1 and 2-3 cross.",
+  "inputs": {
+    "vertices_uv": [
+      [
+        0,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        0,
+        10
+      ],
+      [
+        10,
+        10
+      ]
+    ]
+  },
+  "expected": {
+    "self_intersects": true
+  }
+}

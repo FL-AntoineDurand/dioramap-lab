@@ -1,0 +1,87 @@
+{
+  "type": "real",
+  "id": "real-68066-colmar-colombage-516",
+  "dataFile": "real-68066-colmar-colombage-516.bin",
+  "footprint": [
+    {
+      "x": -1.6223371443338692,
+      "z": 11.733610631898046
+    },
+    {
+      "x": 13.077662845724262,
+      "z": 13.033610632643104
+    },
+    {
+      "x": 12.877662845654413,
+      "z": 14.53361064195633
+    },
+    {
+      "x": 12.777662845677696,
+      "z": 15.533610632643104
+    },
+    {
+      "x": 11.777662845677696,
+      "z": 23.633610632270575
+    },
+    {
+      "x": 8.877662845654413,
+      "z": 23.133610632270575
+    },
+    {
+      "x": 2.9776628556428477,
+      "z": 21.93361063208431
+    },
+    {
+      "x": -2.722337144310586,
+      "z": 21.733610631898046
+    },
+    {
+      "x": -1.6223371443338692,
+      "z": 11.733610631898046
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 9,
+    "point_count": 42204,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 48.078,
+    "lng": 7.356,
+    "commune_code": "68066",
+    "commune_name": "Colmar",
+    "building_surface_m2": 148.6,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 1024226.0220790843,
+      "y": 6784236.738283822
+    },
+    "imported_at": "2026-02-25T09:06:18.409Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 17.7,
+    "nature": "Indifférenciée",
+    "usage_1": "Commercial et services",
+    "materiaux_de_la_toiture": "",
+    "nombre_d_etages": 4,
+    "altitude_minimale_sol": 193.7,
+    "altitude_minimale_toit": 211.4,
+    "altitude_maximale_toit": 214.7
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 358,
+    "height": 319,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 1024213.29974194,
+      "maxX": 1024249.09974193,
+      "minZ": 6784203.10467319,
+      "maxZ": 6784235.00467319
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "step": "v7-boundary-classify",
+  "step_version": 1,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/boundary-classify.js",
+    "version": 5,
+    "extracted_from": "boundary-3d.js Phase F (perimeter edge classification)"
+  },
+  "summary": "Per-edge perimeter classification on the post-merge roof-graph. Tags each edge as perimeter / shared / overhang-top / overhang-bottom / interior-shared / wall / level-transition, and persists an outward XZ unit-vector on perimeter / level-transition edges so wall-detect knows which side is outside the polygon. Also synthesizes eave-shared new-adjacencies between plane pairs not already linked by a ridge.",
+  "phases": [
+    {
+      "id": "A",
+      "name": "Build id maps",
+      "description": "Dense plane_id→idx, corner_id→idx, ridge_id→idx lookup arrays (sized to max_id+1 each)."
+    },
+    {
+      "id": "B",
+      "name": "Per-plane winding + XZ centroid",
+      "description": "For every non-wall plane that has a polygon path: compute signed double-area in XZ (winding sign) and unweighted XZ centroid of the path's corners. Both are used by Phase D to pick the outward perpendicular for each edge; centroid is the primary signal, winding is the fallback for degenerate cases.",
+      "params_used": ["wall_tilt_min_deg"]
+    },
+    {
+      "id": "C",
+      "name": "Edge geometry",
+      "description": "Per input edge: 3D unit direction, XZ unit direction, midpoint, lengths. Edges below `min_edge_len_3d` are dropped (no tag emitted).",
+      "params_used": ["min_edge_len_3d", "min_edge_len_xz"]
+    },
+    {
+      "id": "D",
+      "name": "Classify each edge",
+      "description": "Per edge: (1) wall-only planeIds → tag=wall. (2) Multi-plane all-roof → tag=interior-shared. (3) Both endpoints share a ridge between two roof planes → tag=interior-shared. (4) Else: compute outward XZ from centroid-vs-perpendicular (winding fallback), then scan all other-plane single-plane roof edges. For each candidate F whose midpoint sits on the OUTWARD side of E (within outward_side_eps tolerance): if 3D-collinear within perim_collinear_min_deg AND |E.mid - F.mid|_3D < perim_dist_3d → coverage type SHARED. Else if XZ-collinear AND |E.mid - F.mid|_XZ < perim_dist_xz → type OVERHANG_TOP/BOTTOM (chosen by midpoint y comparison). Coverage records the t-interval of F's projection on E (clamped to [0,1]). Union the coverages; if covered_fraction > 0.2 → dominant tag (SHARED > OVERHANG_TOP > OVERHANG_BOTTOM); else PERIMETER. Eave-shared adjacencies are recorded for every SHARED coverage.",
+      "params_used": [
+        "perim_dist_3d", "perim_dist_xz", "perim_collinear_min_deg",
+        "perim_min_overlap_m", "outward_side_eps", "wall_tilt_min_deg"
+      ]
+    },
+    {
+      "id": "E",
+      "name": "Dedup new adjacencies",
+      "description": "Pack each plane-pair (planeA, planeB) into a u64 key (lo<<32 | hi). Seed the seen-set with existing ridge plane-pairs; emit only candidates whose key is not already in the set."
+    },
+    {
+      "id": "F",
+      "name": "Level-transition detection",
+      "description": "Bucket perimeter-tagged roof-wall edges by the wall planes they reference. If a wall plane is referenced by edges from 2+ DIFFERENT roof planes, retag those perimeter edges as level-transition (the wall sits BETWEEN two roof heights).",
+      "params_used": ["wall_tilt_min_deg"]
+    },
+    {
+      "id": "G",
+      "name": "PIP overhang fallback",
+      "description": "Coverage-loop misses edges that sit INSIDE another plane's XZ footprint without a parallel partner (dormers, raised sections). For each remaining PERIMETER edge: walk in 10cm steps, probe 15cm outward at each step, check XZ-containment against every other non-wall plane's polygon. If ≥ COVERAGE_THRESHOLD probes land inside some other plane → retag as overhang-top (edge sits ABOVE) or overhang-bottom (edge sits BELOW), decided by comparing the edge sample's y vs the y of the highest covering plane at the probe point.",
+      "params_used": [
+        "pip_probe_offset_m", "pip_step_len_m", "pip_coverage_threshold"
+      ]
+    }
+  ],
+  "parameters": [
+    { "name": "perim_dist_3d",           "type": "double", "default": 0.30, "unit": "m",   "summary": "Phase D — 3D midpoint distance gate for SHARED tag.",        "rationale": "Two edges that should be the same physical boundary on two adjacent planes can sit up to ~30 cm apart in 3D after boundary-merge. Tighter than this misses real shareds; looser starts catching distinct eaves on opposite sides of a gable." },
+    { "name": "perim_dist_xz",           "type": "double", "default": 0.30, "unit": "m",   "summary": "Phase D — XZ midpoint distance gate for OVERHANG_* tag.",   "rationale": "Same scale as 3D for the overhang fallback; height difference is the disambiguator between SHARED and OVERHANG_*." },
+    { "name": "perim_collinear_min_deg", "type": "double", "default": 15.0, "unit": "deg", "summary": "Phase D — collinearity gate (3D and XZ).",                  "rationale": "Eaves that should pair under SHARED can have up to ~10° wobble post-merge; 15° absorbs that without picking up corner edges (angle change >= 30°)." },
+    { "name": "perim_min_overlap_m",     "type": "double", "default": 0.30, "unit": "m",   "summary": "Phase D — min coverage length for a candidate to count.",   "rationale": "Below this, candidates are ambiguous corner-grazes rather than real shared/overhang pairs." },
+    { "name": "wall_tilt_min_deg",       "type": "double", "default": 72.0, "unit": "deg", "summary": "Phase B/D/F — tilt threshold above which a plane is a wall.","rationale": "Matches the wall_tilt_max_deg used by boundary-merge (72° — anything tilting at least this steep is treated as a wall, not a roof)." },
+    { "name": "pip_probe_offset_m",      "type": "double", "default": 0.15, "unit": "m",   "summary": "Phase G — outward probe offset from the edge.",            "rationale": "Just outside the edge — enough to land on a neighbouring plane's polygon if it overlaps, small enough to not skip across narrow gaps." },
+    { "name": "pip_step_len_m",          "type": "double", "default": 0.10, "unit": "m",   "summary": "Phase G — sampling step along the edge.",                  "rationale": "10 cm gives ~10 probes per 1 m edge; trades resolution for cost (linear in edge length)." },
+    { "name": "pip_coverage_threshold",  "type": "double", "default": 0.50, "unit": "",    "summary": "Phase G — min fraction of probes that must land inside.", "rationale": "Catches edges where ≥half the length sits over another plane; below half is treated as a noise hit." },
+    { "name": "outward_side_eps",        "type": "double", "default": 0.05, "unit": "",    "summary": "Phase D — slack on the F-on-inward-side rejection test.",  "rationale": "Allows almost-tangent candidates to pass the side test (avoids dropping legitimate cross-eave shareds due to sub-cm noise on the perpendicular)." },
+    { "name": "min_edge_len_3d",         "type": "double", "default": 0.01, "unit": "m",   "summary": "Phase C — drop edges shorter than this.",                  "rationale": "Degenerate edges (e.g. a corner snap collapsed both endpoints) have unstable directions; skip them rather than emitting a garbage tag." },
+    { "name": "min_edge_len_xz",         "type": "double", "default": 0.01, "unit": "m",   "summary": "Phase C — below this XZ length, dxz is set to zero.",      "rationale": "Vertical edges (wall-only) project to a point in XZ; we still classify them (Phase D wall short-circuit handles the case)." }
+  ],
+  "reads": [
+    { "name": "per-building-records",        "kind": "ARRAY_INLINE", "summary": "Per-bldg record metadata; classify only uses count + schema gate." },
+    { "name": "building-local-frames",       "kind": "ARRAY_INLINE", "summary": "Per-bldg centroid for re-shifting double-precision corner positions back to world." },
+    { "name": "boundary-merge-roof-graph",   "kind": "ARRAY_INLINE", "summary": "Per-bldg TLV roof-graph carrying post-merge planes / ridges / corners / edges / polygon-paths." }
+  ],
+  "writes": [
+    { "name": "boundary-classify-roof-graph", "kind": "ARRAY_INLINE", "summary": "Per-bldg TLV roof-graph: all upstream sections passed through unchanged, with PERIMETER_TAGS (0x0C) + NEW_ADJACENCIES (0x0D) overlays appended. PERIMETER_TAGS records carry the per-edge tag, outward XZ unit vector (bit-0x02 flag), and optional coverage detail." }
+  ],
+  "outputs": [
+    {
+      "id": "perimeter_tags",
+      "tlv_section": "PERIMETER_TAGS (0x0C)",
+      "bucket": "load-bearing",
+      "summary": "Per-edge tag + outward_xz + optional coverage detail. Consumed by wall-detect (outward_xz, tag ∈ {perimeter, level-transition}) and by downstream LOD2 / fit-solar-panels (tag filtering)."
+    },
+    {
+      "id": "new_adjacencies",
+      "tlv_section": "NEW_ADJACENCIES (0x0D)",
+      "bucket": "load-bearing",
+      "summary": "Eave-shared plane-pair adjacencies deduped against existing ridges. Consumed by boundary-regularize for extra DOF/locking constraints."
+    },
+    {
+      "id": "wall_candidate_normals",
+      "tlv_section": "viz-only (not yet wired)",
+      "bucket": "viz-only",
+      "summary": "1m outward-normal arrows from each wall-candidate edge midpoint. Will be emitted on emitVizArtifacts gate once lab-ui viz lands."
+    }
+  ],
+  "downstream": ["wall-detect", "boundary-regularize"],
+  "notes": [
+    "Iso-equivalence on dahouet-bldgonly (2026-05-26): 5/5 dimensions match v2 byte-by-byte — tag counts identical, per-edge tag mismatches 0/150, outwardXZ presence identical, outwardXZ value max-|Δ|=2.93e-8 (F32 round-trip ceiling), new-adjacency counts identical.",
+    "Spec extension: PERIMETER_TAGS flag bit 0x02 (has_outward_xz) is forward-compatible — older readers ignore the optional 8-byte payload immediately after the fixed 8-byte header."
+  ]
+}

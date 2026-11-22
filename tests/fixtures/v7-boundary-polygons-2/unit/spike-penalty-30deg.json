@@ -1,0 +1,14 @@
+{
+  "id":          "spike-penalty-acute-penalised",
+  "category":    "unit-spike",
+  "description": "Triangle with 20deg interior angle at A=(0,0) (vertex penalised). C placed so AC is at 20deg above AB. Threshold 30deg.",
+  "inputs": {
+    "vertices_uv": [
+      [0.0,    0.0],
+      [10.0,   0.0],
+      [9.397,  3.420]
+    ],
+    "spike_threshold_deg": 30.0
+  },
+  "expected": { "min": 0.025, "max": 0.04 }
+}

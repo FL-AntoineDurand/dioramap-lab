@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "step": "v7-boundary-topology",
+  "step_version": 3,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/boundary-edges/roof-graph.js",
+    "version": "n/a (module, not a step)",
+    "extracted_from": "boundary-edges/index.js (Phase A: buildAdjacencyGraph + buildRidgeLines + class-filter pass), refactored into shared roof-graph.js per journal 2026-04-14-roof-graph-prepass-boundary-3d. v3 splits this off from v2's monolithic boundary-signals step as the first sub-step of the boundary-signals decomposition (audit 2026-05-11)."
+  },
+  "summary": "First sub-step of the split bench-v2 boundary-signals (Phase A + class filter). Produces the topology skeleton — PLANES, RIDGES, RIDGE_LINES — that v7-boundary-signals then enriches with corners, nearby projections, and per-plane signal grids. Adjacency graph counts cross-plane kNN contacts; per surviving pair, the two grm-seed-plane equations are intersected, group points projected for tMin/tMax extents, weak overlap and sparse contacts filtered, edge type classified (ridge/hip/valley/step/flashing), and side-sign sampled for the wrong-side filter downstream. Then a class filter rejects planes whose ground/veg/water fraction exceeds threshold, with a ridge-neighbour rescue.",
+  "phases": [
+    {
+      "id": "A.1",
+      "name": "Adjacency graph",
+      "description": "kNN-radius search around every owner-assigned point; for each cross-group neighbour, increment a (lo,hi)→count hash entry. Pairs with count < min_contact_pts are dropped. Hash key is (a<<32)|b with sentinel 0 reserved.",
+      "params_used": ["adjacencyRadius", "minContactPts"]
+    },
+    {
+      "id": "A.2a",
+      "name": "Plane-pair intersection",
+      "description": "For each surviving adj pair, solve the two grm-seed-plane equations for their line of intersection via Cramer's rule (det3 < 1e-12 → reject as parallel/degenerate). NOTE: v3 trusts the post-GRM plane equations as authoritative — no re-fit from owner points (one revert lineage 1a62e94 → 54fd8da explored the re-fit path and abandoned it per audit policy 'minimize duplication')."
+    },
+    {
+      "id": "A.2b",
+      "name": "Per-side extent projection + overlap/sparsity filters",
+      "description": "Each group's points project onto the line for tMinA/tMaxA, tMinB/tMaxB. Reject if clip length ≤ 0, overlap ratio < 0.15, or contacts/m below 30% of expected sqrt(sqrt(n)) when clip_len > spacing*3."
+    },
+    {
+      "id": "A.2c",
+      "name": "Edge-type classify",
+      "description": "Angle between normals + line-direction up-axis component decide: <10° → flashing (4); line near horizontal + both normals up → ridge (1); line near horizontal + mixed → step (5); >60° → hip (2) if avg up > 0.3 else valley (3); else ridge. up_axis param swaps y/z (v2 y-up vs v3 z-up LAZ).",
+      "params_used": ["upAxis"]
+    },
+    {
+      "id": "A.2d",
+      "name": "Ridge-elevation trim",
+      "description": "For non-horizontal ridges (|line_dir.up| > 0.03), clamp tMinA/tMaxA/tMinB/tMaxB to the t-values where the ridge crosses the per-group min/max up-axis extents. Prevents ridges from extending above/below either group's actual point range."
+    },
+    {
+      "id": "A.2e",
+      "name": "Side-sign sampling",
+      "description": "side_vec = cross(line_dir, normalA), normalized. For each group, average side_vec·(p−line_point) over points within spacing*3 perpendicular distance of the ridge — sign of mean → side_sign ∈ {−1, 0, +1}. The has_side flag is set iff |side_vec| > 1e-12 (degenerate is rare; happens when line_dir ∥ normalA). Powers boundary-corners D.2b wrong-side filter.",
+      "params_used": ["spacing"]
+    },
+    {
+      "id": "A.3",
+      "name": "Class filter (gvw rejection + ridge-neighbour rescue)",
+      "description": "Per plane: compute group classification counts (building/ground/lowVeg/medVeg/highVeg/water/other). Candidate-reject if (ground+veg+water)/total > classFilterThreshold. Then for each candidate-rejected plane, rescue if it is ridge-adjacent to any plane that is NOT candidate-rejected. Tombstoned (from GRM merge) and low-nPts (< min_plane_pts) planes get separate rejection reasons (4 and 3) and are not eligible for rescue. Skipped when classifications artifact is absent.",
+      "params_used": ["classFilterThreshold", "minPlanePts"]
+    },
+    {
+      "id": "A.4",
+      "name": "Basis derivation",
+      "description": "For every plane, compute an orthonormal in-plane basis (e1, e2) from the seed normal (fallback to standard axes if cross product degenerates). Used by viz + downstream 2D projections."
+    }
+  ],
+  "parameters": [
+    {
+      "name": "adjacencyRadius",
+      "type": "double",
+      "default": 0.5,
+      "unit": "m",
+      "summary": "kNN-radius for counting cross-plane contacts in A.1.",
+      "rationale": "Larger radius captures shared boundary regions more robustly; too large pollutes contact counts with bulk neighbours from the same plane. 0.5 m is a v2-inherited value tuned for ~10 pts/m² density."
+    },
+    {
+      "name": "minContactPts",
+      "type": "int",
+      "default": 3,
+      "summary": "Minimum cross-plane contact count to keep an adjacency pair.",
+      "rationale": "Filters spurious adjacencies from isolated point pairs. 3 is the smallest integer threshold that resists single-point noise without dropping legitimate short ridges."
+    },
+    {
+      "name": "classFilterThreshold",
+      "type": "double",
+      "default": 0.50,
+      "unit": "fraction [0,1]",
+      "summary": "Plane is candidate-rejected if (ground+lowVeg+medVeg+highVeg+water)/total exceeds this fraction.",
+      "rationale": "Building class (6) should dominate roof planes. At >50% non-building classification, the seed plane likely lives in a tree/ground region misassigned to a roof group; ridge-neighbour rescue protects legitimate eaves that happen to brush ground points."
+    },
+    {
+      "name": "minPlanePts",
+      "type": "int",
+      "default": 6,
+      "summary": "Planes with fewer owner-assigned points are auto-rejected (reason 3).",
+      "rationale": "Plane fit + adjacency are unreliable below ~6 pts. Matches v2 boundary-signals/Phase A behaviour."
+    },
+    {
+      "name": "upAxis",
+      "type": "int",
+      "default": 2,
+      "summary": "World up-axis index: 1 = y-up (v2 bench), 2 = z-up (v3 prod LAZ).",
+      "rationale": "Edge-type classification ('upness' of line + normals) and ridge-elevation trim are axis-aware. v3 prod defaults to 2 (LAZ z-up); bench harnesses leave the default at 1 for v2 byte-parity."
+    },
+    {
+      "name": "spacing",
+      "type": "double",
+      "default": "−1 (auto from bldg-thresholds)",
+      "unit": "m",
+      "summary": "Average point spacing — used for sparse-contact gate and side-sample distance (spacing*3).",
+      "rationale": "Sentinel −1 means 'read per-bldg from bldg-thresholds' (v7-derive-thresholds is single source of truth, see commit 4ac68ab). Pipeline params can override. Hardcoded 0.316 = sqrt(1/10) is the v2 fallback when lidar-density artifact is missing; used by bench harnesses that bypass parse_params. On dahouet the actual per-bldg spacing is 0.224 (density 19.87) — the hardcoded fallback under-samples by 41%."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64×3·N point positions."
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building record (globalIndices, vertices, bbox).",
+      "array": true
+    },
+    {
+      "name": "building-local-frames",
+      "description": "Per-building (cx,cy,cz) centroid + axes. Centroid is subtracted to reproduce the centroid-shifted F32-cast frame the kd-tree was built in (build-building-kd-trees.c convention).",
+      "array": true
+    },
+    {
+      "name": "building-kd-trees",
+      "description": "Per-building serialized kd-tree over building-local positions.",
+      "array": true
+    },
+    {
+      "name": "grm-owner",
+      "description": "Per-building Int16 owner array; -1 = unassigned. K is implicit from grm-seed-planes record count.",
+      "array": true,
+      "produced_by": "v7-grow-refit-merge"
+    },
+    {
+      "name": "grm-seed-planes",
+      "description": "Per-building ARRAY_INLINE of authoritative post-merge plane equations (normal, d, tombstoned). 72-byte header; only normal/d/tombstoned are read.",
+      "array": true,
+      "produced_by": "v7-grow-refit-merge"
+    },
+    {
+      "name": "bldg-thresholds",
+      "description": "Per-building derived thresholds (density, spacing, z_noise, dist_threshold_seed/grm). Spacing is sourced from this single artifact unless the pipeline overrides via params.",
+      "array": true,
+      "produced_by": "v7-derive-thresholds"
+    },
+    {
+      "name": "lidar-classifications",
+      "description": "Tile-wide U8 per-point ASPRS class. Optional — when absent, A.3 class filter is skipped and rejection_reason 1 is never emitted."
+    }
+  ],
+  "writes": [
+    {
+      "name": "boundary-topology-roof-graph",
+      "description": "Per-building ARRAY_INLINE of TLV blobs. Each TLV holds PLANES, RIDGES, RIDGE_LINES sections per ROOF-GRAPH-FORMAT.md §4.1/4.2/4.3. Coordinates are tile-world (post-shift back from building-local compute frame).",
+      "array": true,
+      "consumed_by": ["v7-boundary-signals", "v7-boundary-corners", "v7-boundary-polygons", "v7-boundary-merge"]
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "Step split — v2 boundary-signals decomposed",
+      "commit": "c29e35c",
+      "rationale": "v2 boundary-signals.js did Phase A (topology) + Phase B (signal grids) + Phase C (anchors) in one step. v3 splits these into v7-boundary-topology + v7-boundary-signals so each artifact has a single owner and the wire format (roof-graph TLV) is built incrementally."
+    },
+    {
+      "topic": "Vestigial v2 reads dropped",
+      "commit": "c29e35c",
+      "rationale": "Dropped curvatures-k32, linearity (reserved-only params in v2 ridges.js — never read), boundary-candidates/-all and ridge-candidates (destructured but never referenced), point-weights for plane fit (we trust grm-seed-planes equations; no re-fit per audit 'minimize duplication'), and the tile-wide kd-tree (v3 uses per-bldg building-kd-trees). See impl.h header comment."
+    },
+    {
+      "topic": "Building-local compute frame with tile-world output",
+      "commit": "5e34aa2",
+      "rationale": "Compute runs in centroid-shifted F32-roundtrip space (kd-tree convention from build-building-kd-trees.c). After v7_topo_compute returns, wrapper post-processes outputs: positional fields (centroid, ridge from/to, line_point) get (cx,cy,cz) added; direction vectors are translation-invariant; plane d shifted by −n·c. Without this, viz subtracts scene origin from local coords and geometry projects far off-screen."
+    },
+    {
+      "topic": "Spacing sourced from per-building thresholds artifact",
+      "commit": "4ac68ab",
+      "rationale": "v2 used tile-wide lidar-density (or 0.316 fallback); v3 prod has reduced per-bldg working sets so density needs to be per-bldg. The derive-thresholds step is now the single source of truth — topology reads spacing from bldg-thresholds unless pipeline params explicitly override."
+    },
+    {
+      "topic": "has_side flag bit added to RIDGE_LINES (wire format extension)",
+      "commit": "d0a634a",
+      "rationale": "v3 originally only set flag bit 0x01 (has_line). boundary-corners D.2b reader gates the wrong-side filter on bit 0x02 (has_side); the bit was never set, so the filter silently skipped every ridge and let all wrong-side convex anchors through (dahouet 7-shared-edges bug). Fix: add bool has_side to v7_topo_ridge_line_t (= sv_len > 1e-12), emit bit 0x02 in pack_ridge_lines_section. v2 has no equivalent bit because the side test there reads a separate JS object field, not a packed flag."
+    },
+    {
+      "topic": "Plane re-fit explored and reverted",
+      "commit": "1a62e94..54fd8da",
+      "rationale": "1a62e94 added a least-squares re-fit of plane equations from owner-points before intersection (rationale: tighten geometric error of post-GRM equations). Reverted in 54fd8da — re-fit introduced drift vs v2 byte-parity and the audit explicitly forbids duplicate plane fitting. Kept here as historical context."
+    }
+  ],
+  "related": [
+    {
+      "type": "commit",
+      "sha": "d0a634a",
+      "date": "2026-05-16",
+      "summary": "Root-cause fix for dahouet 7-shared-edges bug: emit has_side flag bit so D.2b can kill wrong-side convex anchors. has_side was unconditionally zero in the wire format, silently disabling the entire downstream filter."
+    },
+    {
+      "type": "commit",
+      "sha": "e692c24",
+      "date": "2026-05-16",
+      "summary": "Add asserts on flag conditions at all RIDGE_LINES consumer sites (Category C: must-be-set when record emitted) to prevent future has_side-style silent-skip bugs. Audit pass following d0a634a."
+    },
+    {
+      "type": "commit",
+      "sha": "4ac68ab",
+      "date": "2026-05-16",
+      "summary": "v7-derive-thresholds step + density/spacing single-source; topology now reads spacing from bldg-thresholds instead of auto-computing locally."
+    },
+    {
+      "type": "commit",
+      "sha": "5e34aa2",
+      "date": "2026-05-11",
+      "summary": "Tile-world output shift, sync TLV decode, default-off roof-graph viz layers. Three first-UI-run regressions resolved together."
+    },
+    {
+      "type": "commit",
+      "sha": "54fd8da",
+      "date": "2026-05-12 (approx)",
+      "summary": "Revert plane-equation re-fit. v3 returns to trusting grm-seed-planes equations verbatim per audit policy 'minimize duplication'."
+    },
+    {
+      "type": "commit",
+      "sha": "1a62e94",
+      "date": "2026-05-12 (approx)",
+      "summary": "Reverted experiment: least-squares re-fit plane equations from owner points before ridge intersection. Caused v2 byte-parity drift; reverted in 54fd8da."
+    },
+    {
+      "type": "commit",
+      "sha": "c29e35c",
+      "date": "2026-05-11",
+      "summary": "Initial v3 port: boundary-topology step + ARRAY_INLINE-of-TLV decoder unwrap. Splits Phase A out of v2 boundary-signals. Dahouet result: 49 planes (18 class-filter rejected), 41 candidate adj pairs, 31 ridges kept."
+    },
+    {
+      "type": "journal",
+      "id": "2026-04-14-roof-graph-prepass-boundary-3d",
+      "link": "docs/journal/2026/04/2026-04-14-roof-graph-prepass-boundary-3d.md",
+      "tags": ["roof-graph", "topology", "refactor"],
+      "summary": "Core design doc — the roof-graph pre-pass that extracted detectCorners/buildRoofGraph from boundary-3d into the shared roof-graph.js module v3 ports here. Defines the {planes, ridges, corners} graph shape."
+    },
+    {
+      "type": "journal",
+      "id": "2026-05-17-wrong-side-corner-killing-review",
+      "link": "docs/journal/2026/05/2026-05-17-wrong-side-corner-killing-review.md",
+      "tags": ["D.2b", "ridge-side", "has_side"],
+      "summary": "Comprehensive review of D.2b's failure modes and design trade-offs. Cites the d0a634a has_side bug as the root cause for the dahouet 7-shared-edges divergence — the filter that wasn't running because this step's wire format was missing one bit."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/ROOF-GRAPH-FORMAT.md",
+      "section": "§4.1 PLANES, §4.2 RIDGES, §4.3 RIDGE_LINES",
+      "summary": "Wire format spec for the three sections this step writes. §4.3 documents the flags field (bit 0 has_line, bit 1 has_side) and the 88-byte fixed-stride record layout."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "summary": "Port-level documentation: how the v7 split-up of v2 boundary-signals sits inside the v3 v7 pipeline."
+    },
+    {
+      "type": "module",
+      "link": "lidar-algos-bench-v2/lib/pipeline/steps/boundary-edges/ridges.js",
+      "summary": "v2 source for Phase A.1/A.2 (buildAdjacencyGraph, buildRidgeLines, side-sign sampling)."
+    },
+    {
+      "type": "module",
+      "link": "lidar-algos-bench-v2/lib/pipeline/steps/boundary-edges/roof-graph.js",
+      "summary": "v2 shared module (extracted by 2026-04-14 journal entry). Provides detectCorners, computeRidgeEndCorners, snapRidgesToCorners, buildRoofGraph — consumed by v2 boundary-signals and boundary-3d alike. v3 ports the adjacency/ridge-line subset of this into v7-boundary-topology; corner detection lives in v7-boundary-corners."
+    },
+    {
+      "type": "module",
+      "link": "lidar-algos-bench-v2/lib/pipeline/steps/boundary-edges/index.js",
+      "summary": "v2 entry point that wires buildAdjacencyGraph → buildRidgeLines → detectCorners → buildRoofGraph (lines 119-144). Reference for the original sequential flow before the v3 split."
+    }
+  ],
+  "open_questions": [
+    "Should plane equations be re-fit from owner points before ridge intersection? Explored in 1a62e94, reverted in 54fd8da. Audit policy currently says no; re-evaluate once GRM is stable on the full bench corpus.",
+    "Sparse-contact filter uses contacts_per_m < expected_cpm * 0.3 and clip_len > spacing*3 — both gates are required (logical AND). Is this the right combination, or should they be independent? Untested on the bench corpus.",
+    "Ridge-neighbour class-filter rescue (A.3) only checks immediate ridge neighbours, not transitive ones (one-hop, no propagation). Mirrors v2 but may under-rescue chains of borderline-gvw planes connected only through other borderline planes."
+  ]
+}

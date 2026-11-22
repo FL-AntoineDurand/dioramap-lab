@@ -1,0 +1,13 @@
+# Vite dev-server cache + build output
+node_modules/
+dist/
+.vite/
+
+# Vite's deps-optimization cache lives under node_modules/ already; covered.
+
+# Editor / OS noise
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+.idea/

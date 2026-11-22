@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Dioramap Lab: aerial LiDAR to 3D buildings and scenes"
+type: software
+authors:
+  - family-names: Durand
+    given-names: Antoine
+    email: antoine.durand@fluid-lifecycle.com
+license: Apache-2.0
+repository-code: "https://github.com/FL-AntoineDurand/dioramap-lab"
+version: 0.1.0
+date-released: 2026-11-30
+keywords:
+  - lidar
+  - point cloud
+  - LoD2
+  - 3D building reconstruction
+  - roof reconstruction
+  - COPC
+  - IGN LiDAR HD

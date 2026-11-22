@@ -1,0 +1,6 @@
+# Cases for the "easy" tier — simple roof shapes with default parameters.
+# Format: one case id per line; '#' comments OK.
+# IDs refer to JSON specs under
+#   ../data/test-cases/<id>.json
+
+flat-default

@@ -1,0 +1,91 @@
+{
+  "type": "real",
+  "id": "real-18033-bourges-centre-538",
+  "dataFile": "real-18033-bourges-centre-538.bin",
+  "footprint": [
+    {
+      "x": 10.694541344651952,
+      "z": -10.200556711293757
+    },
+    {
+      "x": -0.20545864524319768,
+      "z": -3.800556710921228
+    },
+    {
+      "x": -3.1054586452664807,
+      "z": -8.400556711480021
+    },
+    {
+      "x": -2.005458645289764,
+      "z": -9.200556711293757
+    },
+    {
+      "x": -3.2054586452431977,
+      "z": -11.100556711666286
+    },
+    {
+      "x": -4.30545864533633,
+      "z": -10.300556710921228
+    },
+    {
+      "x": -6.305458635324612,
+      "z": -13.400556711480021
+    },
+    {
+      "x": -3.505458645289764,
+      "z": -16.200556711293757
+    },
+    {
+      "x": 3.094541354686953,
+      "z": -23.100556711666286
+    },
+    {
+      "x": 10.694541344651952,
+      "z": -10.200556711293757
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 66,
+    "point_count": 41208,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 47.0831,
+    "lng": 2.396,
+    "commune_code": "18033",
+    "commune_name": "Bourges",
+    "building_surface_m2": 165.7,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 654175.2054947553,
+      "y": 6664936.104163959
+    },
+    "imported_at": "2026-02-25T15:08:42.975Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 15.9,
+    "nature": "Indifférenciée",
+    "usage_1": "Résidentiel",
+    "materiaux_de_la_toiture": "20",
+    "nombre_d_etages": 6,
+    "altitude_minimale_sol": 146.5,
+    "altitude_minimale_toit": 162.5,
+    "altitude_maximale_toit": 164.1
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 370,
+    "height": 393,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 654158.90003612,
+      "maxX": 654195.9000361,
+      "minZ": 6664929.90472067,
+      "maxZ": 6664969.20472067
+    }
+  }
+}

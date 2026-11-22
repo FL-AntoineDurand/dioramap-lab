@@ -1,0 +1,16 @@
+{
+  "id":          "best-cycle-four-square",
+  "category":    "unit-best-cycle",
+  "description": "4 anchors forming a unit square, supplied in a non-cyclic order (diagonal-first). Optimal cycle should re-order them into the CCW square (mod rotation+reflection).",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "mode": "geometric",
+    "anchors": [
+      { "id": 0, "x": 0.0, "y": 0.0, "z": 0.0, "source": "concave" },
+      { "id": 1, "x": 1.0, "y": 1.0, "z": 0.0, "source": "concave" },
+      { "id": 2, "x": 1.0, "y": 0.0, "z": 0.0, "source": "concave" },
+      { "id": 3, "x": 0.0, "y": 1.0, "z": 0.0, "source": "concave" }
+    ]
+  },
+  "expected": { "cycle": [0, 2, 1, 3] }
+}

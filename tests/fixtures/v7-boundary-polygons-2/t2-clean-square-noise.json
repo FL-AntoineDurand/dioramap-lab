@@ -1,0 +1,31 @@
+{
+  "id":          "t2-clean-square-noise",
+  "category":    "stability",
+  "description": "T1 + σ=1mm corner noise, 100 runs → ≥99 produce same cycle. Tests robustness against FP / measurement noise — the user's core stability criterion.",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "anchors": [
+      { "id": 0, "x":  0.0, "y":  0.0, "z": 0.0, "source": "concave" },
+      { "id": 1, "x": 10.0, "y":  0.0, "z": 0.0, "source": "concave" },
+      { "id": 2, "x": 10.0, "y": 10.0, "z": 0.0, "source": "concave" },
+      { "id": 3, "x":  0.0, "y": 10.0, "z": 0.0, "source": "concave" }
+    ],
+    "group_pts":  { "generator": "synth_cloud_inside",  "params": { "density": 4.0 } },
+    "nearby_pts": { "generator": "synth_cloud_outside", "params": { "offset": 0.5, "per_edge": 5 } },
+    "contours": [
+      {
+        "is_hole": false,
+        "polyU": [0.0, 10.0, 10.0, 0.0],
+        "polyV": [0.0, 0.0,  10.0, 10.0]
+      }
+    ]
+  },
+  "expected": {
+    "polygons": [ { "corner_ids": [0, 1, 2, 3], "kind": "outer" } ],
+    "stability": {
+      "runs":            100,
+      "noise_sigma_mm":  1.0,
+      "min_match_rate":  0.99
+    }
+  }
+}

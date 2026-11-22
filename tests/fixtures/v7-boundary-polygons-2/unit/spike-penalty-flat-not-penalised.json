@@ -1,0 +1,16 @@
+{
+  "id":          "spike-penalty-flat-not-penalised",
+  "category":    "unit-spike",
+  "description": "Rectangle with one vertex E on its top edge near-collinear with neighbours (near-180deg interior angle). Must NOT be penalised - regularization removes flat collinear vertices.",
+  "inputs": {
+    "vertices_uv": [
+      [0.0,  0.0],
+      [5.0,  0.01],
+      [10.0, 0.0],
+      [10.0, 1.0],
+      [0.0,  1.0]
+    ],
+    "spike_threshold_deg": 30.0
+  },
+  "expected": { "min": 0.0, "max": 0.0 }
+}

@@ -1,0 +1,15 @@
+{
+  "n_planes": 90,
+  "n_ridges": 34,
+  "n_corners": 304,
+  "corners_by_source": {
+    "ridge_intersection": 9,
+    "ridge_end": 37,
+    "polygon_merge": 0,
+    "concave": 215,
+    "convex": 43,
+    "coplanar": 0
+  },
+  "wall_corners_added": 72,
+  "coplanar_imported": 53
+}

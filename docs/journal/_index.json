@@ -1,0 +1,4258 @@
+{
+  "generated": "2026-07-03T07:58:35.427Z",
+  "total": 188,
+  "categoryCounts": {
+    "design": 16,
+    "development": 73,
+    "finding": 25,
+    "idea": 31,
+    "review": 14,
+    "bugfix": 14,
+    "benchmark": 7,
+    "experiment": 8
+  },
+  "statusCounts": {
+    "proposed": 32,
+    "concluded": 149,
+    "superseded": 2,
+    "running": 1,
+    "abandoned": 4
+  },
+  "tagCounts": {
+    "design": 10,
+    "boundary-regularize": 13,
+    "plane-type": 1,
+    "wall": 1,
+    "ground": 1,
+    "roof": 1,
+    "cost-function": 7,
+    "make-shared": 3,
+    "plan": 2,
+    "v7": 31,
+    "corner-insertion": 3,
+    "wsd": 7,
+    "repair": 2,
+    "development": 2,
+    "boundary-classify": 2,
+    "boundary-topology": 2,
+    "ground-plane": 1,
+    "model-validity": 1,
+    "stream-b": 1,
+    "compactness": 3,
+    "drift": 3,
+    "normalization": 3,
+    "curriculum": 1,
+    "coverage": 2,
+    "boundary-polygons-2": 2,
+    "dof": 4,
+    "runaway": 1,
+    "edge-misfit": 1,
+    "idea": 26,
+    "boundary-corners": 5,
+    "boundary-polygons": 5,
+    "plane_ids": 1,
+    "coplanar-import": 1,
+    "membership": 2,
+    "finding": 5,
+    "ridge": 13,
+    "ssot": 1,
+    "simplification": 3,
+    "review": 5,
+    "boundary-merge": 3,
+    "architecture": 17,
+    "D.2b": 2,
+    "ridge-side": 2,
+    "side_vec": 1,
+    "bugfix": 8,
+    "wire-format": 1,
+    "convergence": 2,
+    "grow-refit-merge": 3,
+    "segmentation": 9,
+    "redundant-planes": 1,
+    "search-radius": 1,
+    "seed-gate": 1,
+    "normal-cascade-seed": 1,
+    "curvature-gate": 1,
+    "ts-weights": 3,
+    "regression-hunt": 2,
+    "labelling": 1,
+    "density-compensation": 4,
+    "dimensional-analysis": 1,
+    "audit": 2,
+    "hemisphere-segment": 1,
+    "rms": 1,
+    "plane-fit": 1,
+    "contour": 3,
+    "ordering": 1,
+    "tsp": 2,
+    "lidar-physics": 4,
+    "v7-boundary-polygons-2": 3,
+    "v3": 5,
+    "iso-equivalence": 4,
+    "fp-precision": 1,
+    "v3-port": 2,
+    "boundary-chain": 1,
+    "classify": 1,
+    "phase-5": 2,
+    "wall-detect": 1,
+    "beam-geometry": 1,
+    "plane-mutation": 1,
+    "boundary-signals": 1,
+    "density-voids-2": 1,
+    "corner-pool": 1,
+    "data-model": 1,
+    "fp-trap": 1,
+    "v2-v3-equivalence": 1,
+    "json-int": 1,
+    "on-ridge": 1,
+    "topology": 4,
+    "algorithm-design": 1,
+    "TSP": 1,
+    "FP-precision": 1,
+    "open-question": 2,
+    "autonomous": 1,
+    "status-report": 1,
+    "anchors": 1,
+    "regularization": 5,
+    "gaussian": 1,
+    "harness": 1,
+    "boundary-3d": 2,
+    "constraints": 1,
+    "roof-graph": 2,
+    "refactor": 9,
+    "viz": 1,
+    "beam-angle": 5,
+    "multi-return": 3,
+    "projection": 1,
+    "nearby-points": 2,
+    "boundary-edges": 3,
+    "physics": 4,
+    "SNR": 4,
+    "solar": 5,
+    "specular": 3,
+    "density-model": 3,
+    "ardoise": 3,
+    "fitting": 1,
+    "theory": 1,
+    "flight-heading": 1,
+    "cross-track": 1,
+    "scan-angle": 1,
+    "PSID": 1,
+    "COPC": 1,
+    "coordinate-systems": 1,
+    "sensor": 3,
+    "IGN-LiDAR-HD": 2,
+    "slate": 1,
+    "1064nm": 1,
+    "literature-review": 1,
+    "experiments": 1,
+    "boundary": 5,
+    "geometry": 4,
+    "polygon": 1,
+    "fusion": 1,
+    "algos": 1,
+    "inventory": 1,
+    "edge-clean": 1,
+    "adjacency": 1,
+    "walk": 1,
+    "grid": 2,
+    "edge-detection": 5,
+    "adjacency-edges": 1,
+    "planes-from-owner": 2,
+    "grid-hull": 1,
+    "growing": 1,
+    "stealing": 3,
+    "resolve": 1,
+    "lambert": 1,
+    "normals": 4,
+    "pca": 8,
+    "walls": 2,
+    "arena": 2,
+    "pure-thesis": 1,
+    "radon": 2,
+    "rasterize": 1,
+    "spectral": 3,
+    "curvature": 3,
+    "dct": 1,
+    "jpeg": 1,
+    "coplanar-merge": 2,
+    "ransac": 8,
+    "density": 8,
+    "connected-components": 2,
+    "investigation": 1,
+    "polynomial": 1,
+    "curved-surfaces": 2,
+    "experiment": 3,
+    "comparison": 5,
+    "branch-score": 1,
+    "parallel-agents": 1,
+    "master-plan": 2,
+    "cascade-ridge-detect": 1,
+    "anti-pattern": 1,
+    "wiring": 4,
+    "cache": 1,
+    "artifacts": 3,
+    "global-index": 1,
+    "kd-tree": 2,
+    "pipeline": 24,
+    "tile-wide": 1,
+    "migration": 2,
+    "anti-patterns": 1,
+    "eigenvalues": 4,
+    "eigensolver": 1,
+    "cardano": 1,
+    "numerical-stability": 1,
+    "planarity-watershed": 1,
+    "weighted-fit": 1,
+    "axis-10": 1,
+    "rng": 1,
+    "transient": 1,
+    "cascade": 6,
+    "ridge-detect": 2,
+    "point-weights": 1,
+    "scan-line": 1,
+    "knn": 1,
+    "linearity": 1,
+    "tile-signals": 3,
+    "kde": 6,
+    "anisotropy": 1,
+    "scan-lines": 1,
+    "curvatures": 1,
+    "preprocessing": 1,
+    "exploration": 3,
+    "detect-boundary": 2,
+    "boundary-detection": 1,
+    "snap-footprint": 1,
+    "hough": 1,
+    "co-registration": 2,
+    "panel-fitting": 1,
+    "plane-intersection": 1,
+    "procedural": 4,
+    "ui": 10,
+    "live-mode": 3,
+    "test-cases": 6,
+    "building-importer": 1,
+    "metrics": 7,
+    "residual": 1,
+    "alpha-shape": 3,
+    "concave-hull": 2,
+    "3d-rendering": 1,
+    "building-rms": 1,
+    "edge-type": 1,
+    "edge-classification": 1,
+    "ground-truth": 5,
+    "co-register": 2,
+    "wecs": 2,
+    "validation": 4,
+    "scorer": 1,
+    "database": 1,
+    "alignment": 5,
+    "edges": 7,
+    "surfaces": 1,
+    "research": 14,
+    "benchmark": 11,
+    "meta-analysis": 2,
+    "plane-detection": 7,
+    "ensemble": 3,
+    "histogram": 3,
+    "angular-sweep": 1,
+    "fibonacci-hemisphere": 1,
+    "multiview": 2,
+    "raster": 1,
+    "normal-histogram": 3,
+    "offset-histogram": 2,
+    "speed-optimization": 1,
+    "graph-laplacian": 1,
+    "normal-clustering": 1,
+    "agglomerative": 1,
+    "region-growing": 2,
+    "synthesis": 2,
+    "combination": 3,
+    "ct-radon": 1,
+    "extract-denoise": 5,
+    "ablation": 1,
+    "classification": 3,
+    "plane-fitting": 1,
+    "recall": 1,
+    "per-point-metadata": 4,
+    "psid": 1,
+    "wall-roof": 5,
+    "sensor-params": 5,
+    "ign": 3,
+    "lidar-hd": 3,
+    "binary": 1,
+    "storage": 1,
+    "hull": 4,
+    "lod2": 2,
+    "pyscoring": 1,
+    "flight-strips": 1,
+    "synthetic": 3,
+    "binary-sidecar": 1,
+    "map-picker": 1,
+    "copc": 5,
+    "ign-api": 1,
+    "maplibre": 1,
+    "immutability": 2,
+    "snap-edges": 1,
+    "wall-edges": 1,
+    "debugging": 3,
+    "clustering": 3,
+    "tooling": 1,
+    "v6": 12,
+    "todo": 1,
+    "refactoring": 1,
+    "lazy-init": 1,
+    "data-source": 1,
+    "accuracy": 1,
+    "noise": 1,
+    "reference": 1,
+    "v2-rewrite": 2,
+    "regression": 1,
+    "footprints": 2,
+    "test-data": 2,
+    "iterations": 1,
+    "adaptive": 1,
+    "small-features": 1,
+    "kdtree": 1,
+    "denoising": 1,
+    "z-noise": 1,
+    "derivation": 1,
+    "sensor-aware": 1,
+    "pipelines": 1,
+    "cleanup": 3,
+    "seed-planes": 1,
+    "bitmask": 1,
+    "bandwidth": 2,
+    "normal-cascade": 3,
+    "variants": 1,
+    "hybrid": 1,
+    "competitive-grow": 1,
+    "data-quality": 1,
+    "v2": 3,
+    "v6a": 1,
+    "v6d": 2,
+    "corrected-data": 1,
+    "robustness": 1,
+    "null-guard": 1,
+    "crash": 1,
+    "runner": 1,
+    "progressive": 1,
+    "643-case": 2,
+    "genealogy": 1,
+    "lineage": 1,
+    "innovation-timeline": 1,
+    "parent-tree": 1,
+    "file-locations": 1,
+    "navigation": 1,
+    "v1": 2,
+    "cross-plan": 1,
+    "weak-spot": 5,
+    "structural-limitation": 1,
+    "documentation": 1,
+    "step-catalog": 1,
+    "artifact-types": 1,
+    "dropped": 1,
+    "dead-end": 1,
+    "marginal": 1,
+    "ai": 1,
+    "yolov8": 1,
+    "mobilesam": 1,
+    "onnx": 1,
+    "angle-snapping": 1,
+    "bdtopo": 5,
+    "retry": 7,
+    "flat": 1,
+    "coplanar": 2,
+    "merge": 2,
+    "batch": 1,
+    "national-scale": 1,
+    "worker-threads": 1,
+    "metadata": 2,
+    "branching": 1,
+    "silo": 2,
+    "ortho": 6,
+    "color": 1,
+    "over-segmentation": 1,
+    "cylindrical": 1,
+    "multi-pipeline": 1,
+    "safety-net": 1,
+    "footprint": 3,
+    "merging": 1,
+    "flat-l-shaped": 2,
+    "high-roi": 1,
+    "direction": 1,
+    "snap": 1,
+    "google-solar": 2,
+    "api": 2,
+    "fallback": 1,
+    "optimization": 1,
+    "bayesian": 1,
+    "grid-search": 1,
+    "overfitting": 1,
+    "lidar": 1,
+    "material": 1,
+    "texture": 2,
+    "splitting": 1,
+    "mbr": 1,
+    "shape-fitting": 2,
+    "rotating-calipers": 1,
+    "multi-resolution": 2,
+    "coarse-to-fine": 1,
+    "dormer": 2,
+    "free-improvement": 1,
+    "sobel": 2,
+    "canny": 2,
+    "confirmation": 1,
+    "parameters": 1,
+    "auto-tuning": 1,
+    "parapet": 2,
+    "pre-detection": 1,
+    "footprint-edge": 1,
+    "annotation": 1,
+    "consensus": 1,
+    "hessian": 2,
+    "sub-pixel": 1,
+    "cross-correlation": 3,
+    "v4": 3,
+    "priority": 1,
+    "dependency-graph": 1,
+    "row-houses": 1,
+    "score": 1,
+    "per-roof-type": 1,
+    "evolution": 1,
+    "weak-spots": 2,
+    "misalignment": 1,
+    "test-suite": 2,
+    "mesh": 2,
+    "kenney": 2,
+    "fastify": 1,
+    "three-js": 2,
+    "viewer": 3,
+    "v5": 1,
+    "multimodal": 1,
+    "dsm": 3,
+    "win-loss": 1,
+    "deterministic": 2,
+    "orientation": 1,
+    "offset": 1,
+    "minInliers": 1,
+    "multi-section": 1,
+    "icp": 2,
+    "morphological": 1,
+    "overlap-resolution": 1,
+    "point-count": 1,
+    "caching": 1,
+    "composable-steps": 1,
+    "real-buildings": 2,
+    "wfs": 1,
+    "flat-histogram": 1,
+    "categorization": 1,
+    "adaptive-ransac": 1,
+    "parameter-sensitivity": 1,
+    "overlap": 2,
+    "post-processing": 1,
+    "boolean-ops": 1,
+    "decoupled": 1,
+    "open3d": 1,
+    "city3d": 1,
+    "roofer": 1,
+    "polyfit": 1,
+    "third-party": 1,
+    "champion": 2,
+    "obstacle-filter": 1,
+    "v2-composite": 1,
+    "overshoot": 1,
+    "polygon-clipping": 1,
+    "server": 1,
+    "import": 1,
+    "agrimap-api": 1,
+    "leaflet": 1,
+    "gen1": 3,
+    "reseed": 1,
+    "iterative": 1,
+    "paradigm": 1,
+    "corner-gaps": 1,
+    "isOnCorrectSide": 1,
+    "gen0": 1,
+    "ransac-grow": 1,
+    "competitive-growing": 1,
+    "point-stealing": 1,
+    "breakthrough": 1,
+    "hull-clipping": 1,
+    "parallel-edge": 1,
+    "framework": 1,
+    "pvgis": 1,
+    "feasibility": 1
+  },
+  "milestones": [
+    {
+      "date": "2026-02-20T00:00:00.000Z",
+      "id": "2026-02-20-benchmark-framework-creation",
+      "milestone": "Benchmark framework established",
+      "score": null,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-21T00:00:00.000Z",
+      "id": "2026-02-21-gen0-seven-algorithms",
+      "milestone": "Gen 0 complete",
+      "score": 80,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-21T00:00:00.000Z",
+      "id": "2026-02-21-gen1-ransac-grow",
+      "milestone": "Competitive growing breakthrough",
+      "score": 83,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-21T00:00:00.000Z",
+      "id": "2026-02-21-ransac-grow-clip",
+      "milestone": "Parallel-edge clip",
+      "score": 85,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-22T00:00:00.000Z",
+      "id": "2026-02-22-ransac-grow-clip-reseed",
+      "milestone": "Iterative reseeding",
+      "score": 98.7,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-22T00:00:00.000Z",
+      "id": "2026-02-22-v1-champion-corner-gaps",
+      "milestone": "V1 Champion",
+      "score": 98.9,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-24T00:00:00.000Z",
+      "id": "2026-02-24-v2-champion",
+      "milestone": "V2 Champion (C1+B4)",
+      "score": 88.4,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-25T00:00:00.000Z",
+      "id": "2026-02-25-pipeline-architecture",
+      "milestone": "Composable pipeline architecture",
+      "score": null,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-25T00:00:00.000Z",
+      "id": "2026-02-25-v3-development-overnight",
+      "milestone": "V3 Combined",
+      "score": 91.9,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-25T00:00:00.000Z",
+      "id": "2026-02-25-v4-normal-histogram",
+      "milestone": "V4 normal histogram",
+      "score": 95.8,
+      "pipeline": "v4-normal-histogram"
+    },
+    {
+      "date": "2026-02-26T00:00:00.000Z",
+      "id": "2026-02-26-v2-rewrite-pipeline-only",
+      "milestone": "V2 rewrite complete",
+      "score": null,
+      "pipeline": null
+    },
+    {
+      "date": "2026-02-26T00:00:00.000Z",
+      "id": "2026-02-26-v6-normal-cascade-implementation",
+      "milestone": "V6 Normal Cascade",
+      "score": null,
+      "pipeline": "v6a-base"
+    }
+  ],
+  "entries": [
+    {
+      "id": "2026-07-03-type-aware-regularization-plan",
+      "date": "2026-07-03",
+      "title": "Toward plane-type-aware regularization — state, metric inventory, and the plan",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "design",
+        "boundary-regularize",
+        "plane-type",
+        "wall",
+        "ground",
+        "roof",
+        "cost-function",
+        "make-shared",
+        "plan",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-07-02-ground-plane-classification-design",
+        "2026-07-02-corner-insertion-lands",
+        "2026-07-02-marginal-compactness-gate",
+        "2026-06-29-corner-slide-runaway-and-wsd-coverage-audit"
+      ],
+      "path": "2026/07/2026-07-03-type-aware-regularization-plan.md"
+    },
+    {
+      "id": "2026-07-02-corner-insertion-lands",
+      "date": "2026-07-02",
+      "title": "In-loop corner insertion lands: implementation + results",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "corner-insertion",
+        "cost-function",
+        "wsd",
+        "repair",
+        "development",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-29-regularize-corner-insertion-edge-fit-metric",
+        "2026-06-29-corner-slide-runaway-and-wsd-coverage-audit",
+        "2026-06-30-wsd-normalization-deadend-curriculum"
+      ],
+      "path": "2026/07/2026-07-02-corner-insertion-lands.md"
+    },
+    {
+      "id": "2026-07-02-ground-plane-classification-design",
+      "date": "2026-07-02",
+      "title": "Ground-plane classification — signal survey + placement decision",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "design",
+        "boundary-classify",
+        "boundary-topology",
+        "boundary-regularize",
+        "ground-plane",
+        "model-validity",
+        "stream-b",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [],
+      "path": "2026/07/2026-07-02-ground-plane-classification-design.md"
+    },
+    {
+      "id": "2026-07-02-marginal-compactness-gate",
+      "date": "2026-07-02",
+      "title": "Marginal-compactness gate: retracting drift-into-void without a shape target",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "compactness",
+        "cost-function",
+        "wsd",
+        "drift",
+        "development",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-07-02-corner-insertion-lands",
+        "2026-06-29-corner-slide-runaway-and-wsd-coverage-audit",
+        "2026-06-30-wsd-normalization-deadend-curriculum"
+      ],
+      "path": "2026/07/2026-07-02-marginal-compactness-gate.md"
+    },
+    {
+      "id": "2026-06-30-wsd-normalization-deadend-curriculum",
+      "date": "2026-06-30",
+      "title": "WSD normalization is a dead end — the un-normalized sum is an implicit per-plane curriculum",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "wsd",
+        "cost-function",
+        "normalization",
+        "curriculum",
+        "coverage",
+        "corner-insertion",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-29-corner-slide-runaway-and-wsd-coverage-audit",
+        "2026-06-29-regularize-corner-insertion-edge-fit-metric"
+      ],
+      "path": "2026/06/2026-06-30-wsd-normalization-deadend-curriculum.md"
+    },
+    {
+      "id": "2026-06-29-corner-slide-runaway-and-wsd-coverage-audit",
+      "date": "2026-06-29",
+      "title": "Corner slide-to-infinity: a DOF-1 runaway that exposed missing shape-regularization and un-normalized WSD",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "boundary-polygons-2",
+        "wsd",
+        "cost-function",
+        "dof",
+        "normalization",
+        "compactness",
+        "runaway",
+        "coverage",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-05-10-regularization-cost-architecture",
+        "2026-05-30-bp3-contour-arclength-ordering",
+        "2026-05-22-bp3-grid-fill-topology",
+        "2026-06-02-ts-weights-dimensional-audit",
+        "2026-06-20-in-loop-make-shared-cascade-complete",
+        "2026-04-27-regularization-exploration",
+        "2026-06-29-regularize-corner-insertion-edge-fit-metric"
+      ],
+      "path": "2026/06/2026-06-29-corner-slide-runaway-and-wsd-coverage-audit.md"
+    },
+    {
+      "id": "2026-06-29-regularize-corner-insertion-edge-fit-metric",
+      "date": "2026-06-29",
+      "title": "Idea: in-loop corner insertion in regularize, driven by a per-edge fit-misfit metric",
+      "category": "idea",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "cost-function",
+        "wsd",
+        "corner-insertion",
+        "edge-misfit",
+        "compactness",
+        "repair",
+        "idea",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-07-02-corner-insertion-lands",
+        "2026-06-29-corner-slide-runaway-and-wsd-coverage-audit",
+        "2026-06-20-in-loop-make-shared-cascade-complete",
+        "2026-05-30-bp3-contour-arclength-ordering"
+      ],
+      "path": "2026/06/2026-06-29-regularize-corner-insertion-edge-fit-metric.md"
+    },
+    {
+      "id": "2026-06-24-coplanar-import-plane-ids-audit",
+      "date": "2026-06-24",
+      "title": "Coplanar-import plane_ids: a deliberate sparse-plane signal-recovery feature, backstopped by the 0.75 m contour gate (F4 closed)",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "boundary-corners",
+        "boundary-polygons",
+        "plane_ids",
+        "coplanar-import",
+        "membership",
+        "dof",
+        "finding",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-20-in-loop-make-shared-cascade-complete",
+        "2026-06-14-in-loop-make-shared-design"
+      ],
+      "path": "2026/06/2026-06-24-coplanar-import-plane-ids-audit.md"
+    },
+    {
+      "id": "2026-06-20-in-loop-make-shared-cascade-complete",
+      "date": "2026-06-20",
+      "title": "In-loop make-shared cascade complete: 5-op vocabulary, membership SSoT, T8 close-out",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "make-shared",
+        "ridge",
+        "dof",
+        "membership",
+        "ssot",
+        "simplification",
+        "review",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-14-in-loop-make-shared-design"
+      ],
+      "path": "2026/06/2026-06-20-in-loop-make-shared-cascade-complete.md"
+    },
+    {
+      "id": "2026-06-14-in-loop-make-shared-design",
+      "date": "2026-06-14",
+      "title": "In-loop make-shared: unifying merge, snap, DOF and simplification into one regularize primitive",
+      "category": "design",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "boundary-merge",
+        "boundary-corners",
+        "make-shared",
+        "ridge",
+        "dof",
+        "simplification",
+        "architecture",
+        "design",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-11-merge-regularize-convergence-pathb",
+        "2026-05-21-boundary-polygons-tsp-rethink",
+        "2026-05-17-wrong-side-corner-killing-review",
+        "2026-04-27-regularization-exploration",
+        "2026-05-10-regularization-cost-architecture",
+        "2026-06-11-d2b-side-vec-wrong-plane-frame"
+      ],
+      "path": "2026/06/2026-06-14-in-loop-make-shared-design.md"
+    },
+    {
+      "id": "2026-06-11-d2b-side-vec-wrong-plane-frame",
+      "date": "2026-06-11",
+      "title": "D.2b wrong-side test was blind on steep dihedrals: side_vec lived in only one plane's frame",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "boundary-corners",
+        "boundary-topology",
+        "D.2b",
+        "ridge-side",
+        "side_vec",
+        "bugfix",
+        "wire-format",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-05-17-wrong-side-corner-killing-review",
+        "2026-05-21-boundary-polygons-tsp-rethink"
+      ],
+      "path": "2026/06/2026-06-11-d2b-side-vec-wrong-plane-frame.md"
+    },
+    {
+      "id": "2026-06-11-merge-regularize-convergence-pathb",
+      "date": "2026-06-11",
+      "title": "Folding boundary-merge into the boundary-regularize loop (Path B) — a convergent building model",
+      "category": "design",
+      "status": "superseded",
+      "tags": [
+        "boundary-merge",
+        "boundary-regularize",
+        "boundary-classify",
+        "boundary-polygons-2",
+        "architecture",
+        "design",
+        "convergence",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-05-21-boundary-polygons-tsp-rethink",
+        "2026-04-27-regularization-exploration",
+        "2026-05-10-regularization-cost-architecture",
+        "2026-05-27-boundary-regularize-iso-baseline",
+        "2026-05-28-boundary-regularize-fp-equivalence",
+        "2026-06-11-d2b-side-vec-wrong-plane-frame"
+      ],
+      "path": "2026/06/2026-06-11-merge-regularize-convergence-pathb.md"
+    },
+    {
+      "id": "2026-06-09-grm-redundant-plane-prune",
+      "date": "2026-06-09",
+      "title": "The real problem was spurious PLANES, not the search radius: a GRM redundancy prune",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "grow-refit-merge",
+        "segmentation",
+        "redundant-planes",
+        "search-radius",
+        "seed-gate",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-02-ts-weights-dimensional-audit",
+        "2026-06-02-seed-curvature-median-gate"
+      ],
+      "path": "2026/06/2026-06-09-grm-redundant-plane-prune.md"
+    },
+    {
+      "id": "2026-06-02-seed-curvature-median-gate",
+      "date": "2026-06-02",
+      "title": "Seed curvature gate: area-weighted mean → median (border-robust), the 0c3e28a regression fix",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "normal-cascade-seed",
+        "curvature-gate",
+        "ts-weights",
+        "segmentation",
+        "regression-hunt",
+        "labelling",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-01-grm-rms-weighting-and-density",
+        "2026-03-15-v7-compare-segmentation-arena"
+      ],
+      "path": "2026/06/2026-06-02-seed-curvature-median-gate.md"
+    },
+    {
+      "id": "2026-06-02-ts-weights-dimensional-audit",
+      "date": "2026-06-02",
+      "title": "ts-weights dimensional audit: are we using a [L²] area as area, length, and ratio interchangeably?",
+      "category": "review",
+      "status": "running",
+      "tags": [
+        "ts-weights",
+        "density-compensation",
+        "dimensional-analysis",
+        "audit",
+        "hemisphere-segment",
+        "grow-refit-merge",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-06-02-seed-curvature-median-gate",
+        "2026-06-01-grm-rms-weighting-and-density",
+        "2026-03-15-v7-compare-segmentation-arena"
+      ],
+      "path": "2026/06/2026-06-02-ts-weights-dimensional-audit.md"
+    },
+    {
+      "id": "2026-06-01-grm-rms-weighting-and-density",
+      "date": "2026-06-01",
+      "title": "GRM plane-fit: RMS-weight leak fix (geometric gates) + the forced-density experiment",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "grow-refit-merge",
+        "density-compensation",
+        "ts-weights",
+        "rms",
+        "plane-fit",
+        "regression-hunt",
+        "v7"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-03-15-v7-compare-segmentation-arena",
+        "2026-03-15-ransac-density-compensation-revisited",
+        "2026-05-30-bp3-contour-arclength-ordering"
+      ],
+      "path": "2026/06/2026-06-01-grm-rms-weighting-and-density.md"
+    },
+    {
+      "id": "2026-05-30-bp3-contour-arclength-ordering",
+      "date": "2026-05-30",
+      "title": "bp3 ordering rebuilt: contour arc-length walk + windowed or-opt replaces WSD-TSP (stripe-zigzag fix)",
+      "category": "design",
+      "status": "concluded",
+      "tags": [
+        "boundary-polygons",
+        "contour",
+        "ordering",
+        "tsp",
+        "wsd",
+        "lidar-physics",
+        "v7",
+        "v7-boundary-polygons-2"
+      ],
+      "pipeline": "v7-bp2",
+      "refs": [
+        "2026-05-21-boundary-polygons-tsp-rethink",
+        "2026-05-22-bp3-grid-fill-topology",
+        "2026-05-24-bp3-implementation"
+      ],
+      "path": "2026/05/2026-05-30-bp3-contour-arclength-ordering.md"
+    },
+    {
+      "id": "2026-05-28-boundary-regularize-fp-equivalence",
+      "date": "2026-05-28",
+      "title": "Boundary-regularize v2↔v3 — FP equivalence push, 7/7 per-cost-term + 15/17 aggregate",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "v3",
+        "boundary-regularize",
+        "iso-equivalence",
+        "fp-precision",
+        "drift"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-05-27-boundary-regularize-iso-baseline"
+      ],
+      "path": "2026/05/2026-05-28-boundary-regularize-fp-equivalence.md"
+    },
+    {
+      "id": "2026-05-27-boundary-regularize-iso-baseline",
+      "date": "2026-05-27",
+      "title": "Boundary-regularize v2≡v3 iso baseline — R.0/R.0b match, R.1 diverges",
+      "category": "benchmark",
+      "status": "concluded",
+      "tags": [
+        "v3",
+        "boundary-regularize",
+        "iso-equivalence",
+        "drift"
+      ],
+      "pipeline": "v7",
+      "refs": [],
+      "path": "2026/05/2026-05-27-boundary-regularize-iso-baseline.md"
+    },
+    {
+      "id": "2026-05-26-boundary-classify-port",
+      "date": "2026-05-26",
+      "title": "v7-boundary-classify ported to v3 (Phase 5.7f)",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v3-port",
+        "boundary-chain",
+        "classify",
+        "iso-equivalence",
+        "phase-5"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-05-25-v2-v3-equivalence-and-pool-cleanup"
+      ],
+      "path": "2026/05/2026-05-26-boundary-classify-port.md"
+    },
+    {
+      "id": "2026-05-26-wall-detect-port",
+      "date": "2026-05-26",
+      "title": "v7-wall-detect ported to v3 (Phase 5.7h) — first PLANES/CORNERS mutator",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v3-port",
+        "wall-detect",
+        "beam-geometry",
+        "plane-mutation",
+        "iso-equivalence",
+        "phase-5"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-05-26-boundary-classify-port"
+      ],
+      "path": "2026/05/2026-05-26-wall-detect-port.md"
+    },
+    {
+      "id": "2026-05-25-v2-v3-equivalence-and-pool-cleanup",
+      "date": "2026-05-25",
+      "title": "v2 ≡ v3 equivalence sweep + pool data-model cleanup (BC FP-coin-flip class closed; BM full-tile assertion closed)",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v7",
+        "boundary-corners",
+        "boundary-merge",
+        "boundary-signals",
+        "density-voids-2",
+        "corner-pool",
+        "data-model",
+        "audit",
+        "fp-trap",
+        "v2-v3-equivalence",
+        "json-int",
+        "on-ridge"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-05-17-wrong-side-corner-killing-review",
+        "2026-05-21-boundary-polygons-tsp-rethink",
+        "2026-05-22-bp3-grid-fill-topology",
+        "2026-05-24-bp3-implementation"
+      ],
+      "path": "2026/05/2026-05-25-v2-v3-equivalence-and-pool-cleanup.md"
+    },
+    {
+      "id": "2026-05-24-bp3-implementation",
+      "date": "2026-05-24",
+      "title": "bp3 implementation — v3 v7-boundary-polygons-2 rebuilt around grid-fill contour topology",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "boundary-polygons",
+        "contour",
+        "topology",
+        "v7",
+        "v7-boundary-polygons-2"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-05-22-bp3-grid-fill-topology",
+        "2026-05-21-boundary-polygons-tsp-rethink",
+        "2026-05-21-bp2-autonomous-run-report"
+      ],
+      "path": "2026/05/2026-05-24-bp3-implementation.md"
+    },
+    {
+      "id": "2026-05-22-bp3-grid-fill-topology",
+      "date": "2026-05-22",
+      "title": "bp3: grid-fill topology resolves bp2's classification explosion, restores bp1 with stronger permutation",
+      "category": "design",
+      "status": "concluded",
+      "tags": [
+        "boundary-polygons",
+        "contour",
+        "topology",
+        "algorithm-design"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-05-21-boundary-polygons-tsp-rethink",
+        "2026-05-21-bp2-autonomous-run-report"
+      ],
+      "path": "2026/05/2026-05-22-bp3-grid-fill-topology.md"
+    },
+    {
+      "id": "2026-05-21-boundary-polygons-tsp-rethink",
+      "date": "2026-05-21",
+      "title": "Boundary-Polygons Algorithmic Rethink — TSP not Dijkstra, FP-stability not Byte-parity, Topology before Ordering",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "boundary-polygons",
+        "TSP",
+        "design",
+        "FP-precision",
+        "topology",
+        "v7",
+        "open-question",
+        "review"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-05-17-wrong-side-corner-killing-review",
+        "2026-05-10-regularization-cost-architecture",
+        "2026-04-27-regularization-exploration",
+        "2026-04-14-roof-graph-prepass-boundary-3d"
+      ],
+      "path": "2026/05/2026-05-21-boundary-polygons-tsp-rethink.md"
+    },
+    {
+      "id": "2026-05-21-bp2-autonomous-run-report",
+      "date": "2026-05-21",
+      "title": "v7-boundary-polygons-2 — Autonomous Run Report (Tasks #295/#296/#297-partial)",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "v7-boundary-polygons-2",
+        "tsp",
+        "autonomous",
+        "status-report"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-05-21-boundary-polygons-tsp-rethink"
+      ],
+      "path": "2026/05/2026-05-21-bp2-autonomous-run-report.md"
+    },
+    {
+      "id": "2026-05-17-wrong-side-corner-killing-review",
+      "date": "2026-05-17",
+      "title": "Wrong-Side Corner Killing (D.2b) — Two Failure Modes, A Patch on a Symptom",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "boundary-corners",
+        "D.2b",
+        "ridge-side",
+        "anchors",
+        "design",
+        "open-question",
+        "v7"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-04-14-roof-graph-prepass-boundary-3d",
+        "2026-03-31-boundary-next-gen-plan",
+        "2026-03-29-plane-geometry-approaches"
+      ],
+      "path": "2026/05/2026-05-17-wrong-side-corner-killing-review.md"
+    },
+    {
+      "id": "2026-05-10-regularization-cost-architecture",
+      "date": "2026-05-10",
+      "title": "Regularization Cost Architecture — Saturating Shapes, Sum Aggregation, Linear WSD",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "boundary-regularize",
+        "regularization",
+        "cost-function",
+        "normalization",
+        "gaussian",
+        "wsd",
+        "harness"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-04-27-regularization-exploration",
+        "2026-02-26-idea-angle-snapping-conditional",
+        "2026-02-26-idea-global-direction-clustering",
+        "2026-02-26-idea-mbr-shape-fitting",
+        "2026-02-24-v2-champion"
+      ],
+      "path": "2026/05/2026-05-10-regularization-cost-architecture.md"
+    },
+    {
+      "id": "2026-04-27-regularization-exploration",
+      "date": "2026-04-27",
+      "title": "Building Geometry Regularization: Attempts, Failures, and Conclusions",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "boundary-3d",
+        "regularization",
+        "architecture",
+        "constraints",
+        "roof-graph"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-04-14-roof-graph-prepass-boundary-3d"
+      ],
+      "path": "2026/04/2026-04-27-regularization-exploration.md"
+    },
+    {
+      "id": "2026-04-14-roof-graph-prepass-boundary-3d",
+      "date": "2026-04-14",
+      "title": "Roof Graph Pre-Pass + Snapshot Viz in boundary-3d",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "boundary-3d",
+        "roof-graph",
+        "topology",
+        "refactor",
+        "viz"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-13-v7-master-plan",
+        "2026-03-31-boundary-next-gen-plan",
+        "2026-03-29-plane-geometry-approaches"
+      ],
+      "path": "2026/04/2026-04-14-roof-graph-prepass-boundary-3d.md"
+    },
+    {
+      "id": "2026-04-02-beam-direction-multireturn",
+      "date": "2026-04-02",
+      "title": "Beam Direction Reconstruction: Multi-Return Pairs Solve the Along-Track Tilt",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "beam-angle",
+        "multi-return",
+        "projection",
+        "nearby-points",
+        "boundary-edges"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-04-02-flight-heading-reconstruction",
+        "2026-03-31-boundary-next-gen-plan"
+      ],
+      "path": "2026/04/2026-04-02-beam-direction-multireturn.md"
+    },
+    {
+      "id": "2026-04-02-density-dropout-physics-final",
+      "date": "2026-04-02",
+      "title": "LiDAR Point Density Dropout — Complete Physics Model and Fitting Attempts",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "physics",
+        "SNR",
+        "solar",
+        "specular",
+        "density-model",
+        "beam-angle",
+        "ardoise",
+        "fitting",
+        "theory"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-04-01-lidar-point-density-physics-model",
+        "2026-04-01-lidar-slate-physics-research",
+        "2026-04-01-overnight-research-compilation",
+        "2026-03-31-boundary-next-gen-plan"
+      ],
+      "path": "2026/04/2026-04-02-density-dropout-physics-final.md"
+    },
+    {
+      "id": "2026-04-02-flight-heading-reconstruction",
+      "date": "2026-04-02",
+      "title": "Flight Heading & Beam Direction Reconstruction — Methods, Validation, Pitfalls",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "beam-angle",
+        "flight-heading",
+        "cross-track",
+        "scan-angle",
+        "PSID",
+        "COPC",
+        "coordinate-systems"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-04-01-lidar-point-density-physics-model",
+        "2026-03-31-boundary-next-gen-plan"
+      ],
+      "path": "2026/04/2026-04-02-flight-heading-reconstruction.md"
+    },
+    {
+      "id": "2026-04-01-lidar-point-density-physics-model",
+      "date": "2026-04-01",
+      "title": "LiDAR Point Density Physics Model: Beam Incidence, Solar Noise, Specular Reflection",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "physics",
+        "sensor",
+        "SNR",
+        "beam-angle",
+        "solar",
+        "specular",
+        "density-model",
+        "ardoise",
+        "IGN-LiDAR-HD"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-04-01-lidar-slate-physics-research",
+        "2026-03-31-boundary-next-gen-plan"
+      ],
+      "path": "2026/04/2026-04-01-lidar-point-density-physics-model.md"
+    },
+    {
+      "id": "2026-04-01-lidar-slate-physics-research",
+      "date": "2026-04-01",
+      "title": "LiDAR Sensor Specs and Slate Optical Properties for SNR Modeling",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "physics",
+        "sensor",
+        "slate",
+        "ardoise",
+        "SNR",
+        "1064nm",
+        "IGN-LiDAR-HD"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/04/2026-04-01-lidar-slate-physics-research.md"
+    },
+    {
+      "id": "2026-04-01-overnight-research-compilation",
+      "date": "2026-04-01",
+      "title": "Overnight Research: LiDAR Density Dropout Models — Literature + Experiments",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "physics",
+        "sensor",
+        "SNR",
+        "specular",
+        "density-model",
+        "literature-review",
+        "experiments"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-04-01-lidar-point-density-physics-model",
+        "2026-04-01-lidar-slate-physics-research"
+      ],
+      "path": "2026/04/2026-04-01-overnight-research-compilation.md"
+    },
+    {
+      "id": "2026-03-31-boundary-next-gen-plan",
+      "date": "2026-03-31",
+      "title": "Boundary Next-Gen: Beam Reconstruction, Nearby Points, Void Classification",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "boundary",
+        "geometry",
+        "lidar-physics",
+        "beam-angle",
+        "nearby-points",
+        "plan"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-29-plane-geometry-approaches",
+        "2026-03-19-boundary-edges-development",
+        "2026-03-05-psid-metadata-deep-analysis",
+        "2026-03-11-detect-boundary-bits-5-6-7",
+        "2026-03-03-wall-roof-detect-evolution",
+        "2026-03-11-footprint-snap-strategy-redesign"
+      ],
+      "path": "2026/03/2026-03-31-boundary-next-gen-plan.md"
+    },
+    {
+      "id": "2026-03-29-plane-geometry-approaches",
+      "date": "2026-03-29",
+      "title": "Plane Geometry Extraction — All Approaches Tried",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "boundary",
+        "geometry",
+        "polygon",
+        "simplification",
+        "fusion"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-25-algo-inventory",
+        "2026-03-31-boundary-next-gen-plan"
+      ],
+      "path": "2026/03/2026-03-29-plane-geometry-approaches.md"
+    },
+    {
+      "id": "2026-03-25-algo-inventory",
+      "date": "2026-03-25",
+      "title": "Boundary Algo Inventory — Strengths, Weaknesses, Upgrade Path",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "boundary",
+        "algos",
+        "inventory",
+        "edge-clean"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/03/2026-03-25-algo-inventory.md"
+    },
+    {
+      "id": "2026-03-19-boundary-edges-development",
+      "date": "2026-03-19",
+      "title": "boundary-edges: semantic grid + boundary walk + ridge geometry",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "boundary-edges",
+        "adjacency",
+        "ridge",
+        "walk",
+        "grid",
+        "edge-detection",
+        "v7"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-16-adjacency-boundary-edge-detection",
+        "2026-03-15-planes-from-owner-wall-fixes"
+      ],
+      "path": "2026/03/2026-03-19-boundary-edges-development.md"
+    },
+    {
+      "id": "2026-03-16-adjacency-boundary-edge-detection",
+      "date": "2026-03-16",
+      "title": "Adjacency graph + boundary polygon edge detection",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "adjacency-edges",
+        "boundary-edges",
+        "planes-from-owner",
+        "grid-hull",
+        "v7",
+        "edge-detection"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-15-planes-from-owner-wall-fixes"
+      ],
+      "path": "2026/03/2026-03-16-adjacency-boundary-edge-detection.md"
+    },
+    {
+      "id": "2026-03-16-grow-steal-resolve",
+      "date": "2026-03-16",
+      "title": "grow-steal-resolve: unified plane expansion with equation refit and spatial coherence",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "segmentation",
+        "growing",
+        "stealing",
+        "resolve",
+        "v7"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-16-lambert-antipodal-normal-merge",
+        "2026-03-15-ransac-density-compensation-revisited"
+      ],
+      "path": "2026/03/2026-03-16-grow-steal-resolve.md"
+    },
+    {
+      "id": "2026-03-16-lambert-antipodal-normal-merge",
+      "date": "2026-03-16",
+      "title": "Lambert hemisphere: unoriented normal handling via antipodal group merge",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "segmentation",
+        "lambert",
+        "normals",
+        "pca",
+        "walls",
+        "v7"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-12-spherical-kde-scan-line-compensation",
+        "2026-03-12-tile-signals-unified-pca"
+      ],
+      "path": "2026/03/2026-03-16-lambert-antipodal-normal-merge.md"
+    },
+    {
+      "id": "2026-03-15-five-pure-thesis-chains",
+      "date": "2026-03-15",
+      "title": "Five Pure-Thesis Segmentation Chains: Raw Algorithms for Agent Refinement",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "v7",
+        "segmentation",
+        "arena",
+        "pure-thesis",
+        "radon",
+        "rasterize",
+        "spectral",
+        "curvature",
+        "dct",
+        "jpeg"
+      ],
+      "pipeline": "v7-compare",
+      "refs": [
+        "2026-03-15-v7-compare-segmentation-arena",
+        "2026-03-06-axis1-radon-plane-detection",
+        "2026-03-06-axis2-multiview-rasterize-detect",
+        "2026-03-06-axis3-spectral-frequency-methods",
+        "2026-03-06-axis4-curvature-pca-region-growing",
+        "2026-03-06-next-gen-pipeline-research-axes",
+        "2026-03-13-v7-master-plan"
+      ],
+      "path": "2026/03/2026-03-15-five-pure-thesis-chains.md"
+    },
+    {
+      "id": "2026-03-15-planes-from-owner-wall-fixes",
+      "date": "2026-03-15",
+      "title": "planes-from-owner v4: classification filter removal + coplanar merge",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "planes-from-owner",
+        "walls",
+        "segmentation",
+        "coplanar-merge",
+        "v7"
+      ],
+      "pipeline": "v7",
+      "refs": [],
+      "path": "2026/03/2026-03-15-planes-from-owner-wall-fixes.md"
+    },
+    {
+      "id": "2026-03-15-ransac-density-compensation-revisited",
+      "date": "2026-03-15",
+      "title": "ransac-full/poly: density compensation revisited — NaN bug invalidates prior conclusions",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "ransac",
+        "density",
+        "bugfix",
+        "finding",
+        "v7"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-15-ransac-full-density-compensation",
+        "2026-03-15-ransac-poly-curved-surface-detection"
+      ],
+      "path": "2026/03/2026-03-15-ransac-density-compensation-revisited.md"
+    },
+    {
+      "id": "2026-03-15-ransac-full-density-compensation",
+      "date": "2026-03-15",
+      "title": "ransac-full: density compensation deep-dive",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "ransac",
+        "density",
+        "connected-components",
+        "investigation"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-13-v7-master-plan"
+      ],
+      "path": "2026/03/2026-03-15-ransac-full-density-compensation.md"
+    },
+    {
+      "id": "2026-03-15-ransac-poly-curved-surface-detection",
+      "date": "2026-03-15",
+      "title": "ransac-poly: polynomial RANSAC for curved surface detection",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "ransac",
+        "polynomial",
+        "curved-surfaces",
+        "density",
+        "experiment",
+        "v7"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-13-v7-master-plan",
+        "2026-03-15-ransac-full-density-compensation",
+        "2026-03-12-local-density-compensation"
+      ],
+      "path": "2026/03/2026-03-15-ransac-poly-curved-surface-detection.md"
+    },
+    {
+      "id": "2026-03-15-v7-compare-segmentation-arena",
+      "date": "2026-03-15",
+      "title": "V7-Compare: Segmentation Arena — 14 parallel approaches, density-improved, scored in-pipeline",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "v7",
+        "architecture",
+        "segmentation",
+        "comparison",
+        "density",
+        "arena",
+        "branch-score",
+        "parallel-agents",
+        "master-plan"
+      ],
+      "pipeline": "v7-compare",
+      "refs": [
+        "2026-03-13-v7-master-plan",
+        "2026-03-07-ten-axis-research-session-report",
+        "2026-03-06-four-axis-research-synthesis",
+        "2026-03-15-ransac-full-density-compensation",
+        "2026-03-15-ransac-poly-curved-surface-detection",
+        "2026-03-13-cascade-ridge-detect-methods-1-2-retirement",
+        "2026-03-13-night-architecture-refactor",
+        "2026-03-12-local-density-compensation",
+        "2026-03-06-axis1-radon-plane-detection",
+        "2026-03-06-axis2-multiview-rasterize-detect",
+        "2026-03-06-axis3-spectral-frequency-methods",
+        "2026-03-06-axis4-curvature-pca-region-growing",
+        "2026-03-12-density-aware-planarity-watershed",
+        "2026-03-06-meta-analysis-pipelines-vs-axes",
+        "2026-03-06-next-gen-pipeline-research-axes"
+      ],
+      "path": "2026/03/2026-03-15-v7-compare-segmentation-arena.md"
+    },
+    {
+      "id": "2026-03-13-cascade-ridge-detect-methods-1-2-retirement",
+      "date": "2026-03-13",
+      "title": "cascade-ridge-detect: Methods 1 & 2 are fundamentally wrong — only Method 3 survives",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "ridge",
+        "cascade-ridge-detect",
+        "density",
+        "anti-pattern",
+        "finding"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-02-cascade-step-split",
+        "2026-03-12-local-density-compensation"
+      ],
+      "path": "2026/03/2026-03-13-cascade-ridge-detect-methods-1-2-retirement.md"
+    },
+    {
+      "id": "2026-03-13-night-architecture-refactor",
+      "date": "2026-03-13",
+      "title": "Night Architecture Refactor: Cache Demotion, Artifact Schema, Declarative Wiring, Global Index Migration",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "architecture",
+        "refactor",
+        "wiring",
+        "cache",
+        "artifacts",
+        "global-index",
+        "kd-tree",
+        "pipeline"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-12-eliminate-transient-artifacts"
+      ],
+      "path": "2026/03/2026-03-13-night-architecture-refactor.md"
+    },
+    {
+      "id": "2026-03-13-v7-master-plan",
+      "date": "2026-03-13",
+      "title": "V7 Master Plan: Tile-First Density-Aware Roof Reconstruction",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "v7",
+        "architecture",
+        "density",
+        "tile-wide",
+        "master-plan",
+        "pipeline",
+        "migration",
+        "anti-patterns"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-12-local-density-compensation",
+        "2026-03-12-tile-signals-unified-pca",
+        "2026-03-12-density-aware-planarity-watershed",
+        "2026-03-12-spherical-kde-scan-line-compensation",
+        "2026-03-11-footprint-snap-strategy-redesign",
+        "2026-03-07-ten-axis-research-session-report",
+        "2026-03-13-cascade-ridge-detect-methods-1-2-retirement"
+      ],
+      "path": "2026/03/2026-03-13-v7-master-plan.md"
+    },
+    {
+      "id": "2026-03-12-cardano-eigensolver",
+      "date": "2026-03-12",
+      "title": "Closed-form Cardano eigensolver replaces power iteration PCA",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "pca",
+        "eigenvalues",
+        "eigensolver",
+        "cardano",
+        "numerical-stability",
+        "bugfix"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-12-tile-signals-unified-pca",
+        "2026-03-12-spherical-kde-scan-line-compensation"
+      ],
+      "path": "2026/03/2026-03-12-cardano-eigensolver.md"
+    },
+    {
+      "id": "2026-03-12-density-aware-planarity-watershed",
+      "date": "2026-03-12",
+      "title": "Density-Aware Planarity Watershed (V2)",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "planarity-watershed",
+        "density-compensation",
+        "weighted-fit",
+        "axis-10"
+      ],
+      "pipeline": "exploration",
+      "refs": [
+        "2026-03-12-local-density-compensation",
+        "2026-03-07-ten-axis-research-session-report"
+      ],
+      "path": "2026/03/2026-03-12-density-aware-planarity-watershed.md"
+    },
+    {
+      "id": "2026-03-12-eliminate-transient-artifacts",
+      "date": "2026-03-12",
+      "title": "Eliminate transient artifacts: wire kd-tree, localize RNG",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "wiring",
+        "refactor",
+        "kd-tree",
+        "rng",
+        "transient"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-04-qualified-names-explicit-wiring",
+        "2026-03-03-immutable-artifact-refactor",
+        "2026-03-12-tile-signals-unified-pca"
+      ],
+      "path": "2026/03/2026-03-12-eliminate-transient-artifacts.md"
+    },
+    {
+      "id": "2026-03-12-local-density-compensation",
+      "date": "2026-03-12",
+      "title": "Local Density Compensation: Density-Blind Algorithms Across the Pipeline",
+      "category": "design",
+      "status": "concluded",
+      "tags": [
+        "density",
+        "cascade",
+        "segmentation",
+        "ridge-detect",
+        "point-weights",
+        "design"
+      ],
+      "pipeline": "v7",
+      "refs": [
+        "2026-03-12-spherical-kde-scan-line-compensation",
+        "2026-03-12-spatial-linearity-k-expansion",
+        "2026-03-12-tile-signals-unified-pca",
+        "2026-03-12-density-aware-planarity-watershed"
+      ],
+      "path": "2026/03/2026-03-12-local-density-compensation.md"
+    },
+    {
+      "id": "2026-03-12-spatial-linearity-k-expansion",
+      "date": "2026-03-12",
+      "title": "Spatial linearity trigger for adaptive K expansion fixes scan-line false linearity",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "pca",
+        "scan-line",
+        "knn",
+        "linearity",
+        "density-compensation",
+        "tile-signals"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-12-cardano-eigensolver",
+        "2026-03-12-tile-signals-unified-pca"
+      ],
+      "path": "2026/03/2026-03-12-spatial-linearity-k-expansion.md"
+    },
+    {
+      "id": "2026-03-12-spherical-kde-scan-line-compensation",
+      "date": "2026-03-12",
+      "title": "3D spherical KDE for LiDAR scan-line anisotropy compensation",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "kde",
+        "pca",
+        "eigenvalues",
+        "anisotropy",
+        "scan-lines",
+        "lidar-physics",
+        "tile-signals"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-12-tile-signals-unified-pca"
+      ],
+      "path": "2026/03/2026-03-12-spherical-kde-scan-line-compensation.md"
+    },
+    {
+      "id": "2026-03-12-tile-signals-unified-pca",
+      "date": "2026-03-12",
+      "title": "tile-signals: unified full-cloud PCA step",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "tile-signals",
+        "eigenvalues",
+        "normals",
+        "curvatures",
+        "pca",
+        "kde",
+        "preprocessing",
+        "exploration"
+      ],
+      "pipeline": "exploration",
+      "refs": [
+        "2026-03-12-spherical-kde-scan-line-compensation"
+      ],
+      "path": "2026/03/2026-03-12-tile-signals-unified-pca.md"
+    },
+    {
+      "id": "2026-03-11-detect-boundary-bits-5-6-7",
+      "date": "2026-03-11",
+      "title": "Detect-boundary: ground-prox, wall-return, MR-noise (bits 5-7)",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "detect-boundary",
+        "multi-return",
+        "lidar-physics",
+        "boundary-detection"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-03-10-physics-multireturn-edge-classification",
+        "2026-03-09-boundary-co-registration"
+      ],
+      "path": "2026/03/2026-03-11-detect-boundary-bits-5-6-7.md"
+    },
+    {
+      "id": "2026-03-11-footprint-snap-strategy-redesign",
+      "date": "2026-03-11",
+      "title": "Footprint snap strategy redesign: from per-edge projection to detect-then-match",
+      "category": "design",
+      "status": "proposed",
+      "tags": [
+        "snap-footprint",
+        "detect-boundary",
+        "hough",
+        "ransac",
+        "edge-detection",
+        "co-registration",
+        "design"
+      ],
+      "pipeline": "exploration",
+      "refs": [
+        "2026-03-11-detect-boundary-bits-5-6-7",
+        "2026-03-09-boundary-co-registration",
+        "2026-03-10-physics-multireturn-edge-classification"
+      ],
+      "path": "2026/03/2026-03-11-footprint-snap-strategy-redesign.md"
+    },
+    {
+      "id": "2026-03-11-hole-aware-solar-panel-fitting",
+      "date": "2026-03-11",
+      "title": "Hole-aware solar panel fitting + 3D panel viewer",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "solar",
+        "panel-fitting",
+        "plane-intersection",
+        "procedural",
+        "ui"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/03/2026-03-11-hole-aware-solar-panel-fitting.md"
+    },
+    {
+      "id": "2026-03-11-live-map-picker-save-test-case",
+      "date": "2026-03-11",
+      "title": "Live map picker fix + save-as-test-case from UI",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "ui",
+        "live-mode",
+        "test-cases",
+        "building-importer"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-04-live-mode-map-picker"
+      ],
+      "path": "2026/03/2026-03-11-live-map-picker-save-test-case.md"
+    },
+    {
+      "id": "2026-03-11-metric-scoring-bugs-residual-boundary",
+      "date": "2026-03-11",
+      "title": "Two metric scoring bugs — residualScore and boundaryIoU",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "metrics",
+        "bugfix",
+        "residual",
+        "boundary"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-07-scorer-v3-23-metrics",
+        "2026-03-10-building-rms-edge-type-metrics"
+      ],
+      "path": "2026/03/2026-03-11-metric-scoring-bugs-residual-boundary.md"
+    },
+    {
+      "id": "2026-03-10-bridge-vertex-concave-hull-fix",
+      "date": "2026-03-10",
+      "title": "Bridge vertex fix in alpha-shape concave hulls",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "alpha-shape",
+        "concave-hull",
+        "3d-rendering",
+        "bugfix"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-concave-hull-rdp-simplification"
+      ],
+      "path": "2026/03/2026-03-10-bridge-vertex-concave-hull-fix.md"
+    },
+    {
+      "id": "2026-03-10-building-rms-edge-type-metrics",
+      "date": "2026-03-10",
+      "title": "Building RMS and edge type accuracy metrics",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "metrics",
+        "building-rms",
+        "edge-type",
+        "ui"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-07-scorer-v3-23-metrics",
+        "2026-03-04-edge-accuracy-metric"
+      ],
+      "path": "2026/03/2026-03-10-building-rms-edge-type-metrics.md"
+    },
+    {
+      "id": "2026-03-10-physics-multireturn-edge-classification",
+      "date": "2026-03-10",
+      "title": "Physics-based multi-return and automatic edge classification",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "multi-return",
+        "edge-classification",
+        "procedural",
+        "ground-truth"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-05-wall-roof-detect-v12-v13-multireturn-raw",
+        "2026-03-04-edge-accuracy-metric"
+      ],
+      "path": "2026/03/2026-03-10-physics-multireturn-edge-classification.md"
+    },
+    {
+      "id": "2026-03-10-wecs-diagnostic-gt-validation-reset",
+      "date": "2026-03-10",
+      "title": "WECS demoted to diagnostic, all GT validation reset",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "co-register",
+        "wecs",
+        "ground-truth",
+        "validation"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-09-boundary-co-registration"
+      ],
+      "path": "2026/03/2026-03-10-wecs-diagnostic-gt-validation-reset.md"
+    },
+    {
+      "id": "2026-03-09-boundary-co-registration",
+      "date": "2026-03-09",
+      "title": "Boundary-RMS co-registration replaces DSM cross-correlation",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "co-register",
+        "boundary",
+        "pipeline",
+        "exploration"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/03/2026-03-09-boundary-co-registration.md"
+    },
+    {
+      "id": "2026-03-07-scorer-v3-23-metrics",
+      "date": "2026-03-07",
+      "title": "Scorer V3 — 23-metric system with full DB and UI wiring",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "scorer",
+        "metrics",
+        "database",
+        "ui",
+        "alignment",
+        "edges",
+        "surfaces"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-04-edge-accuracy-metric"
+      ],
+      "path": "2026/03/2026-03-07-scorer-v3-23-metrics.md"
+    },
+    {
+      "id": "2026-03-07-ten-axis-research-session-report",
+      "date": "2026-03-07",
+      "title": "10-Axis Research Session: Full Report & Meta-Analysis",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "benchmark",
+        "meta-analysis",
+        "plane-detection",
+        "curved-surfaces",
+        "ensemble",
+        "comparison"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-06-axis1-radon-plane-detection",
+        "2026-03-06-axis2-multiview-rasterize-detect",
+        "2026-03-06-axis3-spectral-frequency-methods",
+        "2026-03-06-axis4-curvature-pca-region-growing",
+        "2026-03-06-four-axis-research-synthesis",
+        "2026-03-06-next-gen-pipeline-research-axes"
+      ],
+      "path": "2026/03/2026-03-07-ten-axis-research-session-report.md"
+    },
+    {
+      "id": "2026-03-06-axis1-radon-plane-detection",
+      "date": "2026-03-06",
+      "title": "Axis 1: CT/Radon Angular Sweep Plane Detection — Full Research Archive",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "plane-detection",
+        "radon",
+        "histogram",
+        "angular-sweep",
+        "fibonacci-hemisphere"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-06-four-axis-research-synthesis"
+      ],
+      "path": "2026/03/2026-03-06-axis1-radon-plane-detection.md"
+    },
+    {
+      "id": "2026-03-06-axis2-multiview-rasterize-detect",
+      "date": "2026-03-06",
+      "title": "Axis 2: Multi-View Rasterize-Detect Plane Detection",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "plane-detection",
+        "multiview",
+        "raster",
+        "connected-components",
+        "normal-histogram",
+        "offset-histogram",
+        "coplanar-merge",
+        "speed-optimization"
+      ],
+      "pipeline": "standalone-detector",
+      "refs": [
+        "2026-03-06-four-axis-research-synthesis"
+      ],
+      "path": "2026/03/2026-03-06-axis2-multiview-rasterize-detect.md"
+    },
+    {
+      "id": "2026-03-06-axis3-spectral-frequency-methods",
+      "date": "2026-03-06",
+      "title": "Axis 3: Frequency & Spectral Methods Plane Detection -- Full Research Record",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "plane-detection",
+        "spectral",
+        "graph-laplacian",
+        "normal-clustering",
+        "agglomerative",
+        "offset-histogram"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-06-four-axis-research-synthesis"
+      ],
+      "path": "2026/03/2026-03-06-axis3-spectral-frequency-methods.md"
+    },
+    {
+      "id": "2026-03-06-axis4-curvature-pca-region-growing",
+      "date": "2026-03-06",
+      "title": "Axis 4: PCA Curvature Classification & Region Growing",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "plane-detection",
+        "pca",
+        "curvature",
+        "region-growing",
+        "eigenvalues"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-06-four-axis-research-synthesis"
+      ],
+      "path": "2026/03/2026-03-06-axis4-curvature-pca-region-growing.md"
+    },
+    {
+      "id": "2026-03-06-four-axis-research-synthesis",
+      "date": "2026-03-06",
+      "title": "4-Axis LiDAR Plane Detection Research Synthesis",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "plane-detection",
+        "synthesis",
+        "benchmark",
+        "comparison"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-06-axis1-radon-plane-detection",
+        "2026-03-06-axis2-multiview-rasterize-detect",
+        "2026-03-06-axis3-spectral-frequency-methods",
+        "2026-03-06-axis4-curvature-pca-region-growing"
+      ],
+      "path": "2026/03/2026-03-06-four-axis-research-synthesis.md"
+    },
+    {
+      "id": "2026-03-06-meta-analysis-pipelines-vs-axes",
+      "date": "2026-03-06",
+      "title": "Meta-Analysis: Existing Pipelines vs Research Axes — Philosophy, Math, and Combination Opportunities",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "meta-analysis",
+        "synthesis",
+        "pipeline",
+        "combination",
+        "ensemble",
+        "comparison"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-06-four-axis-research-synthesis",
+        "2026-03-06-axis1-radon-plane-detection",
+        "2026-03-06-axis2-multiview-rasterize-detect",
+        "2026-03-06-axis3-spectral-frequency-methods",
+        "2026-03-06-axis4-curvature-pca-region-growing",
+        "2026-02-26-v6-normal-cascade-implementation",
+        "2026-02-26-row-houses-v6-breakthrough",
+        "2026-02-26-cross-plan-structural-limitation",
+        "2026-02-26-dropped-algorithm-experiments"
+      ],
+      "path": "2026/03/2026-03-06-meta-analysis-pipelines-vs-axes.md"
+    },
+    {
+      "id": "2026-03-06-next-gen-pipeline-research-axes",
+      "date": "2026-03-06",
+      "title": "Next-Generation Pipeline Research Axes — Design Document",
+      "category": "design",
+      "status": "concluded",
+      "tags": [
+        "research",
+        "plane-detection",
+        "design",
+        "ct-radon",
+        "multiview",
+        "spectral",
+        "curvature",
+        "pca"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-06-axis1-radon-plane-detection",
+        "2026-03-06-axis2-multiview-rasterize-detect",
+        "2026-03-06-axis3-spectral-frequency-methods",
+        "2026-03-06-axis4-curvature-pca-region-growing",
+        "2026-03-06-four-axis-research-synthesis",
+        "2026-03-06-meta-analysis-pipelines-vs-axes"
+      ],
+      "path": "2026/03/2026-03-06-next-gen-pipeline-research-axes.md"
+    },
+    {
+      "id": "2026-03-05-idea-denoise-ablation",
+      "date": "2026-03-05",
+      "title": "Idea: Denoising Ablation Experiment",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "extract-denoise",
+        "ablation",
+        "benchmark",
+        "edge-detection"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-03-04-flight-strip-simulation"
+      ],
+      "path": "2026/03/2026-03-05-idea-denoise-ablation.md"
+    },
+    {
+      "id": "2026-03-05-idea-reclassify-unassigned-points",
+      "date": "2026-03-05",
+      "title": "Idea: Re-classify Unassigned Points Fitting Detected Planes",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "classification",
+        "extract-denoise",
+        "plane-fitting",
+        "recall"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-03-05-psid-metadata-deep-analysis"
+      ],
+      "path": "2026/03/2026-03-05-idea-reclassify-unassigned-points.md"
+    },
+    {
+      "id": "2026-03-05-psid-metadata-deep-analysis",
+      "date": "2026-03-05",
+      "title": "PointSourceId Metadata Deep Analysis — Ideas, Pipeline Wiring, and Reality Check",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "per-point-metadata",
+        "psid",
+        "pipeline",
+        "wall-roof",
+        "ridge",
+        "sensor-params",
+        "ign",
+        "lidar-hd",
+        "finding"
+      ],
+      "pipeline": "v6g-kde-full",
+      "refs": [
+        "2026-03-04-per-point-metadata-pipeline",
+        "2026-03-04-flight-strip-simulation",
+        "2026-03-02-ign-lidar-hd-source-characterization",
+        "2026-03-03-wall-roof-detect-evolution"
+      ],
+      "path": "2026/03/2026-03-05-psid-metadata-deep-analysis.md"
+    },
+    {
+      "id": "2026-03-05-wall-roof-detect-v12-v13-multireturn-raw",
+      "date": "2026-03-05",
+      "title": "wall-roof-detect v12-v13: Multi-Return Bitmask + Raw Point Cloud Bypass",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "wall-roof",
+        "per-point-metadata",
+        "edges",
+        "extract-denoise"
+      ],
+      "pipeline": "v6g-kde-full",
+      "refs": [
+        "2026-03-03-wall-roof-detect-v10-two-phase",
+        "2026-03-03-wall-roof-detect-evolution",
+        "2026-03-04-per-point-metadata-pipeline"
+      ],
+      "path": "2026/03/2026-03-05-wall-roof-detect-v12-v13-multireturn-raw.md"
+    },
+    {
+      "id": "2026-03-04-binary-sidecar-format",
+      "date": "2026-03-04",
+      "title": "TCBD Binary Sidecar Format for Test Cases",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "binary",
+        "test-cases",
+        "storage",
+        "migration"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-04-flight-strip-simulation"
+      ],
+      "path": "2026/03/2026-03-04-binary-sidecar-format.md"
+    },
+    {
+      "id": "2026-03-04-close-corner-gaps-concavity-fix",
+      "date": "2026-03-04",
+      "title": "close-corner-gaps v5: Preserve Concave Hulls via Polygon Union",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "hull",
+        "bugfix"
+      ],
+      "pipeline": "v6g-kde-full",
+      "refs": [
+        "2026-03-03-wall-roof-detect-v10-two-phase"
+      ],
+      "path": "2026/03/2026-03-04-close-corner-gaps-concavity-fix.md"
+    },
+    {
+      "id": "2026-03-04-edge-accuracy-metric",
+      "date": "2026-03-04",
+      "title": "Edge Accuracy Metric (PCont/RCont/POri/ROri)",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "edges",
+        "metrics",
+        "lod2",
+        "pyscoring"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-03-04-snap-edges-vertical-wall-edges",
+        "2026-03-03-multi-source-edge-detection"
+      ],
+      "path": "2026/03/2026-03-04-edge-accuracy-metric.md"
+    },
+    {
+      "id": "2026-03-04-flight-strip-simulation",
+      "date": "2026-03-04",
+      "title": "Flight-Strip Simulation + Harmonized Input Schema",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "flight-strips",
+        "synthetic",
+        "per-point-metadata",
+        "binary-sidecar",
+        "live-mode",
+        "ui"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-03-02-ign-lidar-hd-source-characterization"
+      ],
+      "path": "2026/03/2026-03-04-flight-strip-simulation.md"
+    },
+    {
+      "id": "2026-03-04-live-mode-map-picker",
+      "date": "2026-03-04",
+      "title": "Live Mode + UI Map Picker for Real Buildings",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "live-mode",
+        "ui",
+        "map-picker",
+        "copc",
+        "ign-api",
+        "maplibre"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-04-flight-strip-simulation",
+        "2026-03-02-ign-lidar-hd-source-characterization"
+      ],
+      "path": "2026/03/2026-03-04-live-mode-map-picker.md"
+    },
+    {
+      "id": "2026-03-04-per-point-metadata-pipeline",
+      "date": "2026-03-04",
+      "title": "Per-Point Metadata Plumbing Through Pipeline",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "per-point-metadata",
+        "extract-denoise",
+        "wiring",
+        "artifacts"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-04-flight-strip-simulation",
+        "2026-03-03-artifact-type-system-ui-overhaul"
+      ],
+      "path": "2026/03/2026-03-04-per-point-metadata-pipeline.md"
+    },
+    {
+      "id": "2026-03-04-qualified-names-explicit-wiring",
+      "date": "2026-03-04",
+      "title": "Qualified Artifact Names + Explicit Wiring Architecture",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "refactor",
+        "architecture",
+        "wiring",
+        "immutability"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-immutable-artifact-refactor"
+      ],
+      "path": "2026/03/2026-03-04-qualified-names-explicit-wiring.md"
+    },
+    {
+      "id": "2026-03-04-snap-edges-vertical-wall-edges",
+      "date": "2026-03-04",
+      "title": "Snap-Edges Step + Vertical Wall Edges",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "edges",
+        "snap-edges",
+        "wall-edges",
+        "lod2",
+        "ground-truth"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-03-03-multi-source-edge-detection",
+        "2026-03-03-ridge-clip-unified-step",
+        "2026-03-03-ridge-edge-fit-segment-pairs"
+      ],
+      "path": "2026/03/2026-03-04-snap-edges-vertical-wall-edges.md"
+    },
+    {
+      "id": "2026-03-03-artifact-type-system-ui-overhaul",
+      "date": "2026-03-03",
+      "title": "Artifact Type System Enrichment and UI Overhaul",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "ui",
+        "pipeline",
+        "architecture",
+        "artifacts"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-immutable-artifact-refactor",
+        "2026-03-03-multi-source-edge-detection"
+      ],
+      "path": "2026/03/2026-03-03-artifact-type-system-ui-overhaul.md"
+    },
+    {
+      "id": "2026-03-03-concave-hull-rdp-simplification",
+      "date": "2026-03-03",
+      "title": "Concave Hulls with RDP Simplification Replace Convex Hulls",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "hull",
+        "alpha-shape",
+        "geometry",
+        "architecture"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-immutable-artifact-refactor"
+      ],
+      "path": "2026/03/2026-03-03-concave-hull-rdp-simplification.md"
+    },
+    {
+      "id": "2026-03-03-immutable-artifact-refactor",
+      "date": "2026-03-03",
+      "title": "Immutable Artifact Pattern for Pipeline Steps",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "refactor",
+        "immutability",
+        "debugging"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-02-unfold-ransac-ridge-bitmask"
+      ],
+      "path": "2026/03/2026-03-03-immutable-artifact-refactor.md"
+    },
+    {
+      "id": "2026-03-03-multi-source-edge-detection",
+      "date": "2026-03-03",
+      "title": "Multi-Source Edge Detection System",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "edges",
+        "pipeline",
+        "wall-roof",
+        "ridge",
+        "architecture"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-immutable-artifact-refactor",
+        "2026-03-02-cascade-step-split"
+      ],
+      "path": "2026/03/2026-03-03-multi-source-edge-detection.md"
+    },
+    {
+      "id": "2026-03-03-ridge-clip-unified-step",
+      "date": "2026-03-03",
+      "title": "Ridge-Clip: Unified Snap/Clip/Edge Step Replaces Two-Step Sequence",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "ridge",
+        "hull",
+        "pipeline",
+        "refactor"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-immutable-artifact-refactor",
+        "2026-03-03-multi-source-edge-detection"
+      ],
+      "path": "2026/03/2026-03-03-ridge-clip-unified-step.md"
+    },
+    {
+      "id": "2026-03-03-ridge-edge-fit-segment-pairs",
+      "date": "2026-03-03",
+      "title": "Ridge Edge Fitting: Segment-Pair Clustering Splits Multi-Ridge Junctions",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "edges",
+        "ridge",
+        "clustering",
+        "finding"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-multi-source-edge-detection",
+        "2026-03-02-cascade-step-split"
+      ],
+      "path": "2026/03/2026-03-03-ridge-edge-fit-segment-pairs.md"
+    },
+    {
+      "id": "2026-03-03-step-dump-replay-tooling",
+      "date": "2026-03-03",
+      "title": "Step Dump/Replay Scripts for Fast Pipeline Debugging",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "tooling",
+        "debugging",
+        "pipeline"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-multi-source-edge-detection"
+      ],
+      "path": "2026/03/2026-03-03-step-dump-replay-tooling.md"
+    },
+    {
+      "id": "2026-03-03-wall-roof-detect-evolution",
+      "date": "2026-03-03",
+      "title": "Wall-Roof Detection: From 3D K-NN Failure to 2D Dual-Edge Fitting",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "edges",
+        "wall-roof",
+        "debugging",
+        "sensor-params"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-03-multi-source-edge-detection"
+      ],
+      "path": "2026/03/2026-03-03-wall-roof-detect-evolution.md"
+    },
+    {
+      "id": "2026-03-03-wall-roof-detect-v10-two-phase",
+      "date": "2026-03-03",
+      "title": "wall-roof-detect v10: Two-Phase Edge Fitting with Mini-Cascade",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "edge-detection",
+        "wall-roof",
+        "kde"
+      ],
+      "pipeline": "v6g-kde-full",
+      "refs": [],
+      "path": "2026/03/2026-03-03-wall-roof-detect-v10-two-phase.md"
+    },
+    {
+      "id": "2026-03-02-cascade-sensor-derived-params-todo",
+      "date": "2026-03-02",
+      "title": "TODO: Re-introduce Sensor-Derived Parameters in Cascade Steps",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "v6",
+        "cascade",
+        "sensor-params",
+        "experiment",
+        "todo"
+      ],
+      "pipeline": "v6",
+      "refs": [
+        "2026-03-02-cascade-step-split",
+        "2026-03-02-sensor-aware-parameter-derivation"
+      ],
+      "path": "2026/03/2026-03-02-cascade-sensor-derived-params-todo.md"
+    },
+    {
+      "id": "2026-03-02-cascade-step-split",
+      "date": "2026-03-02",
+      "title": "Split normal-cascade-segment into 3 Mode-Specific Steps + Dedicated Ridge Detection",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "cascade",
+        "refactor",
+        "architecture",
+        "ridge"
+      ],
+      "pipeline": "v6",
+      "refs": [
+        "2026-03-02-v6g-kde-pipeline-variants",
+        "2026-03-02-sensor-aware-parameter-derivation"
+      ],
+      "path": "2026/03/2026-03-02-cascade-step-split.md"
+    },
+    {
+      "id": "2026-03-02-extract-denoise-lazy-init-decoupling",
+      "date": "2026-03-02",
+      "title": "Decouple extract-denoise from downstream artifact initialization",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "architecture",
+        "refactoring",
+        "lazy-init",
+        "pipeline"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/03/2026-03-02-extract-denoise-lazy-init-decoupling.md"
+    },
+    {
+      "id": "2026-03-02-ign-lidar-hd-source-characterization",
+      "date": "2026-03-02",
+      "title": "IGN LiDAR HD source characterization — sensor, accuracy, noise, classification",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "data-source",
+        "ign",
+        "lidar-hd",
+        "accuracy",
+        "noise",
+        "classification",
+        "reference"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/03/2026-03-02-ign-lidar-hd-source-characterization.md"
+    },
+    {
+      "id": "2026-03-02-index-space-mismatch-scorer",
+      "date": "2026-03-02",
+      "title": "CRITICAL: Index-Space Mismatch in Segmentation Scorer",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "metrics",
+        "segmentation",
+        "v2-rewrite",
+        "regression"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-02-v6x-hybrid-converges-to-v2",
+        "2026-03-02-v6-kde-stage1-wins-stage2-loses",
+        "2026-02-26-row-houses-v6-breakthrough",
+        "2026-02-26-cross-plan-structural-limitation"
+      ],
+      "path": "2026/03/2026-03-02-index-space-mismatch-scorer.md"
+    },
+    {
+      "id": "2026-03-02-procedural-footprint-fixes",
+      "date": "2026-03-02",
+      "title": "Fix Procedural Building Footprints (Church, Silo+Barn) + Regenerate All Test Cases",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "footprints",
+        "test-data",
+        "procedural",
+        "ground-truth",
+        "bugfix"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/03/2026-03-02-procedural-footprint-fixes.md"
+    },
+    {
+      "id": "2026-03-02-ransac-iterations-idea",
+      "date": "2026-03-02",
+      "title": "Idea: Adaptive Multi-Wave RANSAC with 800 Iterations",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "ransac",
+        "iterations",
+        "adaptive",
+        "small-features",
+        "benchmark"
+      ],
+      "pipeline": "v2-champion",
+      "refs": [
+        "2026-02-22-ransac-grow-clip-reseed",
+        "2026-02-26-idea-multi-resolution-ransac"
+      ],
+      "path": "2026/03/2026-03-02-ransac-iterations-idea.md"
+    },
+    {
+      "id": "2026-03-02-raw-point-kdtree-variant",
+      "date": "2026-03-02",
+      "title": "Build kdTree on raw LiDAR points instead of denoised building points",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "architecture",
+        "kdtree",
+        "denoising",
+        "experiment"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-02-extract-denoise-lazy-init-decoupling"
+      ],
+      "path": "2026/03/2026-03-02-raw-point-kdtree-variant.md"
+    },
+    {
+      "id": "2026-03-02-sensor-aware-parameter-derivation",
+      "date": "2026-03-02",
+      "title": "Sensor-Aware Parameter Derivation: All Thresholds From Physics",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "sensor-params",
+        "density",
+        "z-noise",
+        "derivation",
+        "architecture"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-03-02-extract-denoise-lazy-init-decoupling",
+        "2026-03-02-ign-lidar-hd-source-characterization"
+      ],
+      "path": "2026/03/2026-03-02-sensor-aware-parameter-derivation.md"
+    },
+    {
+      "id": "2026-03-02-sensor-derived-defaults-cleanup",
+      "date": "2026-03-02",
+      "title": "Remove hardcoded sensor-derived params from all pipeline defaults",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "sensor-aware",
+        "pipelines",
+        "cleanup",
+        "ui"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-02-sensor-aware-parameter-derivation"
+      ],
+      "path": "2026/03/2026-03-02-sensor-derived-defaults-cleanup.md"
+    },
+    {
+      "id": "2026-03-02-sensor-derived-minpeakcount",
+      "date": "2026-03-02",
+      "title": "Sensor-Derived minPeakCount + Seed Plane UI Visualization",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "cascade",
+        "sensor-params",
+        "seed-planes",
+        "ui"
+      ],
+      "pipeline": "v6",
+      "refs": [
+        "2026-03-02-cascade-step-split",
+        "2026-03-02-cascade-sensor-derived-params-todo"
+      ],
+      "path": "2026/03/2026-03-02-sensor-derived-minpeakcount.md"
+    },
+    {
+      "id": "2026-03-02-unfold-ransac-ridge-bitmask",
+      "date": "2026-03-02",
+      "title": "Unfold RANSAC Loop + Unified Ridge Bitmask",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "ransac",
+        "ridge",
+        "bitmask",
+        "pipeline",
+        "refactor"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-26-v6-normal-cascade-implementation",
+        "2026-03-02-cascade-step-split"
+      ],
+      "path": "2026/03/2026-03-02-unfold-ransac-ridge-bitmask.md"
+    },
+    {
+      "id": "2026-03-02-v6-kde-stage1-wins-stage2-loses",
+      "date": "2026-03-02",
+      "title": "V6-KDE: Stage 1 KDE Wins, Stage 2 KDE Loses",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "kde",
+        "histogram",
+        "bandwidth",
+        "normal-cascade"
+      ],
+      "pipeline": "v6g-kde",
+      "refs": [
+        "2026-03-02-index-space-mismatch-scorer"
+      ],
+      "path": "2026/03/2026-03-02-v6-kde-stage1-wins-stage2-loses.md"
+    },
+    {
+      "id": "2026-03-02-v6g-kde-pipeline-variants",
+      "date": "2026-03-02",
+      "title": "V6G-KDE Pipeline Variants Added for Normal Cascade",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "kde",
+        "pipeline",
+        "variants"
+      ],
+      "pipeline": "v6g-kde",
+      "refs": [
+        "2026-03-02-v6-kde-stage1-wins-stage2-loses"
+      ],
+      "path": "2026/03/2026-03-02-v6g-kde-pipeline-variants.md"
+    },
+    {
+      "id": "2026-03-02-v6x-hybrid-converges-to-v2",
+      "date": "2026-03-02",
+      "title": "V6x Hybrid Converges to V2 Champion Results",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "hybrid",
+        "convergence",
+        "competitive-grow"
+      ],
+      "pipeline": "v6x-hybrid",
+      "refs": [
+        "2026-03-02-index-space-mismatch-scorer"
+      ],
+      "path": "2026/03/2026-03-02-v6x-hybrid-converges-to-v2.md"
+    },
+    {
+      "id": "2026-02-27-bad-footprints-silent-corruption",
+      "date": "2026-02-27",
+      "title": "20 Bad Footprints Silently Corrupt Benchmark Results",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "footprints",
+        "test-data",
+        "benchmark",
+        "data-quality"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-27-bad-footprints-silent-corruption.md"
+    },
+    {
+      "id": "2026-02-27-clean-3way-rebenchmark",
+      "date": "2026-02-27",
+      "title": "Clean 3-Way Re-Benchmark Launched on Corrected Test Data",
+      "category": "benchmark",
+      "status": "concluded",
+      "tags": [
+        "benchmark",
+        "v2",
+        "v6a",
+        "v6d",
+        "corrected-data"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-27-bad-footprints-silent-corruption",
+        "2026-02-26-v6-643-case-benchmark",
+        "2026-02-27-v6d-progressive-benchmark"
+      ],
+      "path": "2026/02/2026-02-27-clean-3way-rebenchmark.md"
+    },
+    {
+      "id": "2026-02-27-pipeline-robustness-fixes",
+      "date": "2026-02-27",
+      "title": "Pipeline Robustness Fixes: Null Guards and Early-Exit Crashes",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "robustness",
+        "null-guard",
+        "crash",
+        "extract-denoise",
+        "runner"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-27-bad-footprints-silent-corruption"
+      ],
+      "path": "2026/02/2026-02-27-pipeline-robustness-fixes.md"
+    },
+    {
+      "id": "2026-02-27-v6d-progressive-benchmark",
+      "date": "2026-02-27",
+      "title": "V6d Progressive Full 643-Case Benchmark: 203W/46L (4.4:1)",
+      "category": "benchmark",
+      "status": "concluded",
+      "tags": [
+        "v6d",
+        "progressive",
+        "benchmark",
+        "643-case"
+      ],
+      "pipeline": "v6d-progressive",
+      "refs": [
+        "2026-02-26-v6-643-case-benchmark"
+      ],
+      "path": "2026/02/2026-02-27-v6d-progressive-benchmark.md"
+    },
+    {
+      "id": "2026-02-26-algorithm-genealogy-overview",
+      "date": "2026-02-26",
+      "title": "Algorithm Genealogy: Parent Tree and Innovation Timeline",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "review",
+        "genealogy",
+        "lineage",
+        "innovation-timeline",
+        "parent-tree"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-algorithm-genealogy-overview.md"
+    },
+    {
+      "id": "2026-02-26-codebase-file-locations",
+      "date": "2026-02-26",
+      "title": "Codebase File Location Cross-Reference",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "review",
+        "file-locations",
+        "navigation",
+        "v1",
+        "v2"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-codebase-file-locations.md"
+    },
+    {
+      "id": "2026-02-26-cross-plan-structural-limitation",
+      "date": "2026-02-26",
+      "title": "Cross-Plan Buildings: Structural Limitation of Normal-Based Seeding",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "cross-plan",
+        "normal-cascade",
+        "weak-spot",
+        "structural-limitation"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-26-row-houses-v6-breakthrough"
+      ],
+      "path": "2026/02/2026-02-26-cross-plan-structural-limitation.md"
+    },
+    {
+      "id": "2026-02-26-documentation-overhaul",
+      "date": "2026-02-26",
+      "title": "Documentation Overhaul: Architecture, Pipelines, Steps, Artifacts",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "documentation",
+        "architecture",
+        "step-catalog",
+        "artifact-types"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-documentation-overhaul.md"
+    },
+    {
+      "id": "2026-02-26-dropped-algorithm-experiments",
+      "date": "2026-02-26",
+      "title": "Dropped Algorithm Experiments: Definitively and Marginally",
+      "category": "review",
+      "status": "concluded",
+      "tags": [
+        "review",
+        "dropped",
+        "dead-end",
+        "marginal"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-dropped-algorithm-experiments.md"
+    },
+    {
+      "id": "2026-02-26-idea-ai-segmentation",
+      "date": "2026-02-26",
+      "title": "Idea: AI Segmentation (YOLOv8-obb, MobileSAM)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "ai",
+        "yolov8",
+        "mobilesam",
+        "onnx",
+        "research"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-ai-segmentation.md"
+    },
+    {
+      "id": "2026-02-26-idea-angle-snapping-conditional",
+      "date": "2026-02-26",
+      "title": "Idea: Angle Snapping (Conditional, with BDTOPO Priors)",
+      "category": "idea",
+      "status": "abandoned",
+      "tags": [
+        "idea",
+        "angle-snapping",
+        "regularization",
+        "bdtopo",
+        "retry"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-angle-snapping-conditional.md"
+    },
+    {
+      "id": "2026-02-26-idea-asymmetric-flat-stealing",
+      "date": "2026-02-26",
+      "title": "Idea: Asymmetric Stealing for Flat Roofs",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "flat",
+        "stealing",
+        "coplanar",
+        "merge"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-asymmetric-flat-stealing.md"
+    },
+    {
+      "id": "2026-02-26-idea-batch-processing",
+      "date": "2026-02-26",
+      "title": "Idea: Multi-Building Batch Processing",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "batch",
+        "national-scale",
+        "worker-threads",
+        "research"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-batch-processing.md"
+    },
+    {
+      "id": "2026-02-26-idea-bdtopo-metadata-priors",
+      "date": "2026-02-26",
+      "title": "Idea: BDTOPO Metadata Priors for Algorithm Selection",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "bdtopo",
+        "metadata",
+        "branching",
+        "silo"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-bdtopo-metadata-priors.md"
+    },
+    {
+      "id": "2026-02-26-idea-color-plane-validation",
+      "date": "2026-02-26",
+      "title": "Idea: Color-Based Plane Validation (Ortho RGB)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "ortho",
+        "color",
+        "validation",
+        "over-segmentation"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-color-plane-validation.md"
+    },
+    {
+      "id": "2026-02-26-idea-cylindrical-detection-silos",
+      "date": "2026-02-26",
+      "title": "Idea: Cylindrical Detection for Silos",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "silo",
+        "cylindrical",
+        "geometry",
+        "bdtopo"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-cylindrical-detection-silos.md"
+    },
+    {
+      "id": "2026-02-26-idea-ensemble-methods",
+      "date": "2026-02-26",
+      "title": "Idea: Ensemble Methods (Run Multiple Pipelines, Pick Best)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "ensemble",
+        "multi-pipeline",
+        "safety-net",
+        "research"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-ensemble-methods.md"
+    },
+    {
+      "id": "2026-02-26-idea-footprint-aware-merging",
+      "date": "2026-02-26",
+      "title": "Idea: Footprint-Aware Plane Merging (Highest ROI)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "footprint",
+        "merging",
+        "flat-l-shaped",
+        "high-roi"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-footprint-aware-merging.md"
+    },
+    {
+      "id": "2026-02-26-idea-global-direction-clustering",
+      "date": "2026-02-26",
+      "title": "Idea: Global Direction Clustering (Soft Constraint)",
+      "category": "idea",
+      "status": "abandoned",
+      "tags": [
+        "idea",
+        "direction",
+        "clustering",
+        "snap",
+        "regularization",
+        "retry"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-global-direction-clustering.md"
+    },
+    {
+      "id": "2026-02-26-idea-google-solar-fallback",
+      "date": "2026-02-26",
+      "title": "Idea: Google Solar API as Fallback",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "google-solar",
+        "api",
+        "validation",
+        "fallback",
+        "research"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-google-solar-fallback.md"
+    },
+    {
+      "id": "2026-02-26-idea-kde-offset-histogram",
+      "date": "2026-02-26",
+      "title": "Idea: KDE for Normal Cascade Offset Histogram (V6-KDE)",
+      "category": "idea",
+      "status": "concluded",
+      "tags": [
+        "idea",
+        "kde",
+        "histogram",
+        "v6",
+        "bandwidth",
+        "retry"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-03-02-v6-kde-stage1-wins-stage2-loses"
+      ],
+      "path": "2026/02/2026-02-26-idea-kde-offset-histogram.md"
+    },
+    {
+      "id": "2026-02-26-idea-learning-optimal-parameters",
+      "date": "2026-02-26",
+      "title": "Idea: Learning Optimal Parameters from Training Set",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "optimization",
+        "bayesian",
+        "grid-search",
+        "overfitting",
+        "research"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-learning-optimal-parameters.md"
+    },
+    {
+      "id": "2026-02-26-idea-lidar-footprint",
+      "date": "2026-02-26",
+      "title": "Idea: Recompute Footprint from LiDAR (Skip BDTOPO)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "footprint",
+        "lidar",
+        "alpha-shape",
+        "concave-hull",
+        "alignment"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-lidar-footprint.md"
+    },
+    {
+      "id": "2026-02-26-idea-material-plane-splitting",
+      "date": "2026-02-26",
+      "title": "Idea: Material-Based Plane Splitting",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "material",
+        "ortho",
+        "texture",
+        "splitting"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-material-plane-splitting.md"
+    },
+    {
+      "id": "2026-02-26-idea-mbr-shape-fitting",
+      "date": "2026-02-26",
+      "title": "Idea: MBR Shape Fitting for Boundary Regularization",
+      "category": "idea",
+      "status": "abandoned",
+      "tags": [
+        "idea",
+        "mbr",
+        "shape-fitting",
+        "rotating-calipers",
+        "retry"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-mbr-shape-fitting.md"
+    },
+    {
+      "id": "2026-02-26-idea-multi-resolution-ransac",
+      "date": "2026-02-26",
+      "title": "Idea: Multi-Resolution RANSAC (Coarse-to-Fine)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "ransac",
+        "multi-resolution",
+        "coarse-to-fine",
+        "dormer"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-multi-resolution-ransac.md"
+    },
+    {
+      "id": "2026-02-26-idea-normal-weighted-stealing",
+      "date": "2026-02-26",
+      "title": "Idea: Normal-Weighted Stealing (Track 2 Revisited)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "normals",
+        "stealing",
+        "free-improvement",
+        "retry"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-normal-weighted-stealing.md"
+    },
+    {
+      "id": "2026-02-26-idea-ortho-ridge-confirmation",
+      "date": "2026-02-26",
+      "title": "Idea: Ortho Edge Detection for Ridge Confirmation",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "ortho",
+        "ridge",
+        "sobel",
+        "canny",
+        "confirmation"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-ortho-ridge-confirmation.md"
+    },
+    {
+      "id": "2026-02-26-idea-parameter-auto-tuning",
+      "date": "2026-02-26",
+      "title": "Idea: Parameter Auto-Tuning Per Roof Type",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "parameters",
+        "auto-tuning",
+        "classification"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-parameter-auto-tuning.md"
+    },
+    {
+      "id": "2026-02-26-idea-parapet-pre-detection",
+      "date": "2026-02-26",
+      "title": "Idea: Parapet-Aware Detection (Explicit Pre-Detection)",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "parapet",
+        "pre-detection",
+        "footprint-edge",
+        "retry"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-parapet-pre-detection.md"
+    },
+    {
+      "id": "2026-02-26-idea-real-building-ground-truth",
+      "date": "2026-02-26",
+      "title": "Idea: Real Building Ground Truth Annotation",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "ground-truth",
+        "annotation",
+        "consensus",
+        "research"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-real-building-ground-truth.md"
+    },
+    {
+      "id": "2026-02-26-idea-ridge-detection-validation",
+      "date": "2026-02-26",
+      "title": "Idea: Ridge Detection as Validation (Not Primary Seed)",
+      "category": "idea",
+      "status": "abandoned",
+      "tags": [
+        "idea",
+        "ridge",
+        "hessian",
+        "validation",
+        "retry"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-22-ridge-first-detection"
+      ],
+      "path": "2026/02/2026-02-26-idea-ridge-detection-validation.md"
+    },
+    {
+      "id": "2026-02-26-idea-subpixel-alignment",
+      "date": "2026-02-26",
+      "title": "Idea: Sub-Pixel Alignment Refinement",
+      "category": "idea",
+      "status": "proposed",
+      "tags": [
+        "idea",
+        "alignment",
+        "sub-pixel",
+        "cross-correlation"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-subpixel-alignment.md"
+    },
+    {
+      "id": "2026-02-26-idea-v4-v3-combination",
+      "date": "2026-02-26",
+      "title": "Idea: V4 + V3 Combination (Normal Histogram + Categorization)",
+      "category": "idea",
+      "status": "superseded",
+      "tags": [
+        "idea",
+        "v4",
+        "v3",
+        "combination",
+        "pipeline"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-idea-v4-v3-combination.md"
+    },
+    {
+      "id": "2026-02-26-pipeline-combination-matrix",
+      "date": "2026-02-26",
+      "title": "Pipeline Combination Matrix and Priority Ranking",
+      "category": "design",
+      "status": "concluded",
+      "tags": [
+        "design",
+        "pipeline",
+        "combination",
+        "priority",
+        "dependency-graph"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-pipeline-combination-matrix.md"
+    },
+    {
+      "id": "2026-02-26-row-houses-v6-breakthrough",
+      "date": "2026-02-26",
+      "title": "Row Houses: V6 Cascade Finds +62% More Planes",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "row-houses",
+        "cascade",
+        "weak-spot"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-02-26-cross-plan-structural-limitation"
+      ],
+      "path": "2026/02/2026-02-26-row-houses-v6-breakthrough.md"
+    },
+    {
+      "id": "2026-02-26-score-evolution-per-roof-type",
+      "date": "2026-02-26",
+      "title": "Score Evolution: Per-Roof-Type Breakdown (V2 Champion)",
+      "category": "benchmark",
+      "status": "concluded",
+      "tags": [
+        "benchmark",
+        "score",
+        "per-roof-type",
+        "evolution",
+        "weak-spots"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-score-evolution-per-roof-type.md"
+    },
+    {
+      "id": "2026-02-26-synthetic-ortho-generator",
+      "date": "2026-02-26",
+      "title": "Synthetic Orthophoto Generator",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "ortho",
+        "synthetic",
+        "texture",
+        "misalignment"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-synthetic-ortho-generator.md"
+    },
+    {
+      "id": "2026-02-26-test-suite-cleanup",
+      "date": "2026-02-26",
+      "title": "Test Suite Cleanup: Remove Mesh Cases",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "test-suite",
+        "cleanup",
+        "mesh",
+        "kenney"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-test-suite-cleanup.md"
+    },
+    {
+      "id": "2026-02-26-ui-explorer",
+      "date": "2026-02-26",
+      "title": "UI Explorer: Fastify + Three.js",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "ui",
+        "fastify",
+        "three-js",
+        "viewer"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-ui-explorer.md"
+    },
+    {
+      "id": "2026-02-26-v2-rewrite-pipeline-only",
+      "date": "2026-02-26",
+      "title": "V2 Rewrite: Pipeline-Only Architecture",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v2-rewrite",
+        "pipeline",
+        "architecture",
+        "cleanup"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-v2-rewrite-pipeline-only.md"
+    },
+    {
+      "id": "2026-02-26-v5-multimodal-base",
+      "date": "2026-02-26",
+      "title": "V5 Multimodal Base Pipeline",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v5",
+        "multimodal",
+        "dsm",
+        "ortho",
+        "bdtopo",
+        "metadata"
+      ],
+      "pipeline": "v5-multimodal-base",
+      "refs": [],
+      "path": "2026/02/2026-02-26-v5-multimodal-base.md"
+    },
+    {
+      "id": "2026-02-26-v6-643-case-benchmark",
+      "date": "2026-02-26",
+      "title": "V6 Full 643-Case Benchmark: 132W/38L (3.5:1 Win Rate)",
+      "category": "benchmark",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "benchmark",
+        "643-case",
+        "win-loss"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-02-26-v6-normal-cascade-implementation",
+        "2026-02-27-bad-footprints-silent-corruption"
+      ],
+      "path": "2026/02/2026-02-26-v6-643-case-benchmark.md"
+    },
+    {
+      "id": "2026-02-26-v6-normal-cascade-implementation",
+      "date": "2026-02-26",
+      "title": "V6 Normal Cascade: Design, Implementation, and 6 Variants",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v6",
+        "normal-cascade",
+        "deterministic",
+        "orientation",
+        "offset",
+        "cascade"
+      ],
+      "pipeline": "v6a-base",
+      "refs": [
+        "2026-02-26-row-houses-v6-breakthrough",
+        "2026-02-26-cross-plan-structural-limitation"
+      ],
+      "path": "2026/02/2026-02-26-v6-normal-cascade-implementation.md"
+    },
+    {
+      "id": "2026-02-26-weak-spot-dormer-house",
+      "date": "2026-02-26",
+      "title": "Weak Spot Analysis: Dormer House (~79/100)",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "weak-spot",
+        "dormer",
+        "minInliers",
+        "multi-resolution"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-26-weak-spot-dormer-house.md"
+    },
+    {
+      "id": "2026-02-26-weak-spot-flat-l-shaped",
+      "date": "2026-02-26",
+      "title": "Weak Spot Analysis: Flat L-Shaped (~71/100)",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "weak-spot",
+        "flat-l-shaped",
+        "clustering",
+        "footprint",
+        "merge"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-26-idea-footprint-aware-merging",
+        "2026-02-26-idea-asymmetric-flat-stealing"
+      ],
+      "path": "2026/02/2026-02-26-weak-spot-flat-l-shaped.md"
+    },
+    {
+      "id": "2026-02-26-weak-spot-multi-section",
+      "date": "2026-02-26",
+      "title": "Weak Spot Analysis: Multi-Section (~85/100, V4/V6 Fundamental Weakness)",
+      "category": "finding",
+      "status": "concluded",
+      "tags": [
+        "weak-spot",
+        "multi-section",
+        "coplanar",
+        "normal-histogram",
+        "v4",
+        "v6"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-26-cross-plan-structural-limitation",
+        "2026-02-26-idea-ensemble-methods"
+      ],
+      "path": "2026/02/2026-02-26-weak-spot-multi-section.md"
+    },
+    {
+      "id": "2026-02-25-alignment-research",
+      "date": "2026-02-25",
+      "title": "Alignment Research: 3 Approaches on 41 Real Buildings",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "alignment",
+        "icp",
+        "dsm",
+        "cross-correlation",
+        "sobel",
+        "morphological"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-25-alignment-research.md"
+    },
+    {
+      "id": "2026-02-25-co-registration-pipeline",
+      "date": "2026-02-25",
+      "title": "Co-Registration Pipeline: ICP and WECS Metric",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "co-registration",
+        "icp",
+        "wecs",
+        "alignment"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-25-co-registration-pipeline.md"
+    },
+    {
+      "id": "2026-02-25-dsm-cross-corr-pipeline",
+      "date": "2026-02-25",
+      "title": "DSM Cross-Correlation Pipeline and Top-Down Camera",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "dsm",
+        "cross-correlation",
+        "pipeline",
+        "viewer"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-25-alignment-research"
+      ],
+      "path": "2026/02/2026-02-25-dsm-cross-corr-pipeline.md"
+    },
+    {
+      "id": "2026-02-25-overlap-sort-bug",
+      "date": "2026-02-25",
+      "title": "Overlap Sort Bug: Hull Area vs Point Count",
+      "category": "bugfix",
+      "status": "concluded",
+      "tags": [
+        "bugfix",
+        "overlap-resolution",
+        "hull",
+        "point-count"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-25-overlap-sort-bug.md"
+    },
+    {
+      "id": "2026-02-25-pipeline-architecture",
+      "date": "2026-02-25",
+      "title": "Pipeline Architecture: Composable Steps with Chain-Hash Caching",
+      "category": "design",
+      "status": "concluded",
+      "tags": [
+        "pipeline",
+        "architecture",
+        "caching",
+        "composable-steps",
+        "refactor"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-25-pipeline-architecture.md"
+    },
+    {
+      "id": "2026-02-25-real-lidar-test-cases",
+      "date": "2026-02-25",
+      "title": "20 Real LiDAR Test Cases Imported",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "test-cases",
+        "real-buildings",
+        "copc",
+        "wfs"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-25-real-lidar-test-cases.md"
+    },
+    {
+      "id": "2026-02-25-v3-development-overnight",
+      "date": "2026-02-25",
+      "title": "V3 Development: 5 Tracks, 9 Variants (Overnight Session)",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v3",
+        "flat-histogram",
+        "categorization",
+        "adaptive-ransac",
+        "parapet"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-25-v3-development-overnight.md"
+    },
+    {
+      "id": "2026-02-25-v3-final-benchmarks",
+      "date": "2026-02-25",
+      "title": "V3 Final Benchmarks and Weak Spot Analysis",
+      "category": "benchmark",
+      "status": "concluded",
+      "tags": [
+        "v3",
+        "benchmark",
+        "weak-spots",
+        "parameter-sensitivity"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-25-overlap-sort-bug",
+        "2026-02-25-v3-development-overnight"
+      ],
+      "path": "2026/02/2026-02-25-v3-final-benchmarks.md"
+    },
+    {
+      "id": "2026-02-25-v4-normal-histogram",
+      "date": "2026-02-25",
+      "title": "V4 Normal Histogram Seeding: 2D Tilt/Azimuth Space",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v4",
+        "normal-histogram",
+        "normals",
+        "pca",
+        "deterministic"
+      ],
+      "pipeline": "v4-normal-histogram",
+      "refs": [],
+      "path": "2026/02/2026-02-25-v4-normal-histogram.md"
+    },
+    {
+      "id": "2026-02-24-overlap-resolution",
+      "date": "2026-02-24",
+      "title": "Overlap Resolution Post-Processing",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "overlap",
+        "post-processing",
+        "boolean-ops"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-25-overlap-sort-bug"
+      ],
+      "path": "2026/02/2026-02-24-overlap-resolution.md"
+    },
+    {
+      "id": "2026-02-24-test-suite-v2",
+      "date": "2026-02-24",
+      "title": "Benchmark Decoupled and Test Suite v2: 240 Expanded Cases",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "test-suite",
+        "benchmark",
+        "test-cases",
+        "decoupled"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-24-test-suite-v2.md"
+    },
+    {
+      "id": "2026-02-24-third-party-evaluation",
+      "date": "2026-02-24",
+      "title": "Third-Party Tool Evaluation: Our Champion Beats All",
+      "category": "benchmark",
+      "status": "concluded",
+      "tags": [
+        "open3d",
+        "city3d",
+        "roofer",
+        "polyfit",
+        "third-party",
+        "comparison"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-24-third-party-evaluation.md"
+    },
+    {
+      "id": "2026-02-24-v2-champion",
+      "date": "2026-02-24",
+      "title": "V2 Champion: Track A/B/C Optimization",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v2",
+        "champion",
+        "regularization",
+        "shape-fitting",
+        "obstacle-filter"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-24-v2-champion.md"
+    },
+    {
+      "id": "2026-02-24-v2-composite-metrics",
+      "date": "2026-02-24",
+      "title": "V2 Composite Metrics: Overshoot and Overlap",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "metrics",
+        "v2-composite",
+        "overshoot",
+        "overlap",
+        "polygon-clipping"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-24-v2-composite-metrics.md"
+    },
+    {
+      "id": "2026-02-23-champion-server-integration",
+      "date": "2026-02-23",
+      "title": "Champion Integration Server-Side",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "server",
+        "api",
+        "solar",
+        "copc"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-22-v1-champion-corner-gaps"
+      ],
+      "path": "2026/02/2026-02-23-champion-server-integration.md"
+    },
+    {
+      "id": "2026-02-23-real-building-import",
+      "date": "2026-02-23",
+      "title": "Real Building Import from AgriMap API",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "real-buildings",
+        "import",
+        "agrimap-api",
+        "leaflet"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-23-real-building-import.md"
+    },
+    {
+      "id": "2026-02-22-ransac-grow-clip-reseed",
+      "date": "2026-02-22",
+      "title": "RANSAC Grow + Clip + Reseed: Iterative Reseeding",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "gen1",
+        "reseed",
+        "iterative"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-22-ransac-grow-clip-reseed.md"
+    },
+    {
+      "id": "2026-02-22-ridge-first-detection",
+      "date": "2026-02-22",
+      "title": "Ridge-First Detection: Paradigm Dead End",
+      "category": "experiment",
+      "status": "concluded",
+      "tags": [
+        "ridge-detect",
+        "hessian",
+        "canny",
+        "paradigm"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-22-ridge-first-detection.md"
+    },
+    {
+      "id": "2026-02-22-v1-champion-corner-gaps",
+      "date": "2026-02-22",
+      "title": "V1 Champion Declared: Corner Gap Closing",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "v1",
+        "champion",
+        "corner-gaps",
+        "isOnCorrectSide"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-22-v1-champion-corner-gaps.md"
+    },
+    {
+      "id": "2026-02-21-gen0-seven-algorithms",
+      "date": "2026-02-21",
+      "title": "Gen 0: Seven Exploratory Plane Detection Algorithms",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "gen0",
+        "ransac",
+        "region-growing",
+        "grid",
+        "exploration"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-21-gen0-seven-algorithms.md"
+    },
+    {
+      "id": "2026-02-21-gen1-ransac-grow",
+      "date": "2026-02-21",
+      "title": "Gen 1: RANSAC Grow — Competitive Point Stealing Breakthrough",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "gen1",
+        "ransac-grow",
+        "competitive-growing",
+        "point-stealing",
+        "breakthrough"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-21-gen1-ransac-grow.md"
+    },
+    {
+      "id": "2026-02-21-mesh-test-cases",
+      "date": "2026-02-21",
+      "title": "Real Building Test Cases: Mesh-to-Test-Case Pipeline",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "test-cases",
+        "mesh",
+        "procedural",
+        "kenney"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-21-mesh-test-cases.md"
+    },
+    {
+      "id": "2026-02-21-ransac-grow-clip",
+      "date": "2026-02-21",
+      "title": "RANSAC Grow + Clip: Parallel-Edge Hull Clipping at Ridges",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "gen1",
+        "hull-clipping",
+        "ridge",
+        "parallel-edge"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-21-ransac-grow-clip.md"
+    },
+    {
+      "id": "2026-02-20-benchmark-framework-creation",
+      "date": "2026-02-20",
+      "title": "Benchmark Framework Creation",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "framework",
+        "synthetic",
+        "metrics",
+        "test-cases"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-20-benchmark-framework-creation.md"
+    },
+    {
+      "id": "2026-02-20-lidar-3d-viewer",
+      "date": "2026-02-20",
+      "title": "LiDAR 3D Viewer with COPC Byte-Range Reader",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "viewer",
+        "copc",
+        "three-js",
+        "bdtopo"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-15-lidar-hd-feasibility-research"
+      ],
+      "path": "2026/02/2026-02-20-lidar-3d-viewer.md"
+    },
+    {
+      "id": "2026-02-19-solar-poc-report",
+      "date": "2026-02-19",
+      "title": "Solar PoC Report and Business Strategy",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "solar",
+        "pvgis",
+        "ortho",
+        "google-solar"
+      ],
+      "pipeline": null,
+      "refs": [
+        "2026-02-15-lidar-hd-feasibility-research"
+      ],
+      "path": "2026/02/2026-02-19-solar-poc-report.md"
+    },
+    {
+      "id": "2026-02-15-lidar-hd-feasibility-research",
+      "date": "2026-02-15",
+      "title": "LiDAR HD Feasibility Research",
+      "category": "development",
+      "status": "concluded",
+      "tags": [
+        "lidar-hd",
+        "copc",
+        "ign",
+        "feasibility"
+      ],
+      "pipeline": null,
+      "refs": [],
+      "path": "2026/02/2026-02-15-lidar-hd-feasibility-research.md"
+    }
+  ]
+}

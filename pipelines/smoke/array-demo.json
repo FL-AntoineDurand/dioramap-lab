@@ -1,0 +1,9 @@
+{
+  "name": "array-demo",
+  "description": "T13 array-artifact test. Input: {\"count\": N}. split-range emits ARRAY_INLINE of N i32 values [0..N-1]; fan-process stores each i² as a separate store entry and emits ARRAY_BY_HASH; reduce-sum opens each element and sums. Subscribe: square-sum (= Σ i² for i in [0..N-1]).",
+  "steps": [
+    { "step": "split-range" },
+    { "step": "fan-process" },
+    { "step": "reduce-sum" }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "viewer-ground-parcels",
+  "description": "B7 end-to-end: full viewer pipeline through classification + ground + parcels. Produces lidar-ground-grid + parcel-lines (F32 segments). Requires network access to data.geopf.fr + COPC.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+    { "step": "fetch-ortho-rgb", "params": { "size_px": 1024 } },
+    { "step": "fetch-ortho-irc", "params": { "size_px": 1024 } },
+    { "step": "fetch-elevation", "params": { "grid_size": 128 } },
+    { "step": "fetch-cadastre-buildings", "params": { "max_count": 5000 } },
+    { "step": "fetch-cadastre-parcels", "params": { "max_count": 2000 } },
+    { "step": "build-lidar-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "compute-ndsm", "params": { "local_min_window": 3 } },
+    { "step": "compute-building-mask" },
+    { "step": "rasterize-cadastre-edges", "params": { "cell_size_m": 0.5, "thickness": 2 } },
+    { "step": "fit-cadastre-to-lidar", "params": { "cell_size_m": 0.5, "search_range_m": 15 } },
+    { "step": "compute-normals", "params": { "k": 16 } },
+    { "step": "build-tile-ndvi", "params": { "cell_size_m": 1.0 } },
+    { "step": "compute-normal-scatter", "params": { "cell_size_m": 1.0 } },
+    { "step": "compute-near-building-mask", "params": { "cell_size_m": 1.0, "dilate_r": 3 } },
+    { "step": "classify-vegetation", "params": { "cell_size_m": 1.0 } },
+    { "step": "build-lidar-ground", "params": { "cell_size_m": 1.0 } },
+    { "step": "compute-scene-origin" },
+    { "step": "build-parcel-lines",
+      "params": { "ground_cell_size_m": 1.0, "subdivide_m": 2, "height_offset_m": 1.5, "clip_to_disc_radius": true } }
+  ]
+}

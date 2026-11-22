@@ -1,0 +1,13 @@
+{
+  "name": "viewer-pointcloud-with-rasters",
+  "description": "B5a demo: viewer-pointcloud + LiDAR rasters + NDSM + building mask. Subscribes to lidar-building-mask. Requires network access to data.geopf.fr.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+    { "step": "build-lidar-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "compute-ndsm", "params": { "local_min_window": 3 } },
+    { "step": "compute-building-mask" }
+  ]
+}

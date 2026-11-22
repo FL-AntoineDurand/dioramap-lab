@@ -1,0 +1,22 @@
+{
+  "name": "@dioramap/lab-ui",
+  "license": "Apache-2.0",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5181 --host 0.0.0.0",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@dioramap/location-picker": "file:../location-picker",
+    "@dioramap/protocol": "file:../protocol",
+    "@dioramap/scene-base": "file:../scene-base",
+    "chart.js": "^4.5.1",
+    "dagre": "^0.8.5",
+    "three": "^0.169.0"
+  }
+}

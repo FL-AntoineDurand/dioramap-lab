@@ -1,0 +1,18 @@
+{
+  "name": "viewer-coreg",
+  "description": "B5c end-to-end: LiDAR + ortho rasters + coregister-ortho-lidar. Ships the full registration chain; outputs the coreg-offset JSON. Requires network access to data.geopf.fr + COPC.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+    { "step": "fetch-ortho-rgb", "params": { "size_px": 1024 } },
+    { "step": "fetch-ortho-irc", "params": { "size_px": 1024 } },
+    { "step": "build-lidar-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "compute-ndsm", "params": { "local_min_window": 3 } },
+    { "step": "compute-building-mask" },
+    { "step": "build-ortho-rgb-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "build-ortho-irc-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "coregister-ortho-lidar", "params": { "cell_size_m": 0.5, "search_range_m": 5 } }
+  ]
+}

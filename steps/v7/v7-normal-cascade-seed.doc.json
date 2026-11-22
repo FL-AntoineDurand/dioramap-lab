@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "step": "v7-normal-cascade-seed",
+  "step_version": 4,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/normal-cascade-seed.js",
+    "version": 13
+  },
+  "summary": "Turns cascade segments (from v7-hemisphere-segment) into seed planes for v7-grow-refit-merge. For each segment, sorted largest-first by sum-of-point-weights, runs a curvature gate (skip ridge/valley non-wall transitions), least-squares plane fit, |signed-distance| ≤ distThreshold outlier rejection, refit on clean inliers, normal flip-up. Emits a per-building seed-planes blob (fixed-stride 64-byte header + LOCAL seed_indices) and a per-building owner Int16 array (LOCAL plane ids, -1 = unassigned).",
+  "phases": [
+    {
+      "id": "S0",
+      "name": "Area sort",
+      "description": "Sort input segments by sum-of-point-weights descending, with source_segment_id as stable tiebreaker. As of 0c3e28a (2026-05-28) ts-weights IS wired through, so the sort key is genuinely area-weighted (Σ Voronoi-cell-area) rather than plain n_pts.",
+      "params_used": []
+    },
+    {
+      "id": "S1",
+      "name": "LSQ plane fit",
+      "description": "Least-squares plane fit on the segment's point indices via v7-plane-fit (centroid + smallest-eigenvector). Yields normal, d, RMS, axis-aware tilt and azimuth. Degenerate (< 3 points or rank-deficient) segments are skipped."
+    },
+    {
+      "id": "S2",
+      "name": "Curvature gate",
+      "description": "Computes tilt from S1's normal. If tilt < wallTiltDeg (non-wall) and weighted-mean of per-point curvatures-k16 exceeds maxSeedCurvature, skip the segment — it's a ridge/valley transition zone whose blurred normals would seed a bad plane; grow-refit-merge absorbs those points later. Walls are exempt because high curvature there comes from grazing LiDAR incidence, not from being a ridge.",
+      "params_used": ["maxSeedCurvature", "wallTiltDeg"]
+    },
+    {
+      "id": "S3",
+      "name": "Outlier rejection",
+      "description": "Drop points whose |signed distance| to the S1 plane > distThreshold. If fewer than 3 inliers survive, skip the segment.",
+      "params_used": ["distThreshold"]
+    },
+    {
+      "id": "S4",
+      "name": "Refit on clean inliers",
+      "description": "If any outliers were dropped in S3, re-run LSQ on the clean subset. The refit's normal/d/azimuth/RMS replace S1's, but `tilt` is intentionally kept from the S1 fit to match v2 byte-for-byte (v2 reads `tilt` once before refit and never refreshes it)."
+    },
+    {
+      "id": "S5",
+      "name": "Normal flip-up + emit",
+      "description": "Orient the final normal so normal[up_axis] ≥ 0 (up_axis=2 for v3 LAZ, 1 for the bench harness). Emit one v7_seed_plane_record_t (normal, d, tilt, azimuth, rms, inlier_count, source_segment_id) followed by LOCAL seed_indices[inlier_count]. Final pass fills the per-building Int16 owner array from the surviving planes' inlier sets.",
+      "params_used": ["upAxis"]
+    }
+  ],
+  "parameters": [
+    {
+      "name": "distThreshold",
+      "type": "double",
+      "default": 0.09,
+      "unit": "m",
+      "summary": "Max |signed distance| from a point to the fitted plane for inlier acceptance (S3).",
+      "rationale": "Derived in v2 as max(0.05, 4.5 × σ_z). v7's tile-signals hardcodes σ_z=0.02 m (lib/pipeline/steps/tile-signals.js:189), yielding 0.09 m for every test case — so v3 bakes it as a constant default instead of porting the σ_z plumbing. (The pre-port audit traced the 0.03 default from extract-denoise, which v7 doesn't run, and reported 0.135; the actual live value in v7 dumps is 0.09.) Note the asymmetry with v7-grow-refit-merge, which uses 0.12 m to absorb IGN flight-strip parallel-plane drift — flagged as a coupled-pair retune item in PHASE-5-V7-PORT.md."
+    },
+    {
+      "name": "maxSeedCurvature",
+      "type": "double",
+      "default": 0.03,
+      "unit": "1/m",
+      "summary": "Weighted-mean-curvature threshold for the S2 ridge/valley gate. 0 disables.",
+      "rationale": "Introduced in v2 commit c253152 (2026-03-19): dahouet seed count dropped from 60 (many false ridge fragments) to 28 (158 segments → 82 too small, 48 high-curvature). Synthetic 7/7 unchanged at 91.7. Threshold 0.03 came from inspecting the dahouet curvature distribution at ridge zones."
+    },
+    {
+      "name": "wallTiltDeg",
+      "type": "double",
+      "default": 70.0,
+      "unit": "deg",
+      "summary": "Tilt at/above which a segment is treated as a wall and exempted from the S2 curvature gate.",
+      "rationale": "Walls return points at grazing LiDAR incidence; their k16 curvature is structurally high (noise-amplification through PCA), not because they are ridges. Filtering them by S2 would kill legitimate wall seeds. 70° matches the v2 hardcoded exemption in normal-cascade-seed.js."
+    },
+    {
+      "name": "upAxis",
+      "type": "int32",
+      "default": 2,
+      "summary": "Which world axis is up: 1 = y (bench-v2 frame, used by the bench harness), 2 = z (v3 LAZ pipeline, the wrapper default). Controls normal flip-up sign and the projection axis for tilt/azimuth.",
+      "rationale": "v2 hardcodes y-up because the bench loader normalizes to that frame. v3 ingests LAZ directly, which is z-up. v7-plane-fit.h has the convention table."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64×3·N point positions."
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building record (schema, n_verts, n_pts, footprint, global pt indices).",
+      "array": true
+    },
+    {
+      "name": "building-local-frames",
+      "description": "Per-building centroid (F64×3) used to centroid-shift positions to F32 before cast back to F64 — matches v7-hemisphere-segment's coordinate frame so that segment-list's LOCAL pt_indices line up byte-for-byte.",
+      "array": true
+    },
+    {
+      "name": "hs-segment-list",
+      "description": "Per-building ARRAY_INLINE of cascade segments from v7-hemisphere-segment (LOCAL pt indices, mean normal, peak offset).",
+      "array": true,
+      "produced_by": "v7-hemisphere-segment"
+    },
+    {
+      "name": "ts-curv-k16",
+      "description": "Per-building F32 curvatures at k=16 from v7-tile-signals (PCA smallest eigenvalue / (sum of eigenvalues)).",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    },
+    {
+      "name": "ts-weights",
+      "description": "Per-building F32 per-point density weight (Voronoi cell area π·d_k²/k) from v7-tile-signals. Wired 0c3e28a (2026-05-28); area-weights the segment sort key (S0) and the least-squares plane fit / curvature-gate weighted mean. REQUIRED — the fit primitive aborts on NULL (no silent unweighted fallback).",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    }
+  ],
+  "writes": [
+    {
+      "name": "cs-planes",
+      "description": "Per-building ARRAY_INLINE of v7_seed_plane_record_t headers (sizeof = 64 bytes: f64×3 normal, f64 d, f64 tilt, f64 azimuth, f64 rms, u32 inlier_count, u32 source_segment_id) each followed by u32 × inlier_count LOCAL seed_indices.",
+      "array": true,
+      "consumed_by": ["v7-grow-refit-merge"]
+    },
+    {
+      "name": "cs-owner",
+      "description": "Per-building Int16 × n_pts: building-LOCAL seed plane id per point (-1 = unassigned). Renamed from v2's `owner` in Phase 1 (commit 0f2d3c4) so successive owner-emitting steps (cs → grm → refit) don't collide in the inspector tree.",
+      "array": true,
+      "consumed_by": ["v7-grow-refit-merge"]
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "Drop cascadeExcludeRidges param + ridge-candidates input",
+      "task": "Phase 5.3 / DAG-scope audit",
+      "commit": "4d0a892",
+      "rationale": "v7 pipelines hardcode cascadeExcludeRidges=false (the v6b variant that used it is not part of v7). With the flag pinned, ridge-candidates is dead in v7 — drop the read."
+    },
+    {
+      "topic": "Drop cascade-segments input",
+      "task": "Phase 5.3 / DAG-scope audit",
+      "commit": "4d0a892",
+      "rationale": "v2 declares it in reads: but never indexes it — vestigial dependency."
+    },
+    {
+      "topic": "Drop lidar-z-noise; bake distThreshold=0.09 as constant default",
+      "task": "Phase 5.3",
+      "commit": "4d0a892",
+      "rationale": "Every v7 test case has σ_z=0.02 (tile-signals.js:189), making distThreshold=max(0.05, 4.5·σ_z) a constant 0.09 m at runtime. Baking removes the σ_z plumbing without changing behavior on the corpus."
+    },
+    {
+      "topic": "Drop hull / area fields from seed-planes",
+      "task": "Phase 5.3",
+      "commit": "4d0a892",
+      "rationale": "v2's seed-planes carries a concave 3D hull + area for fit-solar-panels (off the boundary-regularize path). Eliminating those fields avoids a ~501-LOC alpha-shape port. Downstream v7-grow-refit-merge only reads {normal, d, seed_indices}, all preserved."
+    },
+    {
+      "topic": "Collapse plane-equations into seed-planes record prefix",
+      "task": "Phase 5.3",
+      "commit": "4d0a892",
+      "rationale": "v2 emits seed-planes AND a parallel plane-equations array whose {normal, d} duplicates the first 32 bytes of each seed-planes entry. v3 packs the equation as the record header — consumers read the prefix directly."
+    },
+    {
+      "topic": "Drop seed-dist-threshold + seed-min-seed-area metadata outputs",
+      "task": "Phase 5.3",
+      "commit": "4d0a892",
+      "rationale": "v2 emits these for UI/log display; no downstream step reads them. minSeedArea itself is also gone — v2 bumped meta.version 10→13 to remove both pre- and post-outlier size gates (commit a481f2e: 'small segments pass through, GRM grow+merge handles them')."
+    },
+    {
+      "topic": "ts-weights wired through (RESOLVED — was previously NULL)",
+      "task": "post-port-reassessment — resolved",
+      "commit": "0c3e28a",
+      "rationale": "RESOLVED 2026-05-28 (commit 0c3e28a 'unify plane-fit weighting — area-weighted PCA everywhere'). Previously v3 passed point-weights=NULL to byte-validate against v2 dumps (which themselves never wired the artifact). Now ts-weights is plumbed through and the fit primitive (v7-plane-fit) REQUIRES it (aborts on NULL). The segment sort + curvature-gate weighted mean + LS fit are now genuinely area-weighted. NOTE: this changed segmentation output vs the prior unweighted behaviour — see the GRM degradation-gate weighted/unweighted-RMS calibration caveat (max_degradation=0.04 was tuned for unweighted RMS)."
+    },
+    {
+      "topic": "Rename owner output to cs-owner",
+      "task": "Phase 1 eager rename pass",
+      "commit": "0f2d3c4",
+      "rationale": "Step-tag prefix so each owner-emitting step (cs → grm → refit) gets a uniquely-named artifact; removes inspector-time collision and lets each viz file hardcode its own label/path."
+    },
+    {
+      "topic": "Renamed cs-planes (no algorithmic change, step_def_t.version 1 → 2)",
+      "task": "Phase 1 eager rename pass",
+      "commit": "0f2d3c4",
+      "rationale": "Same rationale as cs-owner."
+    }
+  ],
+  "related": [
+    {
+      "type": "journal",
+      "id": "2026-02-26-v6-normal-cascade-implementation",
+      "link": "docs/journal/2026/02/2026-02-26-v6-normal-cascade-implementation.md",
+      "tags": ["v6", "normal-cascade", "design"],
+      "summary": "Origin design doc for the cascade (orientation → offset → spatial). The seed step consumes the output of stages 1-3 of that pipeline."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-02-cascade-step-split",
+      "link": "docs/journal/2026/03/2026-03-02-cascade-step-split.md",
+      "tags": ["v6", "refactor", "cascade"],
+      "summary": "Split of the cascade monolith into mode-specific steps and a separate seed step — origin of normal-cascade-seed.js as a standalone module."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-12-local-density-compensation",
+      "link": "docs/journal/2026/03/2026-03-12-local-density-compensation.md",
+      "tags": ["density", "point-weights", "design"],
+      "summary": "Origin of point-weights and the density-compensated area sort the v2 step used — currently dormant in v7 due to the wiring quirk above."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-13-v7-master-plan",
+      "link": "docs/journal/2026/03/2026-03-13-v7-master-plan.md",
+      "tags": ["v7", "architecture"],
+      "summary": "v7 chain layout — where normal-cascade-seed sits between hemisphere-segment and grow-refit-merge."
+    },
+    {
+      "type": "commit",
+      "sha": "c253152",
+      "date": "2026-03-19",
+      "summary": "v2 normal-cascade-seed: introduce S2 curvature filter + owner artifact. Dahouet 60 → 28 seeds (kills 48 ridge fragments), synthetic 7/7 unchanged."
+    },
+    {
+      "sha": "411acf5",
+      "type": "commit",
+      "date": "2026-03-14",
+      "summary": "v2 normal-cascade-seed v10: density-compensated size gates (minSeedArea m² replaces minSeedPts), tiltCutoff removed."
+    },
+    {
+      "type": "commit",
+      "sha": "a481f2e",
+      "summary": "v2 normal-cascade-seed v11–v13: remove minSeedArea gates entirely — small segments now pass through and GRM's grow+merge absorbs them. v3 ports the post-v13 behavior."
+    },
+    {
+      "type": "commit",
+      "sha": "4d0a892",
+      "date": "2026-05-09",
+      "summary": "Phase 5.3 — initial v3 port. owner.bin BYTE-IDENTICAL vs v2 on dahouet; 84/85 seed-planes byte-id'l, 1/85 has sub-1e-10 cos/atan2 noise. Bench harness v7-normal-cascade-seed-bench.c emits seed-planes.json + owner.bin in v2's shape."
+    },
+    {
+      "type": "commit",
+      "sha": "0f2d3c4",
+      "date": "2026-05-10",
+      "summary": "Phase 1 rename pass: owner → cs-owner, seed-planes → cs-planes; step version bumped 1 → 2."
+    },
+    {
+      "type": "commit",
+      "sha": "4ac68ab",
+      "date": "2026-05-16",
+      "summary": "v7-derive-thresholds step + DERIV instrumentation. cascade-seed still uses its hardcoded 0.09 (not yet migrated to derive-thresholds); GRM/density-voids/boundary-topology were migrated."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "section": "§Post-port reassessments",
+      "summary": "Tracks the two v2-quirk-mirrors to revisit after end-to-end byte-validation: ts-weights wiring and the seed/GRM distThreshold split (0.09 vs 0.12)."
+    },
+    {
+      "type": "doc",
+      "link": "lidar-algos-bench-v2/lib/pipeline/steps/normal-cascade-seed.md",
+      "summary": "v2 step's own README (predates v11–v13 size-gate removal; documents minSeedArea + cascadeExcludeRidges which no longer apply in v7)."
+    }
+  ],
+  "open_questions": [
+    "Wire ts-weights through. v2's docstring sells density-compensation as the headline feature; v7 wiring silently drops it. After full-chain byte-validation, plug it in and rerun the bench — likely improves seed selection on sparse-density buildings.",
+    "Coupled-pair retune of distThreshold: cascade-seed=0.09 m, grow-refit-merge=0.12 m. Seed wants a tight gate to start clean; GRM was hand-loosened to absorb IGN flight-strip drift. Justify keeping them split, or unify with a per-stage scale factor.",
+    "Migrate distThreshold to v7-derive-thresholds (commit 4ac68ab already pipes it through for GRM/density-voids/boundary-topology). Removes the σ_z=0.02 assumption from this step's defaults; one fewer place to retune.",
+    "Should the S2 curvature gate carry over to walls when they have anomalously high curvature *not* attributable to grazing incidence? Current binary gate (tilt < 70° applies, else exempt) is a heuristic."
+  ]
+}

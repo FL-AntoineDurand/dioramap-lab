@@ -1,0 +1,33 @@
+Dioramap Lab
+Copyright 2026 Antoine Durand
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes or is derived from the following third-party work:
+
+- SunCalc (https://github.com/mourner/suncalc)
+  Copyright (c) Volodymyr Agafonkin. BSD 2-Clause License,
+  full text in LICENSES/BSD-2-Clause-suncalc.txt.
+  Sun-position routines in steps/shadow/sun-position.h are a port of SunCalc.
+
+- Potree (https://github.com/potree/potree)
+  Copyright (c) 2011-2020, Markus Schütz. BSD 2-Clause License,
+  full text in LICENSES/BSD-2-Clause-potree.txt.
+  The eye-dome lighting shader in apps/scene-base/src/scene/postprocess/edl.js
+  is adapted from Potree's EDL shader.
+
+Fetched at build time (not redistributed in this repository):
+
+- copc-lib (https://github.com/RockRobotic/copc-lib)    MIT License
+- laz-perf (https://github.com/hobu/laz-perf)           Apache License 2.0
+
+Linked system libraries (installed separately): libwebsockets (MIT), libcurl
+(curl license), PROJ (MIT), libjpeg-turbo (IJG/BSD), Jansson (MIT),
+SQLite (public domain), xxHash (BSD 2-Clause), OpenSSL (Apache 2.0).
+
+JavaScript dependencies (installed via npm, not redistributed): three.js (MIT),
+MapLibre GL JS (BSD 3-Clause), suncalc (BSD 2-Clause), chart.js (MIT),
+dagre (MIT), Vite (MIT).
+
+Bundled data in data/test-cases/: see DATA-LICENSE.md
+(© IGN, Licence Ouverte / Open Licence 2.0).

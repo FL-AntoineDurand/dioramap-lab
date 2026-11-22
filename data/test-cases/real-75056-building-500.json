@@ -1,0 +1,71 @@
+{
+  "type": "real",
+  "id": "real-75056-building-500",
+  "dataFile": "real-75056-building-500.bin",
+  "footprint": [
+    {
+      "x": 3.670643474906683,
+      "z": -2.982396150007844
+    },
+    {
+      "x": -3.9293565151747316,
+      "z": -4.6823961501941085
+    },
+    {
+      "x": -6.229356515104882,
+      "z": 1.3176038498058915
+    },
+    {
+      "x": 0.37064347486011684,
+      "z": 4.7176038501784205
+    },
+    {
+      "x": 3.670643474906683,
+      "z": -2.982396150007844
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 81,
+    "point_count": 37506,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 48.865719,
+    "lng": 2.408106,
+    "commune_code": "75056",
+    "commune_name": "Paris",
+    "building_surface_m2": 55.8,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 656578.5293912851,
+      "y": 6863017.02224134
+    },
+    "imported_at": "2026-02-23T17:07:11.707Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 11,
+    "nature": "Indifférenciée",
+    "usage_1": "Résidentiel",
+    "materiaux_de_la_toiture": "10",
+    "nombre_d_etages": 4,
+    "altitude_minimale_sol": 93.8,
+    "altitude_minimale_toit": 104.8,
+    "altitude_maximale_toit": null
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 299,
+    "height": 294,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 656562.30003477,
+      "maxX": 656592.20003476,
+      "minZ": 6863002.30463749,
+      "maxZ": 6863031.70463749
+    }
+  }
+}

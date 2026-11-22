@@ -1,0 +1,9 @@
+{
+  "name": "three-step-smoke",
+  "description": "Tiny smoke pipeline exercising DAG walk + runner. double-it and triple-it both read the RUN input; sum-two combines them. Used by the architecture integration test.",
+  "steps": [
+    { "step": "double-it" },
+    { "step": "triple-it" },
+    { "step": "sum-two" }
+  ]
+}

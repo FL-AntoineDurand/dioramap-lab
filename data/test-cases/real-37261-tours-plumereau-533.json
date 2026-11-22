@@ -1,0 +1,83 @@
+{
+  "type": "real",
+  "id": "real-37261-tours-plumereau-533",
+  "dataFile": "real-37261-tours-plumereau-533.bin",
+  "footprint": [
+    {
+      "x": -21.09589925291948,
+      "z": 9.44005539175123
+    },
+    {
+      "x": -22.395899252966046,
+      "z": 4.44005539175123
+    },
+    {
+      "x": -21.395899252966046,
+      "z": 4.140055391937494
+    },
+    {
+      "x": -23.895899252966046,
+      "z": -5.359944608062506
+    },
+    {
+      "x": -9.795899262884632,
+      "z": -8.9599446086213
+    },
+    {
+      "x": -5.395899262861349,
+      "z": 7.640055391937494
+    },
+    {
+      "x": -20.395899252966046,
+      "z": 11.5400553913787
+    },
+    {
+      "x": -21.09589925291948,
+      "z": 9.44005539175123
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 61,
+    "point_count": 71217,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 47.3941,
+    "lng": 0.6848,
+    "commune_code": "37261",
+    "commune_name": "Tours",
+    "building_surface_m2": 258.3,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 525384.5960373429,
+      "y": 6701866.444763142
+    },
+    "imported_at": "2026-02-25T15:06:51.661Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 14.1,
+    "nature": "Indifférenciée",
+    "usage_1": "Résidentiel",
+    "materiaux_de_la_toiture": "20",
+    "nombre_d_etages": 5,
+    "altitude_minimale_sol": 52.2,
+    "altitude_minimale_toit": 66.4,
+    "altitude_maximale_toit": 70.2
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 385,
+    "height": 405,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 525350.70013809,
+      "maxX": 525389.20013808,
+      "minZ": 6701844.90470775,
+      "maxZ": 6701885.40470775
+    }
+  }
+}

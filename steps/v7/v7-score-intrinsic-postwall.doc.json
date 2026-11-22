@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "step": "v7-score-intrinsic-postwall",
+  "step_version": 1,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/metrics/index.js",
+    "version": null,
+    "extracted_from": "Same computeNoGTMetrics() origin as v7-score-intrinsic; differs only in WHERE it pulls planes + owner from."
+  },
+  "summary": "Post-wall-detect sibling of v7-score-intrinsic. Reads the wall-detect-roof-graph TLV (which already carries ALL plane equations — upstream roof planes passed through + new wall planes appended by wall-detect) + wd-owner (the mutated grm-owner with wall-grabbed points reassigned to wall plane ids), and computes the same intrinsic metrics (completeness / residual RMS / composite) but over the FULL post-wall-detect model. Crucial complement to v7-score-intrinsic: in a pipeline that includes wall-detect, intrinsic skips wall-reassigned points (their wd-owner > grm n_planes), so its completeness is a LOWER BOUND on the true post-wall completeness. Postwall closes that gap.",
+  "phases": [
+    {
+      "id": "1",
+      "name": "Extract planes table from the TLV",
+      "description": "Open the per-bldg wall-detect-roof-graph via rg_reader_open. Pull the RG_SECT_PLANES section, iterate its fixed-128-byte rg_plane_record_t records, extract (id, normal[3], d). Find max_id, allocate planes[max_id+1] + valid[max_id+1], fill the slots that exist. The plane array is INDEXED BY id so wd-owner values (which are plane ids) index it directly."
+    },
+    {
+      "id": "2",
+      "name": "Sanitise owner",
+      "description": "Copy wd-owner into a writable buffer; for each entry, if it points at an out-of-range slot or an unfilled (!valid) slot, rewrite to -1 (unassigned). Defensive — wall-detect's id namespace is dense in practice, but this guarantees the compute never reads an uninitialised plane equation."
+    },
+    {
+      "id": "3",
+      "name": "Score + pack",
+      "description": "Build per-bldg local positions via per-building-records' global indices, call v7_score_intrinsic_compute() (identical formula to v7-score-intrinsic), pack the 72-byte result into the per-bldg ARRAY_INLINE blob. Output artifact name is model-score-postwall — different from intrinsic's model-score so both can coexist in the same pipeline run; the delta tells you what wall-detect changed."
+    }
+  ],
+  "parameters": [],
+  "reads": [
+    { "name": "lidar-positions",          "kind": "OPAQUE",       "summary": "Global F64×3·N point cloud — needed to compute point-to-plane distances on owned points." },
+    { "name": "per-building-records",     "kind": "ARRAY_INLINE", "summary": "Per-bldg footprint + n_pts + global indices; we read schema + n_verts + n_pts + gidx." },
+    { "name": "wd-owner",                 "kind": "ARRAY_INLINE", "summary": "Per-bldg Int16×n_pts — the mutated owner emitted by v7-wall-detect, where wall-grabbed points have been reassigned to their wall plane id (which sits in the same namespace as the upstream roof plane ids — wall-detect appends with next_plane_id++)." },
+    { "name": "wall-detect-roof-graph",   "kind": "ARRAY_INLINE", "summary": "Per-bldg TLV — its RG_SECT_PLANES section is the single source of truth for ALL plane equations after wall-detect: upstream roof planes passed through verbatim + new wall planes appended. We parse out (id, normal, d) and index into the resulting planes table by wd-owner value." }
+  ],
+  "writes": [
+    { "name": "model-score-postwall", "kind": "ARRAY_INLINE", "summary": "Per-bldg one 72-byte fixed record (V7_SCORE_INTRINSIC_RECORD_BYTES — same wire layout as model-score, so the same step-visualizer renders it; just a different artifact name so it can coexist with v7-score-intrinsic in the same pipeline)." }
+  ],
+  "outputs": [
+    {
+      "id": "model_score_postwall",
+      "tlv_section": "ARRAY_INLINE record (72 B / bldg)",
+      "bucket": "load-bearing-optional",
+      "summary": "Post-wall-detect self-consistency confidence score per building. Where v7-score-intrinsic on grm-* gives the PRE-wall roof score, this gives the FULL model score (roof + walls), counting wall-reassigned points against their wall plane equations. Cache-leaf (no downstream consumer), so its version bump only invalidates its own cache entry."
+    }
+  ],
+  "downstream": [],
+  "notes": [
+    "Reuses v7_score_intrinsic_compute() from v7-score-intrinsic-impl.{h,c} — same formula, no separate impl file. The only postwall-specific code is the per-bldg TLV → planes-by-id extraction in extract_planes_from_rgraph().",
+    "Wired into pipelines/smoke/v7.json after v7-wall-detect. The pipeline also keeps v7-score-intrinsic (right before) so model-score (pre-wall roof score) and model-score-postwall (full post-wall score) are both emitted — their delta is the wall-detect impact.",
+    "Cache-leaf, schema-versioned via the leading u32 in the record (the shared V7_SCORE_INTRINSIC_VERSION — bumped in lockstep with v7-score-intrinsic since both pack the same struct).",
+    "Visualizer at steps/v7/viz/model-score-postwall.viz.js is a one-line re-export of model-score.viz.js — identical rendering for identical record layout."
+  ]
+}

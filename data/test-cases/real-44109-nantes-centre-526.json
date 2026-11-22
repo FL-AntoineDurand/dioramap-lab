@@ -1,0 +1,83 @@
+{
+  "type": "real",
+  "id": "real-44109-nantes-centre-526",
+  "dataFile": "real-44109-nantes-centre-526.bin",
+  "footprint": [
+    {
+      "x": 5.898693622730207,
+      "z": 18.09819371253252
+    },
+    {
+      "x": 5.798693622695282,
+      "z": 19.99819371290505
+    },
+    {
+      "x": -2.6013063772697933,
+      "z": 19.898193712346256
+    },
+    {
+      "x": -2.5013063772930764,
+      "z": 25.69819371215999
+    },
+    {
+      "x": 8.59869361273013,
+      "z": 26.09819371253252
+    },
+    {
+      "x": 9.198693612706847,
+      "z": 18.59819371253252
+    },
+    {
+      "x": 8.898693612718489,
+      "z": 18.19819371215999
+    },
+    {
+      "x": 5.898693622730207,
+      "z": 18.09819371253252
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 184,
+    "point_count": 74705,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 47.2184,
+    "lng": -1.5536,
+    "commune_code": "44109",
+    "commune_name": "Nantes",
+    "building_surface_m2": 73.7,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 355577.8015781973,
+      "y": 6689723.1029020725
+    },
+    "imported_at": "2026-02-25T15:04:47.939Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 13.9,
+    "nature": "Indifférenciée",
+    "usage_1": "Résidentiel",
+    "materiaux_de_la_toiture": "20",
+    "nombre_d_etages": 4,
+    "altitude_minimale_sol": 11.5,
+    "altitude_minimale_toit": 25.4,
+    "altitude_maximale_toit": 29.7
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 318,
+    "height": 280,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 355565.20027182,
+      "maxX": 355597.00027181,
+      "minZ": 6689687.00470836,
+      "maxZ": 6689715.00470836
+    }
+  }
+}

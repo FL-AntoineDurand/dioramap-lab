@@ -1,0 +1,15 @@
+{
+  "n_corners": 299,
+  "n_polygons": 27,
+  "n_total_verts": 151,
+  "n_edges": 140,
+  "n_shared_edges": 11,
+  "corners_by_source": {
+    "ridge_intersection": 11,
+    "ridge_end": 38,
+    "polygon_merge": 6,
+    "concave": 190,
+    "convex": 54,
+    "coplanar": 0
+  }
+}

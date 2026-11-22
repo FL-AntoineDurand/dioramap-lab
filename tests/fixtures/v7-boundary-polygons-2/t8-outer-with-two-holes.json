@@ -1,0 +1,52 @@
+{
+  "id":          "t8-outer-with-two-holes",
+  "category":    "topology",
+  "description": "K=3 under bp3: outer 12x12 + two 2x2 interior cutouts at (3-5, 3-5) and (7-9, 7-9). Grid-fill contour exposes 3 closed loops directly, so bp3 emits 3 polygons (1 OUTER + 2 INNER) with no subset enum or classification — that was bp2's failure mode. The harness checks polygons[0] (= outer); the two holes are emitted but not asserted here.",
+  "inputs": {
+    "plane_basis": { "e1": [1,0,0], "e2": [0,1,0], "normal": [0,0,1] },
+    "anchors": [
+      { "id":  0, "x":  0.0, "y":  0.0, "z": 0.0, "source": "concave" },
+      { "id":  1, "x": 12.0, "y":  0.0, "z": 0.0, "source": "concave" },
+      { "id":  2, "x": 12.0, "y": 12.0, "z": 0.0, "source": "concave" },
+      { "id":  3, "x":  0.0, "y": 12.0, "z": 0.0, "source": "concave" },
+      { "id":  4, "x":  3.0, "y":  3.0, "z": 0.0, "source": "concave" },
+      { "id":  5, "x":  5.0, "y":  3.0, "z": 0.0, "source": "concave" },
+      { "id":  6, "x":  5.0, "y":  5.0, "z": 0.0, "source": "concave" },
+      { "id":  7, "x":  3.0, "y":  5.0, "z": 0.0, "source": "concave" },
+      { "id":  8, "x":  7.0, "y":  7.0, "z": 0.0, "source": "concave" },
+      { "id":  9, "x":  9.0, "y":  7.0, "z": 0.0, "source": "concave" },
+      { "id": 10, "x":  9.0, "y":  9.0, "z": 0.0, "source": "concave" },
+      { "id": 11, "x":  7.0, "y":  9.0, "z": 0.0, "source": "concave" }
+    ],
+    "contours": [
+      {
+        "is_hole": false,
+        "polyU": [0.0, 12.0, 12.0, 0.0],
+        "polyV": [0.0, 0.0,  12.0, 12.0]
+      },
+      {
+        "is_hole": true,
+        "polyU": [3.0, 5.0, 5.0, 3.0],
+        "polyV": [3.0, 3.0, 5.0, 5.0]
+      },
+      {
+        "is_hole": true,
+        "polyU": [7.0, 9.0, 9.0, 7.0],
+        "polyV": [7.0, 7.0, 9.0, 9.0]
+      }
+    ],
+    "group_pts": [
+      [ 1.0,  1.0, 0.0], [11.0,  1.0, 0.0], [11.0, 11.0, 0.0], [ 1.0, 11.0, 0.0],
+      [ 1.0,  6.0, 0.0], [11.0,  6.0, 0.0], [ 6.0,  1.0, 0.0], [ 6.0, 11.0, 0.0],
+      [ 2.0,  2.0, 0.0], [10.0,  2.0, 0.0], [ 2.0, 10.0, 0.0], [10.0, 10.0, 0.0]
+    ],
+    "nearby_pts": [
+      [-1.0,  6.0, 0.0], [13.0,  6.0, 0.0], [ 6.0, -1.0, 0.0], [ 6.0, 13.0, 0.0]
+    ]
+  },
+  "expected": {
+    "polygons": [
+      { "corner_ids": [0, 1, 2, 3], "kind": "outer" }
+    ]
+  }
+}

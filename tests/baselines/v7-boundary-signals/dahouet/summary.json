@@ -1,0 +1,148 @@
+{
+  "n_planes": 90,
+  "n_ridges": 34,
+  "n_corners": 299,
+  "corners_by_source": {
+    "ridge_intersection": 9,
+    "concave": 189,
+    "convex": 101
+  },
+  "nearby_per_plane": [
+    {
+      "planeId": 1,
+      "nItems": 20
+    },
+    {
+      "planeId": 2,
+      "nItems": 1240
+    },
+    {
+      "planeId": 3,
+      "nItems": 1213
+    },
+    {
+      "planeId": 4,
+      "nItems": 1365
+    },
+    {
+      "planeId": 5,
+      "nItems": 739
+    },
+    {
+      "planeId": 7,
+      "nItems": 570
+    },
+    {
+      "planeId": 9,
+      "nItems": 709
+    },
+    {
+      "planeId": 10,
+      "nItems": 573
+    },
+    {
+      "planeId": 11,
+      "nItems": 608
+    },
+    {
+      "planeId": 12,
+      "nItems": 238
+    },
+    {
+      "planeId": 15,
+      "nItems": 579
+    },
+    {
+      "planeId": 16,
+      "nItems": 276
+    },
+    {
+      "planeId": 17,
+      "nItems": 114
+    },
+    {
+      "planeId": 19,
+      "nItems": 256
+    },
+    {
+      "planeId": 20,
+      "nItems": 51
+    },
+    {
+      "planeId": 21,
+      "nItems": 199
+    },
+    {
+      "planeId": 23,
+      "nItems": 850
+    },
+    {
+      "planeId": 31,
+      "nItems": 53
+    },
+    {
+      "planeId": 32,
+      "nItems": 992
+    },
+    {
+      "planeId": 37,
+      "nItems": 109
+    },
+    {
+      "planeId": 42,
+      "nItems": 108
+    },
+    {
+      "planeId": 43,
+      "nItems": 99
+    },
+    {
+      "planeId": 46,
+      "nItems": 52
+    },
+    {
+      "planeId": 50,
+      "nItems": 120
+    },
+    {
+      "planeId": 59,
+      "nItems": 132
+    },
+    {
+      "planeId": 63,
+      "nItems": 154
+    },
+    {
+      "planeId": 69,
+      "nItems": 76
+    },
+    {
+      "planeId": 70,
+      "nItems": 81
+    },
+    {
+      "planeId": 76,
+      "nItems": 106
+    },
+    {
+      "planeId": 77,
+      "nItems": 25
+    },
+    {
+      "planeId": 78,
+      "nItems": 15
+    },
+    {
+      "planeId": 81,
+      "nItems": 23
+    },
+    {
+      "planeId": 83,
+      "nItems": 51
+    },
+    {
+      "planeId": 87,
+      "nItems": 450
+    }
+  ]
+}

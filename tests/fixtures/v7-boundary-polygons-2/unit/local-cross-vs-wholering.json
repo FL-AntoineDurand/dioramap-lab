@@ -1,0 +1,10 @@
+{
+  "id": "local-cross-vs-wholering",
+  "category": "unit-local-edges-cross-crosscheck",
+  "description": "Case (c): on clean convex base rings (4..10 verts), move exactly one vertex and assert v7_local_edges_cross_uv(moved, idx) == v7_bp2_polygon_self_intersects_uv(moved) over many random trials. Only the moved vertex's two edges changed, so the whole-ring result must equal the local result. Sweep must exercise both true and false outcomes.",
+  "inputs": {
+    "seed": 987654321,
+    "trials": 4000
+  },
+  "expected": {}
+}

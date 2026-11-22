@@ -1,0 +1,17 @@
+{
+  "id": "local-cross-convex-clean",
+  "category": "unit-local-edges-cross",
+  "description": "Case (a): clean convex square, the two edges incident to vertex 2 cross nothing -> false.",
+  "inputs": {
+    "vertices_uv": [
+      [0, 0],
+      [10, 0],
+      [10, 10],
+      [0, 10]
+    ],
+    "at_idx": 2
+  },
+  "expected": {
+    "cross": false
+  }
+}

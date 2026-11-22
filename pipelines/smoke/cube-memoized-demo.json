@@ -1,0 +1,8 @@
+{
+  "name": "cube-memoized-demo",
+  "description": "B3.5 sub-scope cached_compute demo. Input: {\"count\": N}. split-range emits [0..N-1]; cube-memoized stores each i³ via cached_compute with a namespaced (\"cube\", i) identity. Subscribe: cube-array. Running twice against overlapping ranges exhibits intent-map hits at the element level; the runner's step-level intent map also hits on identical reruns.",
+  "steps": [
+    { "step": "split-range" },
+    { "step": "cube-memoized" }
+  ]
+}

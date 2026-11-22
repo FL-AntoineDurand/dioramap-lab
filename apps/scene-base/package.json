@@ -1,0 +1,41 @@
+{
+  "name": "@dioramap/scene-base",
+  "license": "Apache-2.0",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared Three.js scene infrastructure (renderer, camera, lights, fog, sky, EDL post-process, compass) + per-artifact viz modules + SceneState surface. Consumed by lab-ui (Vite-glob discovery for full inspection) and viewer-sdk (closed-allow-list import for production). See PLAN-VIEWER-SDK-PORT.md.",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "scripts": {
+    "test": "node test/scene-state.test.js"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./scene/create-scene": "./src/scene/create-scene.js",
+    "./scene/compass-gizmo": "./src/scene/compass-gizmo.js",
+    "./scene/postprocess/edl": "./src/scene/postprocess/edl.js",
+    "./scene/render-context": "./src/scene/render-context.js",
+    "./scene/scene-state": "./src/scene/scene-state.js",
+    "./scene/sun": "./src/scene/sun.js",
+    "./utilities/leaf-sprite": "./src/utilities/leaf-sprite.js",
+    "./utilities/gltf-loader": "./src/utilities/gltf-loader.js",
+    "./viz": "./src/viz/index.js",
+    "./viz/parcel-lines": "./src/viz/parcel-lines.viz.js",
+    "./viz/deshadowed-ortho": "./src/viz/deshadowed-ortho.viz.js",
+    "./viz/ortho-surround-jpeg": "./src/viz/ortho-surround-jpeg.viz.js",
+    "./viz/elevation-surround": "./src/viz/elevation-surround.viz.js",
+    "./viz/lidar-positions": "./src/viz/lidar-positions.viz.js",
+    "./viz/terrain": "./src/viz/terrain.viz.js",
+    "./viz/point-cloud-discs": "./src/viz/point-cloud-discs.viz.js",
+    "./viz/canopy": "./src/viz/canopy.viz.js"
+  },
+  "sideEffects": false,
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "suncalc": "^1.9.0",
+    "three": "^0.169.0"
+  }
+}

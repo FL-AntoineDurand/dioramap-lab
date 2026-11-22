@@ -1,0 +1,368 @@
+{
+  "schema_version": 1,
+  "step": "v7-boundary-signals",
+  "step_version": 7,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/boundary-signals.js",
+    "version": 4,
+    "extracted_from": "boundary-3d.js Phase A/B/C (commit 0f35b9f, 2026-04-25), then split in v3: Phase A + class filter to v7-boundary-topology, Phase B + C here"
+  },
+  "summary": "Builds the heavy signal layers of the roof-graph for each surviving plane: ray-cast nearby projections (Phase B), per-plane signal grids (open-angle, CoM-distance, balance — Phase C), and the unified corner pool. RI corners are re-derived from upstream RIDGE_LINES (closest-approach + dedup); concave/convex anchors are detected as local maxima of the OA directional gradient on the group and nearby grids. Consumes the topology TLV and emits boundary-signals-roof-graph with CORNERS (RI + concave/convex), NEARBY_PROJECTIONS, and PLANE_GRIDS appended.",
+  "phases": [
+    {
+      "id": "RI",
+      "name": "Ridge-intersection corner re-derivation",
+      "description": "Walks every pair of upstream RIDGE_LINES that share a plane; computes line-line closest-approach midpoint, gates on closest-approach distance ≤ cornerDistThreshold and a per-side margin test, then sorts by ascending dist and dedups within cornerMergeThreshold, accumulating plane/ridge id sets per pool entry. Replaces the bench-v2 detectCorners() call that ran in Phase A.",
+      "params_used": ["cornerDistThreshold", "cornerMergeThreshold"]
+    },
+    {
+      "id": "B.setup",
+      "name": "Per-plane setup",
+      "description": "For each surviving plane g (rejected=false, ≥6 group points): fit equation, build basis, project group points onto (u, v); build a uniform-grid bucket index over (u, v) at NEARBY_RADIUS cell size for O(1) point-in-disc tests."
+    },
+    {
+      "id": "B.gather",
+      "name": "Nearby projections — tile-wide beam ray-cast",
+      "description": "Single tile-wide pass: for each tile point p with beam direction b, ray-cast t = -(n·p + d)/(n·b) onto every alive plane (skip own group, skip t≥0 or |denom|<1e-6); keep hits whose (u, v) sit within nearbyRadius of g's group bucket. ALL hits are kept in the pool for anchor-validation proximity tests; the |signedDist|≥planeDistFilter filter is applied only when feeding the nearby signal grid (per bugfix 94b7866). Emitted as the NEARBY_PROJECTIONS section.",
+      "params_used": ["nearbyRadius", "planeDistFilter"]
+    },
+    {
+      "id": "C.grid.group",
+      "name": "Group signal grid (computeSignalGrids on group points)",
+      "description": "Per plane, cell-by-cell on a (u,v) grid of grid_cell_size on the tilted plane: for each cell node, gather group points within grid_eval_radius — compute open-angle (OA) = 2π − filled angular span seen from the node, CoM-distance, outward-direction (oU/oV), best-left/best-right neighbour angular offsets, point count. Then a post-pass computes the OA directional gradient (max |OA(±a)−OA(∓a)| over 4 opposite-pair offsets) into oaSpanField — this is the corner-detection signal.",
+      "params_used": ["gridCellSize", "gridEvalRadius"]
+    },
+    {
+      "id": "C.grid.nearby",
+      "name": "Nearby signal grid (computeSignalGrids on |sd|≥planeDistFilter nearby points)",
+      "description": "Same kernel as C.grid.group but fed the filtered nearby projections (keeps only |signedDist|≥planeDistFilter to drop in-plane noise). Produces a second grid with its own bbox/dims; both grids cover the same (u,v) plane but their headers are independent on the wire (see v3 divergence on NEARBY_FIELD as second PLANE_GRIDS record)."
+    },
+    {
+      "id": "C.balance",
+      "name": "Balance field",
+      "description": "Per-cell blend of group-CoM and nearby-CoM with point-count trust weighting (MIN_PTS_FULL_TRUST=5; below-trust cells blend toward REF_COM_DIST≈0.424m) plus an opposition reward (−(gOut·nOut)) that rewards anti-aligned outward directions on opposite sides of an edge. Falls back to a one-sided form when only the group cell has data. Gates anchor validation downstream (anchorBalanceMin)."
+    },
+    {
+      "id": "C.corners",
+      "name": "Concave/convex anchor synthesis",
+      "description": "Find local maxima of oaSpanField (5×5 neighbourhood, local_max_half_window=2) with span ≥ angularSpanMinDeg. At each peak, pick the neighbour cell with the largest OA, read its outward direction + best-left/best-right offsets, and emit two outgoing edge directions in tile-world basis. Dedup within anchorDedupRadius (0.4m). Anchors from the group grid get source='concave'; anchors from the nearby grid get source='convex'.",
+      "params_used": ["angularSpanMinDeg", "localMaxHalfWindow", "anchorDedupRadius"]
+    },
+    {
+      "id": "C.validate",
+      "name": "Anchor validation",
+      "description": "For each candidate anchor: must have at least one group point within anchorValidRadius of (u,v), at least one nearby point within anchorValidRadius, and balField at the anchor's cell ≥ anchorBalanceMin. Anchors failing any gate are dropped (debug reason: 'no group within 0.5m' / 'no nearby within 0.5m' / 'balance B < threshold').",
+      "params_used": ["anchorValidRadius", "anchorBalanceMin"]
+    },
+    {
+      "id": "C.pool",
+      "name": "Pool assembly + naming",
+      "description": "RI corners (named RI<n>) are pushed first into the pool, then surviving concave anchors (P<g>C<n>) and convex anchors (P<g>X<n>) per plane. Each concave/convex pool entry carries dirsByPlane (two outgoing edge dirs per plane) and a cached comBisectorByPlane (CoM-direction blended bisector, derived from groupField.outU/V minus nearbyField.outU/V at the anchor's grid cell) so v7-boundary-polygons can skip its D.4 recompute."
+    }
+  ],
+  "parameters": [
+    {
+      "name": "nearbyRadius",
+      "type": "double",
+      "default": 2.0,
+      "unit": "m",
+      "summary": "Disc radius for keeping a ray-cast hit as a nearby projection (Phase B.gather).",
+      "rationale": "Wide enough to cover the typical eave-overhang / facade-offset distance that puts neighbour-plane points just outside the group's bbox, narrow enough to keep the per-plane projection pool tractable (~hundreds of items per plane on dahouet)."
+    },
+    {
+      "name": "planeDistFilter",
+      "type": "double",
+      "default": 0.20,
+      "unit": "m",
+      "summary": "Min |signedDist| for a nearby projection to be fed into the nearby signal grid (NOT used at gather time).",
+      "rationale": "Drops in-plane projection noise (points that lie almost on the plane don't add new edge evidence). Crucially, this filter is applied ONLY when building the nearby-grid input — the full unfiltered pool is kept for anchor validation's 'no nearby within 0.5m' proximity check (per bugfix 94b7866).",
+      "history": [
+        {
+          "commit": "94b7866",
+          "date": "2026-05-15",
+          "note": "Fixed regression where filter was applied at gather time, dropping ~108 items/plane and causing P5 'no nearby within 0.5m' rejections to spike 4→15 on dahouet."
+        }
+      ]
+    },
+    {
+      "name": "cornerDistThreshold",
+      "type": "double",
+      "default": 1.0,
+      "unit": "m",
+      "summary": "Max ridge-ridge closest-approach distance for an RI corner candidate.",
+      "rationale": "Two ridges sharing a plane that pass within 1m are assumed to meet (the gap is geometric noise from independent plane fits). Beyond 1m they're treated as parallel/skew, no corner emitted."
+    },
+    {
+      "name": "cornerMergeThreshold",
+      "type": "double",
+      "default": 0.25,
+      "unit": "m",
+      "summary": "Dedup radius for RI corners (a node where 3+ ridges meet collapses to one entry).",
+      "rationale": "Three ridges meeting at a true vertex generate three pairwise intersection points within a few cm of each other; 25 cm absorbs them while staying tight enough that adjacent corners on the same plane don't merge."
+    },
+    {
+      "name": "anchorDedupRadius",
+      "type": "double",
+      "default": 0.4,
+      "unit": "m",
+      "summary": "Per-plane dedup radius for concave/convex anchors after corner synthesis.",
+      "rationale": "OA-gradient local maxima can fire on multiple adjacent cells of a single feature (cellSize=10 cm); 40 cm collapses adjacent peaks while keeping distinct corners of a small dormer apart. Sorted by span descending so the strongest peak wins."
+    },
+    {
+      "name": "anchorValidRadius",
+      "type": "double",
+      "default": 0.5,
+      "unit": "m",
+      "summary": "Proximity radius for anchor-validation 'no group within R' / 'no nearby within R' gates.",
+      "rationale": "Anchor must sit close to BOTH a group point and a nearby projection — otherwise it's floating in empty space (group-only) or has no edge evidence (nearby-only). 50 cm is generous enough not to kill legitimate corners on sparse roofs."
+    },
+    {
+      "name": "anchorBalanceMin",
+      "type": "double",
+      "default": 0.25,
+      "unit": "(dimensionless, [0,1])",
+      "summary": "Min balField value at an anchor's cell for it to survive validation.",
+      "rationale": "Balance < 0.25 means the corner is either CoM-unbalanced (one side empty) or its group/nearby outward directions are not anti-aligned — both signal a non-edge cell. 0.25 trades off recall vs. false-corner suppression; empirically tuned on dahouet."
+    },
+    {
+      "name": "gridCellSize",
+      "type": "double",
+      "default": 0.10,
+      "unit": "m",
+      "summary": "Signal-grid cell size on the tilted plane.",
+      "rationale": "10 cm matches typical IGN LAZ point spacing — finer cells produce mostly-empty cells with noisy CoM; coarser cells smear corners across multiple cells. Drives memory: largest plane on dahouet ≈ 100×100 cells."
+    },
+    {
+      "name": "gridEvalRadius",
+      "type": "double",
+      "default": 1.0,
+      "unit": "m",
+      "summary": "Disc radius for per-cell signal evaluation (open-angle, CoM gathering).",
+      "rationale": "Large enough to sample several points per cell on typical density (~10 pts/m²), small enough that an edge crosses ≤ 1 disc width so the OA collapse is well-localized at the boundary."
+    },
+    {
+      "name": "angularSpanMinDeg",
+      "type": "double",
+      "default": 150.0,
+      "unit": "deg",
+      "summary": "Min OA-gradient span for a cell to qualify as a corner-detection local-maximum candidate.",
+      "rationale": "Below 150° the OA neighbourhood is too gradual to be a sharp corner — typically just a smooth edge. 150° matches the rule of thumb that a true corner produces an OA flip of ≥ a half-turn between opposite-pair neighbours."
+    },
+    {
+      "name": "localMaxHalfWindow",
+      "type": "int",
+      "default": 2,
+      "summary": "Half-window for the local-maxima sweep on oaSpanField (5×5 when half=2).",
+      "rationale": "Wider than anchorDedupRadius/cellSize (4 cells = 40 cm) so the sweep itself filters most adjacent firings; dedup is a secondary backstop."
+    },
+    {
+      "name": "minPlanePts",
+      "type": "int",
+      "default": 6,
+      "summary": "Min group point count to keep a plane alive for Phase B/C.",
+      "rationale": "Matches v7-boundary-topology's plane-fit minimum. Below 6 points the basis is too noisy to seed a useful grid."
+    },
+    {
+      "name": "upAxis",
+      "type": "int",
+      "default": 2,
+      "summary": "Coordinate frame up-axis: 1=y-up (bench-v2), 2=z-up (v3 production LAZ).",
+      "rationale": "v3 production LAZ is z-up; bench-v2's synthetic test cases are y-up. Only affects fall-back beam direction when bi-directions artifact is missing (vertical default)."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64×3·N point positions."
+    },
+    {
+      "name": "bi-directions",
+      "description": "Tile-wide F32×3·N beam direction per point. Optional — without it, Phase B falls back to a vertical default (0,-1,0 or 0,0,-1 per upAxis) and emits a degraded pool."
+    },
+    {
+      "name": "per-building-records",
+      "description": "Per-building record (global indices, n_pts_local).",
+      "array": true
+    },
+    {
+      "name": "building-local-frames",
+      "description": "Per-building centroid (cx, cy, cz) for the building-local shift.",
+      "array": true
+    },
+    {
+      "name": "grm-owner",
+      "description": "Per-building Int16 owner array (which plane each point belongs to after grow-refit-merge).",
+      "array": true,
+      "produced_by": "v7-grow-refit-merge"
+    },
+    {
+      "name": "boundary-topology-roof-graph",
+      "description": "Per-building TLV — PLANES, RIDGES, RIDGE_LINES (with has_line + has_side bits). Phase A + class filter already applied.",
+      "array": true,
+      "produced_by": "v7-boundary-topology"
+    },
+    {
+      "name": "ts-weights",
+      "description": "Per-building F32 per-point density weight (Voronoi cell area π·d_k²/k) from v7-tile-signals. Wired 0c3e28a (2026-05-28); used to DENSITY-WEIGHT the group-UV rasterise that drives the marching-squares contour (physical-area estimation — endorsed by the selective-weighting rule). Nearby-point weight is calibrated to the mean own-point weight (impl.c:1359-1376) so the per-cell contest stays count-based, not weight-magnitude-based (avoids the ~180× weight-variance bias). REQUIRED when n_pts_local>0.",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    },
+    {
+      "name": "bldg-thresholds",
+      "description": "Per-building density (+ spacing, z_noise, dist thresholds) from v7-derive-thresholds. Only lidar_density is consumed per-bldg: it scales the contour cell-size. Mandatory — using full-tile density instead would mis-scale by √(tile_area/bldg_area) (≈1.4× on dahouet).",
+      "array": true,
+      "produced_by": "v7-derive-thresholds"
+    }
+  ],
+  "writes": [
+    {
+      "name": "boundary-signals-roof-graph",
+      "description": "Per-building TLV with upstream sections (PLANES, RIDGES, RIDGE_LINES) passed through verbatim, plus appended sections: CORNERS (0x06) with RI + concave/convex pool entries (dirsByPlane + comBisectorByPlane on anchors), NEARBY_PROJECTIONS (0x04) per-plane, PLANE_GRIDS (0x05) with up to two records per alive plane (GROUP_FIELD+BAL_FIELD, NEARBY_FIELD).",
+      "array": true,
+      "consumed_by": ["v7-boundary-corners", "v7-boundary-polygons", "v7-boundary-merge"]
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "Split from monolithic v2 boundary-signals: Phase A + class filter moved to v7-boundary-topology",
+      "task": "(audit-driven)",
+      "commit": "395b57e..3b11b4e",
+      "rationale": "v2 boundary-signals did Phases A (adjacency + ridges + roof-graph pre-pass), B (nearby gather), C (signal grids + anchors) in one step. v3 splits A out into v7-boundary-topology so the cheap topology + class filter can stand alone (and be reused by future pipelines); v7-boundary-signals consumes its TLV and adds the heavy Phase B + C layers."
+    },
+    {
+      "topic": "PLANE_ANCHORS section dropped, anchors folded into CORNERS",
+      "task": "#237",
+      "commit": "116bcfa",
+      "rationale": "PLANE_ANCHORS was a redundant projection of CORNERS — iterating CORNERS with source∈{4,5} and planeId∈planeIds yields the same per-plane anchor view. Section id 0x08 is now reserved with a forward-compat note in ROOF-GRAPH-FORMAT.md §4.8. CORNERS gained the dirsByPlane subrecord (flag bit 0x04) to carry the two outgoing edge directions previously stored in PLANE_ANCHORS."
+    },
+    {
+      "topic": "NEARBY_FIELD added as a second PLANE_GRIDS record per plane",
+      "task": "(audit + side-effect of d0a634a)",
+      "commit": "d0a634a",
+      "rationale": "v2 only stored GROUP_FIELD on the wire — nearby field was recomputed downstream as needed. v3 emits NEARBY_FIELD as a second PLANE_GRIDS record (same plane_id, independent dims/origin in its own header, flag bit 0x02) alongside the GROUP_FIELD+BAL_FIELD record (bits 0x01|0x04). pack_plane_grid_record was refactored into pack_one_grid_record so both records share schema. ROOF-GRAPH-FORMAT.md §4.5 was updated to drop the stale 'NEARBY_FIELD same shape as GROUP_FIELD' claim."
+    },
+    {
+      "topic": "Nearby gather no longer applies planeDistFilter at collection",
+      "task": "(regression fix)",
+      "commit": "94b7866",
+      "rationale": "Phase B was applying |sd|≥planeDistFilter (0.20m) at gather time, dropping ~108 items per plane that v2 keeps for anchor-validation proximity checks. v2 keeps ALL items in pd.nearbyItems (boundary-signals.js#L668-672 unconditional push) and only filters when feeding the nearby signal-grid input. Fix moved the filter to the Phase C call site."
+    },
+    {
+      "topic": "comBisectorByPlane cached on CORNERS (concave/convex only)",
+      "task": "(perf)",
+      "commit": "116bcfa",
+      "rationale": "v2 boundary-polygons recomputes the CoM-direction blended bisector in its D.4 phase by re-reading groupField.outU/V and nearbyField.outU/V at the anchor's cell. v3 caches the result on the corner record (flag bit 0x20) so v7-boundary-polygons can skip the recompute and v7-boundary-regularize can reuse it for nudge directions."
+    },
+    {
+      "topic": "Building-local compute frame with F64 shift in headers",
+      "task": "(precision)",
+      "commit": "3b983a3 + d0a634a",
+      "rationale": "v3 unshifts upstream PLANES (d_local = d_world + n·c) and RIDGE_LINES (line_point − c) into the building-local frame for compute, then the wrapper re-shifts emitted positions back to tile-world before packing. PLANE_GRIDS headers now carry building_centroid (F64×3) so the JS renderer can apply the shift at render time — an earlier attempt that pre-shifted nodeX/Y/Z to tile-world in F32 collapsed near L93 (~289550) to ~3 cm and produced a visible staircase artifact on heat-map cells."
+    },
+    {
+      "topic": "Corner names emitted on the wire (RG_CORNER_HAS_NAME flag)",
+      "task": "(diagnostics)",
+      "commit": "a4d4caf",
+      "rationale": "v2's nameFor() naming convention (RI<n>, P<g>C<n>, P<g>X<n>) ported to v3 — emitted via CORNERS flag bit 0x01 + padded-string convention. Surfaced in the lab UI corner-inspector and used by the v3 regression baseline diff at v3/tests/baselines/v7-boundary-signals/dahouet/."
+    }
+  ],
+  "related": [
+    {
+      "type": "journal",
+      "id": "2026-04-14-roof-graph-prepass-boundary-3d",
+      "link": "docs/journal/2026/04/2026-04-14-roof-graph-prepass-boundary-3d.md",
+      "tags": ["roof-graph", "topology", "refactor"],
+      "summary": "The roof-graph pre-pass introduced into boundary-3d (later extracted into bench-v2 boundary-signals, then split between v3 v7-boundary-topology + v7-boundary-signals). Establishes the snapshot-viz pattern."
+    },
+    {
+      "type": "journal",
+      "id": "2026-05-17-wrong-side-corner-killing-review",
+      "link": "docs/journal/2026/05/2026-05-17-wrong-side-corner-killing-review.md",
+      "tags": ["anchors", "convex", "open-question"],
+      "summary": "Review of the wrong-side-corner-killing problem in downstream boundary-corners D.2b. Relevant here because v7-boundary-signals produces the convex anchors that D.2b filters — the meta-critique notes D.2b is treating an upstream symptom this step could address (e.g., plane-interior weighting in anchor synthesis)."
+    },
+    {
+      "type": "commit",
+      "sha": "0f35b9f",
+      "date": "2026-04-25",
+      "summary": "v2: extract Phase A/B/C from boundary-3d into a standalone boundary-signals step (1046 LOC). Origin point for the v3 port."
+    },
+    {
+      "type": "commit",
+      "sha": "395b57e",
+      "date": "2026-05-11",
+      "summary": "v3 first pass: RI corners + Phase B nearby gathering. PLANE_GRIDS and concave/convex anchors deferred."
+    },
+    {
+      "type": "commit",
+      "sha": "3b11b4e",
+      "date": "2026-05-11",
+      "summary": "v3 Phase C: signal grids + concave/convex corners + (then) PLANE_ANCHORS."
+    },
+    {
+      "type": "commit",
+      "sha": "765e82f",
+      "date": "2026-05-11",
+      "summary": "v3 PLANE_GRIDS first slice: balance-only on the wire + heat-map viz."
+    },
+    {
+      "type": "commit",
+      "sha": "3b983a3",
+      "date": "2026-05-11",
+      "summary": "v3 richer PLANE_GRIDS: GROUP_FIELD wire emit (10×f32 + u16 per cell), drop dirs metadata block. dahouet PLANE_GRIDS 884KB→10MB."
+    },
+    {
+      "type": "commit",
+      "sha": "188d2c8",
+      "date": "2026-05-11",
+      "summary": "Align ptCount u16 array in the GROUP_FIELD block — fixed ASan abort + cache mismatch."
+    },
+    {
+      "type": "commit",
+      "sha": "a4d4caf",
+      "date": "2026-05-11",
+      "summary": "Corner names (RI<n>, P<g>C<n>, P<g>X<n>) on the wire + dahouet regression baseline (corners, plane-anchors, summary)."
+    },
+    {
+      "type": "commit",
+      "sha": "116bcfa",
+      "date": "2026-05-11",
+      "summary": "Drop PLANE_ANCHORS section; re-enable dirsByPlane on CORNERS; add comBisectorByPlane cache."
+    },
+    {
+      "type": "commit",
+      "sha": "94b7866",
+      "date": "2026-05-15",
+      "summary": "Restore unfiltered nearby items for anchor_valid proximity check — move planeDistFilter from Phase B gather to Phase C nearby-grid feed."
+    },
+    {
+      "type": "commit",
+      "sha": "d0a634a",
+      "date": "2026-05-16",
+      "summary": "NEARBY_FIELD as second PLANE_GRIDS record + lab UI heatmap layers for groups OA gradient, nearby OA, nearby OA gradient. (Bundled with topology has_side fix.)"
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/ROOF-GRAPH-FORMAT.md",
+      "section": "§4.4 NEARBY_PROJECTIONS, §4.5 PLANE_GRIDS, §4.6 CORNERS, §4.8 (reserved 0x08)",
+      "summary": "Wire format spec for the three sections this step writes plus the PLANE_ANCHORS history note."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "summary": "Phase 5.7 v7 port roadmap: where v7-boundary-signals sits in the v3 chain and what was deferred/cleared up to this step."
+    },
+    {
+      "type": "baseline",
+      "link": "v3/tests/baselines/v7-boundary-signals/dahouet/",
+      "summary": "Regression baseline (corners.json, summary.json) checked in 2026-05-11 — run v3/tests/run-v7-bs-bench-regression.py to diff."
+    }
+  ],
+  "open_questions": [
+    "Should anchor synthesis weight OA-gradient by a plane-interior consistency signal (e.g., side-vec sign) to suppress wrong-side convex anchors upstream of boundary-corners D.2b? See related journal 2026-05-17.",
+    "PLANE_GRIDS payload is heavy (10 MB on dahouet at the GROUP_FIELD richness level). Should there be a `emitPlaneGridsHeavy` param to gate the 10×f32 fields when downstream only needs balance?",
+    "NEARBY_FIELD currently has independent bbox/dims from GROUP_FIELD. Is there a downstream consumer that actually needs nearby's heat maps, or is the second record viz-only and could be gated?",
+    "anchor validation's anchorBalanceMin=0.25 threshold is empirically tuned on dahouet — what is its false-positive / false-negative rate across the bench corpus?",
+    "RI re-derivation in this step duplicates the work topology has already done implicitly (RIDGES + RIDGE_LINES carry plane_a/plane_b). Could topology emit RI corners directly and this step skip RI?"
+  ]
+}

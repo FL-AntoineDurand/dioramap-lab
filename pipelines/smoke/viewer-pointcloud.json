@@ -1,0 +1,10 @@
+{
+  "name": "viewer-pointcloud",
+  "description": "End-to-end lidar pipeline: coords in → disc point cloud out. Canonicalize → find COPC tiles (IGN WFS) → fetch LAZ tiles → extract disc. Input: {\"lat\": deg, \"lon\": deg, \"radius_m\": m}. Requires network access to data.geopf.fr.",
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" }
+  ]
+}

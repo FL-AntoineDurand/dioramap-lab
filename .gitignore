@@ -1,0 +1,85 @@
+# Node / app build output
+node_modules/
+apps/*/dist/
+apps/*/dist-dev/
+
+# Build output
+build/
+build-*/
+.cache/
+
+# Compile database (symlinked into repo by CMAKE_EXPORT_COMPILE_COMMANDS=ON)
+compile_commands.json
+
+# CMake
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ─── validation matrix outputs ────────────────────────────────────────
+
+# Coverage instrumentation runtime files (LLVM_PROFILE_FILE points
+# them elsewhere in CI; the default falls back to ./default.profraw
+# next to the binary's CWD).
+*.profraw
+*.profdata
+default.profraw
+
+# Per-scenario tmp dirs (lib/isolation.sh creates these under /tmp;
+# this catches any that slip into the repo).
+core/tests/integration/tmp/
+
+# node_modules under integration tests (committed `package.json`
+# pulls fresh on `npm install`).
+core/tests/integration/node_modules/
+core/tests/integration/package-lock.json
+
+# Cached CI tooling fetched on demand (e.g. PMD distribution for the
+# CPD duplication-detection step). Reproduced by re-downloading — see
+# scripts/ci/steps/run-cpd.sh header. Never part of source tree.
+scripts/ci/.tools/
+
+# Fuzzer-discovered corpus inputs.  Seed files have human-readable
+# names (empty, valid_lower, one_pair, …); fuzzer-added files are
+# named by their SHA1 (40 lowercase hex chars).  We track seeds
+# only — discovered inputs are reproduced on every fuzz run, and a
+# crash that matters gets explicitly added to the seed set.
+core/tests/fuzz/corpus/*/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]
+
+# Fuzzer crash artifacts (always reproducible from a saved input;
+# triage = fix bug + add the input to the seed corpus).
+crash-*
+leak-*
+oom-*
+timeout-*
+slow-unit-*
+
+# Per-scenario triage tmpdirs (isolation.sh prefixes with this name).
+# Picked up by `git status` if a developer drags one into the tree.
+dioramap-it-*/
+
+# Pre-built validation bundles (never part of the source tree).
+core/dist/
+*.tar.gz
+__pycache__/
+
+# Frama-C analysis outputs (raw alarm dumps, parse logs, .sav state).
+# Curated findings live in docs/audit/frama-c/; everything else under
+# .frama-c-out/ is reproducible from the runner scripts.
+.frama-c-out/
+*.sav
+ci-artifacts/

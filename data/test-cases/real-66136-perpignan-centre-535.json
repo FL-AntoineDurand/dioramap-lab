@@ -1,0 +1,99 @@
+{
+  "type": "real",
+  "id": "real-66136-perpignan-centre-535",
+  "dataFile": "real-66136-perpignan-centre-535.bin",
+  "footprint": [
+    {
+      "x": 43.40303250588477,
+      "z": -5.87653551902622
+    },
+    {
+      "x": 35.70303250581492,
+      "z": -7.276535519398749
+    },
+    {
+      "x": 36.1030325058382,
+      "z": -9.37653551902622
+    },
+    {
+      "x": 25.803032515803352,
+      "z": -11.576535519212484
+    },
+    {
+      "x": 25.5030325158732,
+      "z": -7.776535519398749
+    },
+    {
+      "x": 25.403032515896484,
+      "z": 1.9234644807875156
+    },
+    {
+      "x": 26.303032515803352,
+      "z": 5.823464481160045
+    },
+    {
+      "x": 27.203032515826635,
+      "z": 6.1234644912183285
+    },
+    {
+      "x": 46.503032495849766,
+      "z": 3.023464481346309
+    },
+    {
+      "x": 46.10303249582648,
+      "z": 0.9234644807875156
+    },
+    {
+      "x": 41.50303250586148,
+      "z": 0.22346448060125113
+    },
+    {
+      "x": 43.40303250588477,
+      "z": -5.87653551902622
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 139,
+    "point_count": 107181,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 42.6986,
+    "lng": 2.8954,
+    "commune_code": "66136",
+    "commune_name": "Perpignan",
+    "building_surface_m2": 246.7,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 691418.7969737141,
+      "y": 6177671.628180271
+    },
+    "imported_at": "2026-02-25T15:07:33.815Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 13.9,
+    "nature": "Indifférenciée",
+    "usage_1": "Résidentiel",
+    "materiaux_de_la_toiture": "10",
+    "nombre_d_etages": 5,
+    "altitude_minimale_sol": 32,
+    "altitude_minimale_toit": 45.9,
+    "altitude_maximale_toit": 49
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 411,
+    "height": 377,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 691434.20000623,
+      "maxX": 691475.30000621,
+      "minZ": 6177655.50471578,
+      "maxZ": 6177693.20471579
+    }
+  }
+}

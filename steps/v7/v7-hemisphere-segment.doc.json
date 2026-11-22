@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "step": "v7-hemisphere-segment",
+  "step_version": 2,
+  "v2_origin": {
+    "file": "lidar-algos-bench-v2/lib/pipeline/steps/hemisphere-normals-density-aware-segment.js",
+    "version": 5
+  },
+  "summary": "Density-aware normal cascade segmentation that splits per-building points into coplanar segments via three stages: S1 Lambert equal-area hemisphere accumulation of (Voronoi-area-weighted) normals to find orientation groups, S2 weighted Gaussian KDE of signed offsets within each group to separate parallel planes, S3 radius-graph connected components within each offset cluster to split spatially disjoint instances of the same plane. An interstitial S1b merges near-antipodal Lambert groups produced by PCA's sign ambiguity on near-horizontal (wall) normals. All three stages are weighted by per-point Voronoi area (m²) from v7-tile-signals so thresholds are absolute (m²) rather than count-based and robust to density gradients (flight-strip overlap, scan-line geometry).",
+  "phases": [
+    {
+      "id": "S1",
+      "name": "Lambert hemisphere normal grouping",
+      "description": "Accumulates each eligible point's unit normal (canonicalized to upper hemisphere) into a Lambert equal-area NxN density grid, weighted by point area. Gaussian-smooths the grid, finds local maxima, then assigns each point to a peak via watershed (drain following grid gradient). Peaks whose total basin area (Σ weights of drained points) is below lambertMinBasinArea (m²) are filtered out and their points marked as orphans (ridge bit 7).",
+      "params_used": ["lambertResolution", "lambertSmoothSigma", "lambertMinBasinArea"]
+    },
+    {
+      "id": "S1b",
+      "name": "Antipodal group merge",
+      "description": "Merges pairs of Lambert groups whose peak normals satisfy dot < -0.85. PCA normals are unoriented (eigenvector sign is arbitrary); for near-horizontal walls the y-component jitters around zero, so half the points end up on one hemisphere edge and half on the antipodal edge. Without this merge a single wall surface fragments into two Lambert groups. Coplanarity is NOT enforced — distinct parallel walls are separated again by S3 spatial CC.",
+      "see_also": ["2026-03-16-lambert-antipodal-normal-merge"]
+    },
+    {
+      "id": "S2",
+      "name": "Per-group weighted offset KDE",
+      "description": "For each Lambert group: compute a weighted mean normal (flipping each point normal to agree with the Lambert peak direction before averaging, so antipodal PCA signs don't cancel), project each point onto that normal (signed offset = dot(p, n)), then build a weighted Gaussian KDE over offsets with Silverman or IQR bandwidth (clamped to [0.05, 0.30] m). Peaks above a density floor become offset clusters; valleys between adjacent peaks define cluster boundaries. Groups with total area < min_segment_area orphan all their points.",
+      "params_used": ["stage2Mode", "minSegmentArea"]
+    },
+    {
+      "id": "S3",
+      "name": "Radius-graph spatial CC",
+      "description": "For each offset cluster: build a graph by union-find where each point connects to kd-tree neighbors within a per-point adaptive radius min(connectRadiusMax, sqrt(point_weight) × connectRadiusScale) — sparse points reach farther. Connected components of area ≥ minSegmentArea become emitted segments; smaller components are orphaned (ridge bit 7).",
+      "params_used": ["connectRadiusScale", "connectRadiusMax", "minSegmentArea"]
+    }
+  ],
+  "parameters": [
+    {
+      "name": "lambertResolution",
+      "type": "int32",
+      "default": 128,
+      "summary": "Lambert grid side length (NxN cells).",
+      "rationale": "128 gives ~1.4° angular resolution at the disc center, enough to separate roof pitches that differ by ≥2° while keeping the smoothed grid stable on tile-scale weight totals."
+    },
+    {
+      "name": "lambertSmoothSigma",
+      "type": "double",
+      "default": 2.0,
+      "unit": "grid cells",
+      "summary": "Gaussian smoothing sigma applied to the Lambert grid before peak-finding.",
+      "rationale": "Two cells of smoothing collapses single-cell noise spikes without merging genuinely distinct orientation modes."
+    },
+    {
+      "name": "lambertMinBasinArea",
+      "type": "double",
+      "default": 0.5,
+      "unit": "m²",
+      "summary": "Minimum drained-basin area (sum of point weights) for a Lambert peak to survive S1 filtering.",
+      "rationale": "Absolute area threshold (m²) replaces the v4 relative lambertMinWeightFrac (3% of total). Relative thresholds broke on small buildings (one small face = 3% trivially) and large tiles (3% of a stadium = 100 m² minimum). 0.5 m² is the floor below which a 'plane' is statistically inseparable from noise on IGN LiDAR HD density.",
+      "history": [
+        {"commit": "411acf5", "date": "2026-03-14", "note": "Introduced lambertMinBasinArea at 0.5 m², replacing lambertMinWeightFrac. v2 step bumped 4 → 5."}
+      ]
+    },
+    {
+      "name": "stage2Mode",
+      "type": "string",
+      "default": "kde-silverman",
+      "summary": "Bandwidth rule for the S2 offset KDE: kde-silverman or kde-iqr.",
+      "rationale": "Silverman's rule is the standard default; IQR is more robust to outliers but tends to over-smooth tight bi-modal offset distributions (closely-spaced parallel roofs). Bandwidth is clamped to [0.05, 0.30] m regardless of rule."
+    },
+    {
+      "name": "connectRadiusScale",
+      "type": "double",
+      "default": 3.0,
+      "summary": "Per-point S3 radius multiplier: r = scale × sqrt(point_weight), capped at connectRadiusMax.",
+      "rationale": "sqrt(point_weight) ≈ local point spacing for Voronoi-area weights, so 3× spacing is a generous neighborhood that bridges typical scan-line gaps without merging adjacent planar surfaces across narrow ridge lines."
+    },
+    {
+      "name": "connectRadiusMax",
+      "type": "double",
+      "default": 2.0,
+      "unit": "m",
+      "summary": "Upper cap on the S3 per-point connect radius.",
+      "rationale": "Stops the adaptive radius from blowing up in extreme density-dropout regions (e.g. slate roofs); 2 m is larger than any defensible same-plane gap in IGN-density data."
+    },
+    {
+      "name": "minSegmentArea",
+      "type": "double",
+      "default": 1.0,
+      "unit": "m²",
+      "summary": "Minimum area (sum of point weights) for a group, offset cluster, or final spatial CC to survive.",
+      "rationale": "Applied at three layers (S1 group, S2 cluster, S3 component); anything below 1 m² is treated as orphan/ridge candidate. Area-based gate is the v5 successor to count-based pointCount thresholds and is invariant to density."
+    },
+    {
+      "name": "kdeNEval",
+      "type": "int32",
+      "default": 200,
+      "summary": "Number of evaluation points for the S2 KDE (uniformly spaced over the offset range). Compile-time constant in v3 (set by v7_hs_params_default, not parsed from JSON params).",
+      "rationale": "200 samples is dense enough that peak / valley positions are stable to within bandwidth/10 ≈ 1 cm at typical offsets ranges (5–30 m)."
+    },
+    {
+      "name": "emitVizArtifacts",
+      "type": "bool",
+      "default": true,
+      "summary": "Emit hs-lambert-grid, hs-lambert-peaks, hs-offset-kde for the lab UI.",
+      "rationale": "Bench/prod pipelines set false to avoid serialising O(N²) grids and per-group KDE blobs that no algorithmic consumer reads."
+    },
+    {
+      "name": "upAxis",
+      "type": "int32",
+      "default": 2,
+      "summary": "Which axis is up: 1=y-up (bench-v2), 2=z-up (LAZ).",
+      "rationale": "Controls Lambert canonicalization (flip-to-upper-hemisphere uses the up-axis component). v3's wrapper sets z-up by default since v7-tile-signals consumes LAZ-frame positions; the impl default is y-up to match bench-v2 dump bytes for byte-parity testing. See commit 7936a21 for the env override that lets bench harnesses run z-up."
+    }
+  ],
+  "reads": [
+    {
+      "name": "lidar-positions",
+      "description": "Tile-wide F64×3·N point positions (LAZ frame).",
+      "produced_by": "v7-load-real-test-case (or LAZ loader)"
+    },
+    {
+      "name": "per-building-records",
+      "description": "ARRAY_INLINE — global point indices per building (schema 1: u32 schema, u32 n_verts, u32 n_pts, …, u32 pt_idx[n_pts]).",
+      "array": true,
+      "produced_by": "v7-extract-buildings"
+    },
+    {
+      "name": "building-local-frames",
+      "description": "ARRAY_INLINE — 72-byte record per building (centroid + axes). Used to compute the centroid-shifted positions the kd-tree was built over.",
+      "array": true,
+      "produced_by": "v7-extract-buildings"
+    },
+    {
+      "name": "building-kd-trees",
+      "description": "ARRAY_INLINE — serialised kd-tree node array per building. Deserialised in-place by kd_deserialize over centroid-shifted F32→F64-promoted positions.",
+      "array": true,
+      "produced_by": "build-building-kd-trees"
+    },
+    {
+      "name": "ts-normals",
+      "description": "ARRAY_INLINE — F32×3·n_pts per building, unoriented PCA normals.",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    },
+    {
+      "name": "ts-weights",
+      "description": "ARRAY_INLINE — F32×n_pts per building, Voronoi-area weights (m²).",
+      "array": true,
+      "produced_by": "v7-tile-signals"
+    }
+  ],
+  "writes": [
+    {
+      "name": "hs-segments",
+      "description": "ARRAY_INLINE — Int16×n_pts per building, segment ID per point (-1 = unassigned).",
+      "array": true
+    },
+    {
+      "name": "hs-segment-list",
+      "description": "ARRAY_INLINE — variable-length record per building, each containing N inner segment records. Inner schema 1: u32 schema, u32 normal_group_id, u32 offset_cluster_id, u32 spatial_cluster_id, f64 peak_offset, f64 mean_normal[3], u32 n_pts, u32 reserved, u32 pt_idx[n_pts] (local-to-building indices). Public visibility — primary algorithmic output consumed by v7-normal-cascade-seed.",
+      "array": true,
+      "consumed_by": ["v7-normal-cascade-seed"]
+    },
+    {
+      "name": "hs-ridge-candidates",
+      "description": "ARRAY_INLINE — Uint8×n_pts per building, bit 7 = orphan (point dropped at S1, S2, or S3 area gate).",
+      "array": true
+    },
+    {
+      "name": "hs-lambert-grid",
+      "description": "ARRAY_INLINE — F64 N×N density surface per building (viz-only, gated on emitVizArtifacts).",
+      "array": true
+    },
+    {
+      "name": "hs-lambert-peaks",
+      "description": "ARRAY_INLINE — fixed-stride 56-byte records (tilt, azimuth, basin_weight, peak_normal[3], n_assigned_pts, _reserved) per building (viz-only).",
+      "array": true
+    },
+    {
+      "name": "hs-offset-kde",
+      "description": "ARRAY_INLINE — variable-length KDE records per building (eval_pts, densities, peaks, valleys per Lambert group). Viz-only.",
+      "array": true
+    }
+  ],
+  "v3_divergences": [
+    {
+      "topic": "owner artifact dropped from outputs",
+      "task": "Phase 5.2 spot-check",
+      "commit": "80f1a58",
+      "rationale": "v2 re-emitted owner here as a defensive shim (its pipeline runs object-graph mode and missing artifacts crash). v3's content-addressed store doesn't need that; hemisphere-segment doesn't write to owner, so dropping the pass-through removes a uniformly-grey debug layer in lab UI. The first real emitter of owner is v7-grow-refit-merge (Phase 5.5). Bumped step .version 1 → 2."
+    },
+    {
+      "topic": "cascade-segment-stats / cascade-min-segment-pts / cascade-offset-bin-size / cascade-offset-tolerance dropped",
+      "task": "Phase 5.2 DAG-scope policy",
+      "commit": "4c3c692",
+      "rationale": "These v2 metadata blobs were derivable from hs-segment-list + ts-weights, or were UI-only constants. PHASE-5-V7-PORT.md's three-bucket policy says: derivable → drop, UI computes on the fly."
+    },
+    {
+      "topic": "Viz artifacts emit raw arrays, not v2's metadata-wrapper objects",
+      "task": "Phase 5.2 policy §3",
+      "commit": "4c3c692",
+      "rationale": "v2 emitted {kind:'lambert-2d', label:'…', data:[…], peaks:[…]}. v3 emits raw F64 N×N grid + fixed-stride peak records. Labels and rendering choices live in the viz layer (cascade-lambert-grid.viz.js), not in the algorithmic artifact."
+    },
+    {
+      "topic": "Lambert peak record stride 56 bytes (not 64)",
+      "task": "Phase 5.2-followup",
+      "commit": "80f1a58",
+      "rationale": "On-wire record is 6 doubles + 2 u32 = 56 bytes, naturally aligned (no padding). JS viz parser had hardcoded 64; fixed to read the actual struct size."
+    },
+    {
+      "topic": "Viz artifact emission order is no longer load-bearing",
+      "task": "Phase 5.2-followup-E",
+      "commit": "655fd89",
+      "rationale": "Initial fix in 655fd89 swapped emission so peaks decode before the grid viz fires (lab-ui inspector renders on arrival; cascade-lambert-grid.viz.js reads peaks via getSiblingDecoded). The follow-up auto-rerun fix in 8d9b8c9 made order irrelevant — visualizers auto-rerun when sibling artifacts arrive late. Current C wrapper emits grid → peaks → offset-kde with an explicit comment that order does not matter."
+    },
+    {
+      "topic": "Lambert assign mode is hardcoded to watershed (no nearest-peak fallback)",
+      "task": "Phase 5.2 port",
+      "commit": "4c3c692",
+      "rationale": "v2 exposed lambertAssignMode='watershed'|'nearest' for debugging. v3 only ships the watershed path (lambert_grid_assign_watershed); there is no assign-mode field in v7_hs_params_t and parse_params does not accept the key. If the nearest-peak fallback is ever needed for diagnostics, it would need to be re-added."
+    },
+    {
+      "topic": "Artifact prefix renamed cascade-* → hs-*",
+      "task": "Phase 1 eager-rename",
+      "commit": "0f2d3c4",
+      "rationale": "v2 wrote cascade-segments, cascade-segment-list, cascade-lambert-grid, cascade-lambert-peaks, cascade-offset-kde, ridge-candidates. v3 uses the hs- prefix to scope artifacts to their producing step (hs-segments, hs-segment-list, hs-ridge-candidates, hs-lambert-grid, hs-lambert-peaks, hs-offset-kde). C source header comments still mention cascade-* names — those are stale comments, the registered step_def_t names are hs-*."
+    }
+  ],
+  "related": [
+    {
+      "type": "journal",
+      "id": "2026-03-12-local-density-compensation",
+      "link": "docs/journal/2026/03/2026-03-12-local-density-compensation.md",
+      "tags": ["density", "point-weights", "design"],
+      "summary": "Design doc establishing the area-weighted-everywhere principle this step embodies: Voronoi-area weights from k-NN, m² thresholds replacing point counts, density-blind algos replaced across the v7 pipeline."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-16-lambert-antipodal-normal-merge",
+      "link": "docs/journal/2026/03/2026-03-16-lambert-antipodal-normal-merge.md",
+      "tags": ["lambert", "walls", "pca", "normals"],
+      "summary": "Root cause + fix for the S1b antipodal merge: PCA returns unoriented normals; near-horizontal (wall) normals jitter around the Lambert hemisphere boundary and produce paired antipodal groups for one physical surface. Merge condition: peak_n_i · peak_n_j < -0.85."
+    },
+    {
+      "type": "journal",
+      "id": "2026-03-13-v7-master-plan",
+      "link": "docs/journal/2026/03/2026-03-13-v7-master-plan.md",
+      "tags": ["v7", "architecture", "tile-wide"],
+      "summary": "V7 master plan — explains why hemisphere-segment is tile-wide rather than per-building like v6, and why density compensation is non-negotiable for IGN LiDAR HD."
+    },
+    {
+      "type": "commit",
+      "sha": "07c554c",
+      "date": "2026-03-12",
+      "summary": "Initial registration of hemisphere-normals-density-aware-segment (v2 step v1) alongside the new density-aware planarity-watershed."
+    },
+    {
+      "type": "commit",
+      "sha": "984d9e4",
+      "date": "(see git)",
+      "summary": "Adds the Lambert equal-area projection (lib/geometry/lambert.js) and weighted Gaussian KDE (lib/geometry/histogram.js) primitives this step builds on, with full unit-test suites."
+    },
+    {
+      "type": "commit",
+      "sha": "5b08865",
+      "date": "2026-03-16",
+      "summary": "Adds the S1b antipodal-merge stage (peak-normal dot < -0.85). Companion to journal 2026-03-16-lambert-antipodal-normal-merge."
+    },
+    {
+      "type": "commit",
+      "sha": "83ca89b",
+      "date": "2026-03-13",
+      "summary": "v2 step bumped 3 → 4: Lambert dual API (typed Float32Array accumulate / watershed / nearest), global-indexed building-indices throughout."
+    },
+    {
+      "type": "commit",
+      "sha": "411acf5",
+      "date": "2026-03-14",
+      "summary": "v2 step bumped 4 → 5: lambertMinWeightFrac (3% relative) replaced by lambertMinBasinArea (0.5 m² absolute); the change that makes the gate robust to tile-size variation."
+    },
+    {
+      "type": "commit",
+      "sha": "4c3c692",
+      "date": "2026-05-08",
+      "summary": "Phase 5.2 — initial v3 port: impl + step + lab-ui viz wrappers."
+    },
+    {
+      "type": "commit",
+      "sha": "80f1a58",
+      "date": "2026-05-08",
+      "summary": "Spot-check fix: drop owner re-emit, correct lambert-peak parser stride 64 → 56. Step .version 1 → 2."
+    },
+    {
+      "type": "commit",
+      "sha": "655fd89",
+      "date": "2026-05-08",
+      "summary": "Spot-check fix: emit lambert-peaks before lambert-grid so sibling getSiblingDecoded works on first render."
+    },
+    {
+      "type": "commit",
+      "sha": "8d9b8c9",
+      "date": "(see git)",
+      "summary": "lab-ui inspector auto-reruns sibling-dependent visualizers when their dependencies arrive late (cache-hit ordering)."
+    },
+    {
+      "type": "commit",
+      "sha": "0f2d3c4",
+      "date": "(see git)",
+      "summary": "Phase 1 eager-rename: cascade-* artifacts renamed to hs-* prefix (hs-segments, hs-segment-list, hs-ridge-candidates, hs-lambert-grid, hs-lambert-peaks, hs-offset-kde)."
+    },
+    {
+      "type": "doc",
+      "link": "v3/docs/plan/PHASE-5-V7-PORT.md",
+      "section": "Phase 5.2 + DAG-scope policy + Policy: porting v7 steps",
+      "summary": "Defines the three-bucket policy (load-bearing / viz-only / derivable) that shaped this port's output set; lists hemisphere-segment as Phase 5.2 ('done (algo)')."
+    },
+    {
+      "type": "doc",
+      "link": "lidar-algos-bench-v2/lib/pipeline/steps/hemisphere-normals-density-aware-segment.md",
+      "summary": "v2 algorithm reference: stage-by-stage pseudocode, density-compensation rationale, parameter table, version history."
+    }
+  ],
+  "open_questions": [
+    "Bench harness still deferred (Phase 5.2-followup-D): no byte-cmp gate against v2 reference dump for v7-hemisphere-segment yet. Other v7 steps have one; this one was punted at port time and not revisited.",
+    "kde-iqr mode is exposed as a param but has not been benched against kde-silverman on the real-data corpus; switching default would need a dahouet/nantes sweep.",
+    "Lambert resolution 128 was picked without a sensitivity sweep — 96 or 192 may give the same separation power with different smoothing/cost trade-offs.",
+    "The S1b antipodal merge skips coplanarity (relies on S3 spatial CC to separate parallel walls). On dense urban tiles with many parallel walls, this could in principle merge two distinct walls before S3 sees them; not yet observed but unmeasured."
+  ]
+}

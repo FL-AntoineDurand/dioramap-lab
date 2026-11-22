@@ -1,0 +1,19 @@
+{
+  "name": "research-extract-buildings",
+  "description": "Phase 1 of the roof-recon evaluation effort. Slices the disc point cloud + cadastre footprints into per-building records (one record per outer ring, variable-length AK_ARRAY_INLINE). Produces the shared input shape every candidate roof-reconstruction pipeline (PolyFit / KSR / Roofer / V7) consumes. See v3/docs/research/roof-recon-survey.md and v3/docs/OBFUSCATION.md (this pipeline is dev-only — not in EMBEDDED_PIPELINES).",
+  "attributions": [
+    { "label": "IGN — LiDAR HD", "url": "https://geoservices.ign.fr/lidarhd" },
+    { "label": "Cadastre", "url": "https://cadastre.gouv.fr/" }
+  ],
+  "steps": [
+    { "step": "canonicalize-location" },
+
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+
+    { "step": "fetch-cadastre-buildings", "params": { "max_count": 5000 } },
+
+    { "step": "extract-buildings", "params": { "min_points": 50, "buffer_m": 5.0 } }
+  ]
+}

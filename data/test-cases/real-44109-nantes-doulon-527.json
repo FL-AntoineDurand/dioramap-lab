@@ -1,0 +1,87 @@
+{
+  "type": "real",
+  "id": "real-44109-nantes-doulon-527",
+  "dataFile": "real-44109-nantes-doulon-527.bin",
+  "footprint": [
+    {
+      "x": 12.65386947238585,
+      "z": -9.923938690684736
+    },
+    {
+      "x": 6.053869472409133,
+      "z": -18.123938680626452
+    },
+    {
+      "x": 1.5538694724091329,
+      "z": -14.423938680440187
+    },
+    {
+      "x": 3.4538694723742083,
+      "z": -12.123938680626452
+    },
+    {
+      "x": -1.2461305176257156,
+      "z": -8.223938690498471
+    },
+    {
+      "x": 3.9538694723742083,
+      "z": -1.6239386899396777
+    },
+    {
+      "x": 10.453869472374208,
+      "z": -6.823938690125942
+    },
+    {
+      "x": 9.853869472397491,
+      "z": -7.723938680253923
+    },
+    {
+      "x": 12.65386947238585,
+      "z": -9.923938690684736
+    }
+  ],
+  "groundTruth": null,
+  "lidar": {
+    "density": 28,
+    "point_count": 73672,
+    "noise_sigma": null,
+    "outlier_ratio": null,
+    "seed": null
+  },
+  "metadata": {
+    "lat": 47.23,
+    "lng": -1.52,
+    "commune_code": "44109",
+    "commune_name": "Nantes",
+    "building_surface_m2": 115,
+    "building_nature": "Indifférenciée",
+    "l93_center": {
+      "x": 358190.1464003176,
+      "y": 6690863.48076937
+    },
+    "imported_at": "2026-02-25T15:05:02.778Z"
+  },
+  "bdtopoMetadata": {
+    "hauteur": 5.3,
+    "nature": "Indifférenciée",
+    "usage_1": "Résidentiel",
+    "materiaux_de_la_toiture": "29",
+    "nombre_d_etages": 2,
+    "altitude_minimale_sol": 11,
+    "altitude_minimale_toit": 16.3,
+    "altitude_maximale_toit": 19.3
+  },
+  "difficulty": "unknown",
+  "validated": false,
+  "orthoMeta": {
+    "width": 339,
+    "height": 365,
+    "pixelSize": 0.1,
+    "bbox": {
+      "minX": 358178.9002698,
+      "maxX": 358212.80026979,
+      "minZ": 6690855.10470806,
+      "maxZ": 6690891.60470805
+    }
+  }
+}

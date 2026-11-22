@@ -1,0 +1,52 @@
+{
+  "name": "viewer-full",
+  "description": "Phase B complete: every step in the v3 JS-viewer port, composed into one pipeline. Groups (in topological-ish order): coords + scene origin → point cloud → imagery + elevation + cadastre + surround → lidar rasters → ortho rasters → registration (coreg + cadastre fit) → classification (NDVI + scatter + near-building + vegetation) → ground + parcels → shadow detection + sun fit + deshadow. Params mirror the component viewer-*.json pipelines so identity hashes align (cached steps from a prior per-slice run re-use automatically). Produces the full artifact catalog the lab UI could consume.",
+  "attributions": [
+    { "label": "IGN — LiDAR HD", "url": "https://geoservices.ign.fr/lidarhd" },
+    { "label": "IGN — BD ORTHO / IRC", "url": "https://geoservices.ign.fr/bdortho" },
+    { "label": "Cadastre", "url": "https://cadastre.gouv.fr/" }
+  ],
+  "steps": [
+    { "step": "canonicalize-location" },
+    { "step": "compute-scene-origin" },
+
+    { "step": "find-copc-tiles" },
+    { "step": "fetch-copc-tiles" },
+    { "step": "laz-extract-disc" },
+
+    { "step": "fetch-ortho-rgb",           "params": { "size_px": 1024 } },
+    { "step": "fetch-ortho-irc",           "params": { "size_px": 1024 } },
+    { "step": "fetch-elevation",           "params": { "grid_size": 128 } },
+    { "step": "fetch-cadastre-buildings",  "params": { "max_count": 5000 } },
+    { "step": "fetch-cadastre-parcels",    "params": { "max_count": 2000 } },
+    { "step": "fetch-ortho-surround",      "params": { "size_px": 1024, "radius_m": 600 } },
+    { "step": "fetch-elevation-surround",  "params": { "grid_size": 256, "radius_m": 600 } },
+
+    { "step": "build-lidar-rasters",   "params": { "cell_size_m": 0.5 } },
+    { "step": "compute-ndsm",          "params": { "local_min_window": 3 } },
+    { "step": "compute-building-mask" },
+
+    { "step": "build-ortho-rgb-rasters", "params": { "cell_size_m": 0.5 } },
+    { "step": "build-ortho-irc-rasters", "params": { "cell_size_m": 0.5 } },
+
+    { "step": "coregister-ortho-lidar",    "params": { "cell_size_m": 0.5, "search_range_m": 5 } },
+    { "step": "rasterize-cadastre-edges",  "params": { "cell_size_m": 0.5, "thickness": 2 } },
+    { "step": "fit-cadastre-to-lidar",     "params": { "cell_size_m": 0.5, "search_range_m": 15 } },
+
+    { "step": "compute-normals",             "params": { "k": 16 } },
+    { "step": "build-tile-ndvi",             "params": { "cell_size_m": 1.0 } },
+    { "step": "compute-normal-scatter",      "params": { "cell_size_m": 1.0 } },
+    { "step": "compute-near-building-mask",  "params": { "cell_size_m": 1.0, "dilate_r": 3 } },
+    { "step": "classify-vegetation",         "params": { "cell_size_m": 1.0 } },
+
+    { "step": "build-lidar-ground",   "params": { "cell_size_m": 1.0 } },
+    { "step": "build-parcel-lines",
+      "params": { "ground_cell_size_m": 1.0, "subdivide_m": 2, "height_offset_m": 1.5,
+                  "clip_to_disc_radius": true } },
+
+    { "step": "detect-photo-shadows",  "params": { "radius_cells": 12, "threshold": 0.65 } },
+    { "step": "find-best-sun-time",    "params": { "year": 2024, "cell_size_m": 0.5, "epsilon_m": 0.1 } },
+    { "step": "deshadow-ortho-rgb",    "params": { "ndvi_threshold": 0.25, "min_samples": 200,
+                                                    "max_factor": 8.0 } }
+  ]
+}

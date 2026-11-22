@@ -1,0 +1,15 @@
+{
+  "id":          "spike-penalty-90deg-zero",
+  "category":    "unit-spike",
+  "description": "Right-angle square (all interior angles 90deg > threshold 30deg) → zero spike penalty.",
+  "inputs": {
+    "vertices_uv": [
+      [0.0,  0.0],
+      [10.0, 0.0],
+      [10.0, 10.0],
+      [0.0,  10.0]
+    ],
+    "spike_threshold_deg": 30.0
+  },
+  "expected": { "min": 0.0, "max": 0.0 }
+}
