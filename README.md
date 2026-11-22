@@ -1,5 +1,12 @@
 # Dioramap Lab: aerial LiDAR to 3D buildings and scenes
 
+<p align="center">
+  <a href="docs/assets/scene-3d.mp4"><img src="docs/assets/scene-3d.jpg" width="720"
+     alt="3D scene streamed from IGN LiDAR HD: houses, trees, terrain, cadastre outlines, sun controls"></a><br>
+  <sub>A scene built from IGN LiDAR HD + BD ORTHO + cadastre, rendered by the embeddable viewer
+  (<a href="docs/assets/scene-3d.mp4">video</a>).</sub>
+</p>
+
 **Dioramap Lab** is a C engine and browser lab for turning **open aerial LiDAR point
 clouds** into **3D building models (LoD2 roof reconstruction)** and **3D scenes of real
 places** you can embed in any web page. Give it a French address: it downloads the
@@ -77,6 +84,20 @@ complete 3D scene. The chain, in order:
    matching them against shadows cast from the LiDAR surface model, then **deshadow**
    the orthophoto, so the scene can be lit for any date and time.
 
+<p align="center">
+  <img src="docs/assets/demo-chambord.jpg" width="190" alt="Château de Chambord">
+  <img src="docs/assets/demo-pont-du-gard.jpg" width="190" alt="Pont du Gard">
+  <img src="docs/assets/demo-mont-saint-odile.jpg" width="190" alt="Mont Sainte-Odile">
+  <img src="docs/assets/demo-puy-de-come.jpg" width="190" alt="Puy de Côme"><br>
+  <sub>Any place covered by LiDAR HD works: Chambord, Pont du Gard, Mont Sainte-Odile, Puy de Côme.</sub>
+</p>
+
+Pick the place with `apps/location-picker`, an address search and disc picker on IGN
+basemaps:
+
+<p align="center"><img src="docs/assets/location-picker.png" width="420"
+   alt="Location picker: a disc selected on an IGN orthophoto"></p>
+
 Each stage also exists as a smaller pipeline (`viewer-coreg.json`,
 `viewer-shadows.json`, `viewer-deshadow.json`, …) so you can run and inspect it alone in
 the lab UI.
@@ -117,19 +138,36 @@ preview a project in its real surroundings. Three sample GLB models ship in
 
 ## Building reconstruction: roof planes to LoD2
 
-`pipelines/smoke/v7.json` reconstructs the roofs of one building from its LiDAR points.
-It runs on the bundled test cases. The chain, in order:
+<p align="center"><img src="docs/assets/roof-graph.png" width="720"
+   alt="Roof graph in the lab UI: LiDAR points, roof planes, ridges, corners and outline polygons"></p>
+<p align="center"><sub>A reconstructed roof graph in the lab UI: points coloured by plane,
+ridges (pink), shared corners (yellow), outlines (green), cadastre footprint (blue).</sub></p>
 
-| Stage | Steps | What happens |
+`pipelines/smoke/v7.json` reconstructs the roofs of one building from its LiDAR points.
+It runs on the bundled test cases; pick one with the `spec` parameter of the first step.
+The steps, in execution order:
+
+| # | Step | What it does |
 |---|---|---|
-| **Prepare** | `extract-buildings`, `build-building-kd-trees`, `v7-derive-thresholds` | split points per building, index them, derive density-scaled thresholds |
-| **Point features** | `v7-tile-signals` | per-point PCA features (planarity, curvature, normals) with Voronoi-area weights that compensate uneven density |
-| **Beam geometry** | `v7-beam-incidence` | recover each laser beam's direction from scan angle and flight strip; a beam that hits the ground is evidence there is *no roof* along it |
-| **Planes** | `v7-hemisphere-segment`, `v7-normal-cascade-seed`, `v7-density-voids-2`, `v7-grow-refit-merge` | cluster normals on the hemisphere, seed planes, add "ghost" planes where LiDAR dropout leaves holes, then grow, refit per flight strip and merge coplanar regions |
-| **Topology** | `v7-boundary-topology`, `v7-boundary-signals`, `v7-boundary-corners` | build the roof graph: planes, ridges, hips and valleys, then a unified pool of corners |
-| **Outlines** | `v7-boundary-polygons-2`, `v7-boundary-regularize` | trace each plane's outline polygon, then optimize corner positions with degree-of-freedom constraints, sharing corners only between planes of the same type |
-| **Walls and edges** | `v7-boundary-classify`, `v7-wall-detect` | classify every edge (eave, shared, overhang, wall, step) and detect wall planes |
-| **Quality** | `v7-score-intrinsic`, `v7-score-intrinsic-postwall` | score the model without ground truth: completeness and residual error |
+| 1 | `v7-load-real-test-case` | Load a bundled LiDAR extract: positions, classes, scan angles, flight-strip ids and return numbers |
+| 2 | `extract-buildings` | Collect the points within a buffer around each cadastre footprint, one record per building |
+| 3 | `build-building-kd-trees` | Build one k-d tree per building, shared by every later neighbourhood query |
+| 4 | `v7-derive-thresholds` | Derive per-building thresholds from point density, so gates adapt to sparse or dense scans |
+| 5 | `v7-tile-signals` | Per-point PCA features: normals, planarity, multi-scale curvature, plus Voronoi-area weights that compensate uneven density |
+| 6 | `v7-beam-incidence` | Recover each laser beam's direction per flight strip from scan angles; beams that pass through mark "no roof here" |
+| 7 | `v7-hemisphere-segment` | Cluster normals on an equal-area hemisphere, then split each orientation group into coplanar segments |
+| 8 | `v7-normal-cascade-seed` | Turn the segments into seed planes, skipping ridge and valley transitions by curvature |
+| 9 | `v7-density-voids-2` | Find point-density holes (LiDAR dropout, glass, dark roofing) and propose "ghost" plane seeds there |
+| 10 | `v7-grow-refit-merge` | Iterate: grow planes, refit them per flight strip, merge coplanar neighbours, until stable |
+| 11 | `v7-boundary-topology` | Build the roof graph skeleton: planes, ridges (hips, valleys, eaves) and ridge lines |
+| 12 | `v7-boundary-signals` | Add per-plane boundary evidence: ray-cast projections and open-angle, centre-of-mass and balance grids |
+| 13 | `v7-boundary-corners` | Build one pool of corners from ridge intersections, ridge ends and concave/convex anchors, shared only between planes of the same type |
+| 14 | `v7-boundary-polygons-2` | Trace each plane's outline polygon by choosing the corner subset and order that minimizes a coverage and shape cost |
+| 15 | `v7-boundary-regularize` | Move corners to their best positions under degree-of-freedom constraints, welding and sharing corners where planes meet |
+| 16 | `v7-boundary-classify` | Label every outline edge: eave, shared, overhang, wall, level step |
+| 17 | `v7-wall-detect` | Detect wall planes below the eaves and add them, with their corners and outlines, to the roof graph |
+| 18 | `v7-score-intrinsic` | Score the roof model without ground truth: completeness and point-to-plane residuals |
+| 19 | `v7-score-intrinsic-postwall` | The same score over the full model with walls, showing what wall detection added |
 
 The output is a **roof graph** (planes, ridges, corners, outline polygons) that the lab
 UI draws in 2D and 3D. The design rationale for every stage is in the research journal
