@@ -1,5 +1,9 @@
 # Dioramap Lab: aerial LiDAR to 3D buildings and scenes
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24443302.svg)](https://doi.org/10.5281/zenodo.24443302)
+[![CI](https://github.com/FL-AntoineDurand/dioramap-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/FL-AntoineDurand/dioramap-lab/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 <p align="center">
   <a href="docs/assets/scene-3d.mp4"><img src="docs/assets/scene-3d.jpg" width="720"
      alt="3D scene streamed from IGN LiDAR HD: houses, trees, terrain, cadastre outlines, sun controls"></a><br>
@@ -254,7 +258,10 @@ Data: IGN LiDAR HD, BD ORTHO, BD TOPO and cadastre extracts, © IGN, under
 
 ## Citation
 
-If you use Dioramap Lab in research, please cite it via [CITATION.cff](CITATION.cff).
+If you use Dioramap Lab in research, please cite it via [CITATION.cff](CITATION.cff)
+(GitHub's "Cite this repository" button) or its DOI:
+[10.5281/zenodo.24443302](https://doi.org/10.5281/zenodo.24443302). That DOI always
+resolves to the latest version; each release also has its own.
 
 ---
 
