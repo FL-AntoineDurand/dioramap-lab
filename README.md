@@ -68,6 +68,26 @@ wires them into a DAG by artifact name.
 
 See [docs/UNIFIED-ARCHITECTURE.md](docs/UNIFIED-ARCHITECTURE.md) for the full design.
 
+### The lab
+
+The lab UI (`apps/lab-ui`) is the workbench used to develop every algorithm in this
+repo. It connects to `dioramap-processor serve` and lets you:
+- pick a pipeline, override parameters and run it;
+- follow each step in the timeline, where cache hits show as `CACHED`;
+- open any intermediate artifact as a 2D chart, a JSON inspector or a 3D layer.
+
+<p align="center"><a href="docs/assets/lab-workbench.png"><img src="docs/assets/lab-workbench.png" width="720"
+   alt="Lab UI running the v7 roof chain: run panel, step timeline, artifact list, 2D renders and 3D point cloud coloured by plane"></a></p>
+<p align="center"><sub>The v7 roof chain on a real building. Left to right: run panel and
+step timeline; the artifacts produced; 2D renders (normal-orientation grid, plane-offset
+densities, seed-plane statistics); the 3D view, with points coloured by grown plane and
+per-step layers.</sub></p>
+
+<p align="center"><a href="docs/assets/lab-dag.png"><img src="docs/assets/lab-dag.png" width="720"
+   alt="Lab UI DAG view of the v7 pipeline: step nodes with their input and output artifacts, wired left to right"></a></p>
+<p align="center"><sub>The same pipeline as a DAG: each node is a step with its input and
+output artifacts. Nodes are coloured as idle, loading, fresh or cached during a run.</sub></p>
+
 ## 3D scenes of real places
 
 `pipelines/smoke/viewer-full.json` turns a latitude/longitude and a radius into a
