@@ -5,8 +5,11 @@
 // Writes: copc-tile-urls — ARRAY_INLINE. Each element is a variable-length
 //         JSON object: {"url":"...","name":"..."}.
 //
-// Calls the IGN WFS "IGNF_NUAGES-DE-POINTS-LIDAR-HD:dalle" layer to
-// enumerate tiles overlapping the bbox. Result count is typically 1–4.
+// Calls the IGN WFS "IGNF_LIDAR-HD_METADONNEE:metadata" layer to enumerate
+// tiles overlapping the bbox (COPC link in property "url_npl"). Result count
+// is typically 1–4. The former "IGNF_NUAGES-DE-POINTS-LIDAR-HD:dalle" layer
+// (props "url"/"name") was withdrawn by IGN in Nov 2026; its property names
+// are still accepted as a fallback.
 // Uses sub-scope `fetch_and_cache` for the WFS GET so the same WFS URL
 // hits the URL-keyed intent map across pipelines.
 
@@ -57,7 +60,7 @@ static int exec_fn(step_context_t* ctx) {
     char url[1024];
     int n = snprintf(url, sizeof(url),
                      "https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0"
-                     "&REQUEST=GetFeature&TYPENAMES=IGNF_NUAGES-DE-POINTS-LIDAR-HD:dalle"
+                     "&REQUEST=GetFeature&TYPENAMES=IGNF_LIDAR-HD_METADONNEE:metadata"
                      "&COUNT=9&BBOX=%.3f,%.3f,%.3f,%.3f,EPSG:2154"
                      "&SRSNAME=EPSG:2154&OUTPUTFORMAT=application/json",
                      bbox[0], bbox[1], bbox[2], bbox[3]);
@@ -106,12 +109,19 @@ static int exec_fn(step_context_t* ctx) {
         json_t* props = json_object_get(f, "properties");
         if (!props)
             continue;
-        const char* tile_url = json_string_value(json_object_get(props, "url"));
+        const char* tile_url = json_string_value(json_object_get(props, "url_npl"));
+        if (!tile_url)
+            tile_url = json_string_value(json_object_get(props, "url"));
+        if (!tile_url)
+            continue;
         const char* name = json_string_value(json_object_get(props, "name"));
         if (!name)
             name = json_string_value(json_object_get(props, "nom_pkk"));
-        if (!tile_url)
-            continue;
+        if (!name) {
+            // metadata layer has no name property: use the URL's file name.
+            const char* slash = strrchr(tile_url, '/');
+            name = slash ? slash + 1 : tile_url;
+        }
         char buf[1024];
         int m = snprintf(buf, sizeof(buf), "{\"url\":\"%s\",\"name\":\"%s\"}",
                          tile_url, name ? name : "");
