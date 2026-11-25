@@ -1,0 +1,5 @@
+.venv
+index.db
+.embed_cache.db
+*.db-journal
+__pycache__/

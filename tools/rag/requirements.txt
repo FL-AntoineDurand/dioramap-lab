@@ -1,0 +1,5 @@
+# Journal/Docs RAG — CPU-only, local. See BUILD-PLAN.md.
+fastembed>=0.4,<1.0      # ONNX embeddings on CPU (bge-large-en-v1.5)
+sqlite-vec>=0.1.6        # vector store as a loadable SQLite extension
+numpy>=1.26              # vector packing / cosine fallbacks
+PyYAML>=6.0              # frontmatter parsing
