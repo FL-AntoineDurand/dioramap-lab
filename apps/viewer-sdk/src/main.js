@@ -24,8 +24,12 @@ const lat = parseFloat(params.get('lat') ?? String(DEFAULT_LAT));
 const lon = parseFloat(params.get('lon') ?? String(DEFAULT_LON));
 const radius = Number(params.get('radius') ?? 75);
 const backendUrl = params.get('backend') ?? DEFAULT_BACKEND;
-// Optional shared token: ?token=… or VITE_DIORAMAP_TOKEN (processor --token).
+// Optional credential: ?token=… or VITE_DIORAMAP_TOKEN (processor --token).
+// With a processor extension that reads another query parameter, set
+// VITE_DIORAMAP_AUTH_PARAM (e.g. "key"); docs/EXTENSIONS.md.
 const token = params.get('token') ?? import.meta.env.VITE_DIORAMAP_TOKEN ?? '';
+const authParam = import.meta.env.VITE_DIORAMAP_AUTH_PARAM || 'token';
+const auth = token ? { param: authParam, value: token } : undefined;
 
 // Forward-declared so the model callbacks can poke the dev panel before
 // it is wired (onModelMoved fires from the SDK, not from our button code).
@@ -34,7 +38,7 @@ let _refreshList = () => {};
 init({
   container: '#app',
   backendUrl,
-  token,
+  auth,
   lat,
   lon,
   radius,
