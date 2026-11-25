@@ -308,22 +308,23 @@ static int v7_normal_cascade_seed_exec(step_context_t* ctx) {
             rc = -1; break;
         }
 
-        // Emit per-bldg seed-planes (sub-blob of records).
+        // Emit per-bldg seed-planes (sub-blob of records). On failure the
+        // per-building buffers are freed once, below, before leaving the
+        // outer loop (the inner `break` alone used to fall through into a
+        // second round of frees).
         blob_t per_bldg_seed_blob = {0};
         for (size_t i = 0; i < out.n_planes; i++) {
             if (pack_seed_plane(&out.planes[i], &per_bldg_seed_blob) != 0) {
-                blob_free(&per_bldg_seed_blob);
-                free(in_segs);
-                free_seg_owners(segs, n_segs);
-                v7_seed_outputs_free(&out);
-                rc = -1; break;
+                rc = -1;
+                break;
             }
         }
-        blob_push(&b_seed_planes, per_bldg_seed_blob.bytes, per_bldg_seed_blob.len);
+        if (rc == 0) {
+            blob_push(&b_seed_planes, per_bldg_seed_blob.bytes, per_bldg_seed_blob.len);
+            // Emit per-bldg owner Int16 (LOCAL plane ids).
+            blob_push(&b_owner, out.owner, (size_t)n_pts * sizeof(int16_t));
+        }
         blob_free(&per_bldg_seed_blob);
-
-        // Emit per-bldg owner Int16 (LOCAL plane ids).
-        blob_push(&b_owner, out.owner, (size_t)n_pts * sizeof(int16_t));
 
         free(in_segs);
         free_seg_owners(segs, n_segs);

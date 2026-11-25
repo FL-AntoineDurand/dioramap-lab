@@ -73,7 +73,7 @@ static intent_map_t* open_test_im(const char* root) {
 // Encode a solid-colour RGB JPEG in memory.
 static void encode_solid_jpeg(uint8_t R, uint8_t G, uint8_t B, int w, int h, uint8_t** out_bytes,
                               size_t* out_len) {
-    uint8_t* rgb = malloc(w * h * 3);
+    uint8_t* rgb = malloc((size_t)w * (size_t)h * 3);
     for (int i = 0; i < w * h; i++) {
         rgb[i * 3 + 0] = R;
         rgb[i * 3 + 1] = G;

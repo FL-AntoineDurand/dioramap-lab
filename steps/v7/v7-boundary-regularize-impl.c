@@ -4072,9 +4072,12 @@ inner_oom:
             if (!cs[_ci].alive) continue;
             uint32_t _np = planes_of(_ci, corners_in, polys, n_polygon_paths, _dpids, PLANES_OF_SCRATCH);
             char _pbuf[256]; int _pl = 0;
-            for (uint32_t _k = 0; _k < _np; _k++) _pl += snprintf(_pbuf+_pl, sizeof(_pbuf)-(size_t)_pl, "%s%u", _k?",":"", _dpids[_k]);
+            _pbuf[0] = '\0';
+            for (uint32_t _k = 0; _k < _np && _pl < (int)sizeof(_pbuf) - 1; _k++)
+                _pl += snprintf(_pbuf+_pl, sizeof(_pbuf)-(size_t)_pl, "%s%u", _k?",":"", _dpids[_k]);
             char _rbuf[512]; int _rl = 0;
-            for (uint32_t _k = 0; _k < cs[_ci].n_ridge_ids; _k++) {
+            _rbuf[0] = '\0';
+            for (uint32_t _k = 0; _k < cs[_ci].n_ridge_ids && _rl < (int)sizeof(_rbuf) - 1; _k++) {
                 uint32_t _R = cs[_ci].ridge_ids[_k];
                 double _t = 0, _pp = -1;
                 if (_R < n_ridges) ridge_proj(cs[_ci].point, rg[_R].rp, rg[_R].rd, &_t, &_pp);

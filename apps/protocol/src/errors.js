@@ -99,9 +99,14 @@ export function errorFromRunFailed(msg, ctx = {}) {
 export function errorFromServerError(msg, ctx = {}) {
   let code = msg.code;
   let text = msg.msg ?? msg.message ?? '';
-  // "[CODE] message" — step failures from processors ≥ 0.3.0.
-  const m = /^\[([A-Z_]+)\]\s*(.*)$/.exec(text);
-  if (!code && m) { code = m[1]; text = m[2]; }
+  // "[CODE] message" — step failures from processors ≥ 0.3.0. Parsed by
+  // hand: a regex with `\s*(.*)` backtracks polynomially on long runs of
+  // spaces (CodeQL js/polynomial-redos).
+  if (!code && text.startsWith('[')) {
+    const end = text.indexOf(']');
+    const tag = end > 1 ? text.slice(1, end) : '';
+    if (/^[A-Z_]+$/.test(tag)) { code = tag; text = text.slice(end + 1).trimStart(); }
+  }
   if (!code && text === 'cancelled') code = 'CANCELLED';
   if (!code) code = msg.step ? 'STEP_FAILED' : 'SERVER_ERROR';
   if (!text && msg.artifact) text = `artifact ${msg.artifact}`;
