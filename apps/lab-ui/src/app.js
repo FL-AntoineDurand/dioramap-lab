@@ -47,10 +47,14 @@ import {
 // browser only ever sees the Vite origin's port (5181 by default) and
 // VS Code's port-forwarder doesn't have to handle a separate WS port.
 //
-// Optional shared token for a processor started with --token
-// (VITE_DIORAMAP_TOKEN in a local .env file).
+// Optional credential, from a local .env file: VITE_DIORAMAP_TOKEN for a
+// processor started with --token, or for a processor extension that reads
+// another query parameter, VITE_DIORAMAP_AUTH_PARAM (e.g. "key") with the
+// value in VITE_DIORAMAP_TOKEN (docs/EXTENSIONS.md).
 const _TOKEN = import.meta.env.VITE_DIORAMAP_TOKEN ?? '';
-const WS_URL = `ws://${location.host}/ws${_TOKEN ? `?token=${encodeURIComponent(_TOKEN)}` : ''}`;
+const _AUTH_PARAM = import.meta.env.VITE_DIORAMAP_AUTH_PARAM || 'token';
+const WS_URL = `ws://${location.host}/ws${_TOKEN
+  ? `?${encodeURIComponent(_AUTH_PARAM)}=${encodeURIComponent(_TOKEN)}` : ''}`;
 
 const dom = {
   connStatus: document.getElementById('conn-status'),

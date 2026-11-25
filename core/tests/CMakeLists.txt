@@ -644,6 +644,22 @@ if(Python3_FOUND)
         ENVIRONMENT
         "DIORAMAP_BIN=$<TARGET_FILE:dioramap_processor>;V3_PIPELINES_DIR=${CMAKE_SOURCE_DIR}/../pipelines"
     )
+
+    # Processor extension seam (v3/extension.h): the same serve binary linked
+    # against a fake extension — auth outcomes, public-only access, run
+    # reports for successful and failed runs, init refusal, shutdown.
+    add_executable(dioramap_processor_fakeext ${CMAKE_SOURCE_DIR}/src/main.c fake_extension.c)
+    target_include_directories(dioramap_processor_fakeext PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(dioramap_processor_fakeext PRIVATE ${DIORAMAP_PROCESSOR_LIBS} jansson)
+    target_compile_definitions(dioramap_processor_fakeext PRIVATE ${DIORAMAP_PROCESSOR_DEFS})
+    add_test(
+        NAME serve_extension
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/serve_extension.py
+    )
+    set_tests_properties(serve_extension PROPERTIES
+        ENVIRONMENT
+        "DIORAMAP_BIN=$<TARGET_FILE:dioramap_processor_fakeext>;V3_PIPELINES_DIR=${CMAKE_SOURCE_DIR}/../pipelines"
+    )
 endif()
 
 # -----------------------------------------------------------------------------

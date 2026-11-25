@@ -79,6 +79,12 @@ typedef struct server_config {
     // closed, and nothing they send is dispatched.
     const char* token;
 
+    // Optional processor extension (v3/extension.h) and the state its init()
+    // returned. NULL → lab behaviour. Auth: the token check (if any) runs
+    // first, then extension->authenticate.
+    const struct v3_extension* extension;
+    void* extension_state;
+
 
     // Grace period (seconds) for disconnected sessions. A session whose WS
     // connection closes keeps its pinned artifacts in the store for this

@@ -46,6 +46,7 @@
 #include <jansson.h>
 #include <libwebsockets.h>
 
+#include "v3/extension.h"
 #include "v3/hash.h"
 
 struct server;
@@ -220,6 +221,15 @@ bool session_is_expired(session_t* s, uint64_t now_us, uint64_t grace_us);
 // from a session that is not authed are never dispatched.
 void session_set_authed(session_t* s, bool v);
 bool session_is_authed(session_t* s);
+
+// Identity granted by the processor extension (v3/extension.h). Set once at
+// ESTABLISHED, before session_set_authed. Defaults: "", "", V3_ACCESS_FULL.
+// The returned strings live as long as the session.
+void        session_set_identity(session_t* s, const char* principal, const char* account,
+                                 v3_access_t access);
+const char* session_principal(session_t* s);
+const char* session_account(session_t* s);
+v3_access_t session_access(session_t* s);
 
 void session_set_close_after_flush(session_t* s, bool v);
 bool session_close_after_flush(session_t* s);
