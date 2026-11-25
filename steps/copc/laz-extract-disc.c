@@ -62,7 +62,7 @@ static int exec_fn(step_context_t* ctx) {
     // --- loop over the by-hash array; each element is a full LAZ tile ---
     size_t n_tiles = step_array_len(ctx, "copc-raw-tiles");
     if (n_tiles == 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_NO_DATA, "no IGN LiDAR HD tile covers this place");
 
     store_t* store = step_runner_store(ctx);
     laz_pointbuf_t pb;
@@ -79,14 +79,17 @@ static int exec_fn(step_context_t* ctx) {
     for (size_t i = 0; i < n_tiles; i++) {
         store_handle_t h;
         if (step_array_open(ctx, "copc-raw-tiles", i, &h) != 0) {
-            rc = -1;
+            rc = step_fail(ctx, V3_ERR_INTERNAL, "cannot open copc-raw-tiles[%zu] from the store", i);
             break;
         }
         int one = laz_extract_disc_from_tile(h.bytes, h.len, bbox, disc_cx, disc_cy,
                                              radius, /*max_depth=*/8, &pb);
+        size_t tile_len = h.len;
         store_release(store, &h);
         if (one != 0) {
-            rc = -1;
+            rc = step_fail(ctx, V3_ERR_UPSTREAM_FORMAT,
+                           "cannot decode LiDAR tile %zu of %zu (%zu bytes) as COPC/LAZ "
+                           "(corrupt or truncated download?)", i + 1, n_tiles, tile_len);
             break;
         }
         // Emit any whole CHUNK_POINTS-sized chunks accumulated so far.

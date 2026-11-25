@@ -3,12 +3,18 @@
 
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 // Two entry points:
 //   - `npm run dev`   → dev server on 5183 for the standalone index.html harness.
 //   - `npm run build` → library bundle (ES + UMD) + one CSS file in `dist/`.
 export default defineConfig(({ command }) => {
   return ({
+  // SDK version in error reports (docs/ERRORS.md: client_version).
+  define: {
+    __DIORAMAP_SDK_VERSION__: JSON.stringify(
+      JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')).version),
+  },
   server: {
     port: 5183,
     host: '127.0.0.1',

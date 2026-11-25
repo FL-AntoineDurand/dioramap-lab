@@ -19,6 +19,7 @@
 #include "v3/fetch.h"
 
 #include "v3/cached_compute.h"
+#include "v3/error.h"
 
 #include <errno.h>
 #include <pthread.h>
@@ -31,8 +32,10 @@
 #include <time.h>
 
 #include <curl/curl.h>
+#include <jansson.h>
 
 #include "v3/log.h"
+#include "v3/log_events.h"
 
 // ----------------------------------------------------------------------------
 // Per-host concurrency limiter
@@ -332,6 +335,8 @@ static fetch_error_code_t classify(CURLcode rc, long http_status) {
     case CURLE_COULDNT_RESOLVE_HOST:
     case CURLE_COULDNT_RESOLVE_PROXY:
         return FETCH_DNS_FAIL;
+    case CURLE_COULDNT_CONNECT:
+        return FETCH_CONNECT_FAIL;
     case CURLE_SSL_CONNECT_ERROR:
     case CURLE_PEER_FAILED_VERIFICATION:
         return FETCH_TLS_FAIL;
@@ -340,6 +345,189 @@ static fetch_error_code_t classify(CURLcode rc, long http_status) {
     default:
         return FETCH_UNKNOWN;
     }
+}
+
+// ----------------------------------------------------------------------------
+// Failure evidence (docs/ERRORS.md). Every failed fetch_get logs a
+// fetch_failed event and records upstream evidence into the caller's error
+// sink, so the runner can report "HTTP 400 from data.geopf.fr: Unknown
+// namespace …" instead of a bare "step failed".
+// ----------------------------------------------------------------------------
+
+static const char* fetch_error_name(fetch_error_code_t e) {
+    switch (e) {
+    case FETCH_OK: return "ok";
+    case FETCH_TIMEOUT: return "timeout";
+    case FETCH_DNS_FAIL: return "dns_fail";
+    case FETCH_TLS_FAIL: return "tls_fail";
+    case FETCH_4XX: return "http_4xx";
+    case FETCH_5XX: return "http_5xx";
+    case FETCH_429_RATE_LIMIT: return "http_429_rate_limit";
+    case FETCH_ABORTED: return "aborted";
+    case FETCH_TRUNCATED: return "truncated_body";
+    case FETCH_CONNECT_FAIL: return "connect_failed";
+    case FETCH_UNKNOWN:
+    default: return "unknown";
+    }
+}
+
+#define BODY_EXCERPT_MAX 800
+
+// Printable excerpt of a response body: control bytes and non-UTF-8-looking
+// bytes become '.', whitespace runs collapse to one space.
+static void body_excerpt(const uint8_t* body, size_t len, char* out, size_t out_sz) {
+    size_t o = 0;
+    bool last_space = false;
+    for (size_t i = 0; i < len && o + 1 < out_sz; i++) {
+        uint8_t ch = body[i];
+        if (ch == '\n' || ch == '\r' || ch == '\t' || ch == ' ') {
+            if (!last_space && o > 0) {
+                out[o++] = ' ';
+            }
+            last_space = true;
+            continue;
+        }
+        last_space = false;
+        out[o++] = (ch >= 0x20 && ch < 0x7f) || ch >= 0x80 ? (char)ch : '.';
+    }
+    // Do not end on a truncated UTF-8 sequence.
+    while (o > 0 && ((uint8_t)out[o - 1] & 0xC0) == 0x80) {
+        o--;
+    }
+    if (o > 0 && ((uint8_t)out[o - 1] & 0xC0) == 0xC0) {
+        o--;
+    }
+    out[o] = '\0';
+}
+
+// OGC services (WFS/WMS/WMTS) answer errors with an XML exception report:
+//   <ows:ExceptionReport><ows:Exception><ows:ExceptionText>…</…>  (WFS 2.0)
+//   <ServiceExceptionReport><ServiceException code="…">…</…>       (WMS 1.3)
+// Pull out the first non-empty human text so the one-line message carries it.
+void fetch_ogc_exception_text(const char* body, size_t len, char* out, size_t out_sz) {
+    if (!out || out_sz == 0) {
+        return;
+    }
+    out[0] = '\0';
+    if (!body) {
+        return;
+    }
+    static const char* const k_tags[] = {"ExceptionText", "ServiceException"};
+    for (size_t t = 0; t < sizeof(k_tags) / sizeof(k_tags[0]); t++) {
+        size_t tl = strlen(k_tags[t]);
+        const char* end = body + len;
+        const char* p = body;
+        while (p < end) {
+            const char* hit = NULL;
+            for (const char* q = p; q + tl < end; q++) {
+                if (memcmp(q, k_tags[t], tl) == 0 && q > body && (q[-1] == '<' || q[-1] == ':')) {
+                    hit = q;
+                    break;
+                }
+            }
+            if (!hit) {
+                break;
+            }
+            p = hit + tl;
+            if (p < end && *p != '>' && *p != ' ') {
+                continue; // e.g. ServiceExceptionReport
+            }
+            const char* gt = memchr(p, '>', (size_t)(end - p));
+            if (!gt) {
+                break;
+            }
+            const char* txt = gt + 1;
+            const char* lt = memchr(txt, '<', (size_t)(end - txt));
+            size_t n = lt ? (size_t)(lt - txt) : (size_t)(end - txt);
+            while (n > 0 && (*txt == ' ' || *txt == '\n' || *txt == '\r' || *txt == '\t')) {
+                txt++;
+                n--;
+            }
+            while (n > 0 && (txt[n - 1] == ' ' || txt[n - 1] == '\n' || txt[n - 1] == '\r' ||
+                             txt[n - 1] == '\t')) {
+                n--;
+            }
+            if (n == 0) {
+                p = txt;
+                continue;
+            }
+            if (n >= out_sz) {
+                n = out_sz - 1;
+            }
+            memcpy(out, txt, n);
+            out[n] = '\0';
+            return;
+        }
+    }
+}
+
+static void record_fetch_failure(const char* url, const char* host, long status,
+                                 fetch_error_code_t err, CURLcode curl_rc, int attempts,
+                                 double duration, const uint8_t* body, size_t body_len) {
+    char excerpt[BODY_EXCERPT_MAX + 1] = {0};
+    if (body && body_len > 0) {
+        body_excerpt(body, body_len, excerpt, sizeof(excerpt));
+    }
+    char ogc[256];
+    fetch_ogc_exception_text((const char*)body, body ? body_len : 0, ogc, sizeof(ogc));
+    const char* curl_msg = curl_rc != CURLE_OK ? curl_easy_strerror(curl_rc) : NULL;
+
+    LOG_EVENT(SUB_FETCH, LOG_ERROR, EV_FETCH_FAILED,
+              LF_STR("url", url),
+              LF_UINT("status", (uint64_t)status),
+              LF_STR("error", fetch_error_name(err)),
+              LF_STR("curl_error", curl_msg ? curl_msg : ""),
+              LF_INT("attempts", attempts),
+              LF_STR("body_excerpt", excerpt));
+
+    if (!v3_error_current()) {
+        return;
+    }
+
+    v3_error_code_t code;
+    switch (err) {
+    case FETCH_TIMEOUT: code = V3_ERR_TIMEOUT; break;
+    case FETCH_DNS_FAIL:
+    case FETCH_CONNECT_FAIL:
+    case FETCH_TLS_FAIL:
+    case FETCH_ABORTED: code = V3_ERR_UPSTREAM_UNREACHABLE; break;
+    case FETCH_UNKNOWN: code = status ? V3_ERR_UPSTREAM_HTTP : V3_ERR_UPSTREAM_UNREACHABLE; break;
+    default: code = V3_ERR_UPSTREAM_HTTP; break;
+    }
+
+    json_t* d = json_object();
+    char* detail = NULL;
+    if (d) {
+        json_object_set_new(d, "url", json_string(url));
+        if (host) json_object_set_new(d, "host", json_string(host));
+        json_object_set_new(d, "http_status", json_integer((json_int_t)status));
+        json_object_set_new(d, "fetch_error", json_string(fetch_error_name(err)));
+        if (curl_msg) json_object_set_new(d, "curl_error", json_string(curl_msg));
+        json_object_set_new(d, "attempts", json_integer(attempts));
+        json_object_set_new(d, "duration_s", json_real(duration));
+        if (excerpt[0]) {
+            json_t* jb = json_string(excerpt);
+            // json_string rejects invalid UTF-8; fall back to a note.
+            json_object_set_new(d, "body_excerpt",
+                                jb ? jb : json_string("(binary or non-UTF-8 body)"));
+            json_object_set_new(d, "body_bytes", json_integer((json_int_t)body_len));
+        }
+        detail = json_dumps(d, JSON_COMPACT | JSON_REAL_PRECISION(12));
+        json_decref(d);
+    }
+
+    const char* h = host ? host : "upstream";
+    if (status > 0 && ogc[0]) {
+        v3_error_set_upstream(code, detail, "HTTP %ld from %s: %s", status, h, ogc);
+    } else if (status > 0 && err != FETCH_TRUNCATED) {
+        v3_error_set_upstream(code, detail, "HTTP %ld from %s", status, h);
+    } else if (err == FETCH_TRUNCATED) {
+        v3_error_set_upstream(code, detail, "truncated response from %s", h);
+    } else {
+        v3_error_set_upstream(code, detail, "%s unreachable: %s", h,
+                              curl_msg ? curl_msg : fetch_error_name(err));
+    }
+    free(detail);
 }
 
 // ----------------------------------------------------------------------------
@@ -424,7 +612,9 @@ int fetch_get(fetch_client_t* c, const char* url, fetch_response_t* out) {
     double duration = 0;
     fetch_error_code_t final_code = FETCH_UNKNOWN;
 
+    int attempts_made = 0;
     for (int attempt = 0; attempt < max_attempts; attempt++) {
+        attempts_made = attempt + 1;
         // Reset per-attempt state.
         free(wc.buf);
         memset(&wc, 0, sizeof(wc));
@@ -448,6 +638,7 @@ int fetch_get(fetch_client_t* c, const char* url, fetch_response_t* out) {
             break;
         }
         if (code == FETCH_5XX || code == FETCH_TIMEOUT || code == FETCH_DNS_FAIL ||
+            code == FETCH_CONNECT_FAIL ||
             code == FETCH_429_RATE_LIMIT || code == FETCH_TRUNCATED) {
             retry = (attempt + 1 < max_attempts);
         }
@@ -465,7 +656,6 @@ int fetch_get(fetch_client_t* c, const char* url, fetch_response_t* out) {
     }
 
     host_limit_release(c, host, status, hc.retry_after[0] ? hc.retry_after : NULL);
-    free(host);
 
     out->status_code = (uint32_t)status;
     out->duration_sec = duration;
@@ -474,8 +664,12 @@ int fetch_get(fetch_client_t* c, const char* url, fetch_response_t* out) {
     out->error = final_code;
     if (out->error != FETCH_OK) {
         atomic_fetch_add(&c->stats_errors, 1);
+        record_fetch_failure(url, host, status, final_code, rc, attempts_made, duration,
+                             wc.buf, wc.len);
+        free(host);
         return -1;
     }
+    free(host);
     return 0;
 }
 
@@ -522,6 +716,16 @@ int fetch_and_cache(fetch_client_t* c, store_t* store, intent_map_t* im, const c
         const char* url;
     } ctx = {c, url};
     return cached_compute(im, store, &url_identity, http_fetch_compute_fn, &ctx, out_hash);
+}
+
+int fetch_cache_forget(intent_map_t* im, const char* url) {
+    if (!im || !url)
+        return -1;
+    hash_t url_identity = hash_namespaced("url", url, strlen(url));
+    hash_t existing;
+    if (intent_map_get(im, &url_identity, &existing) != 0)
+        return 0; // not cached
+    return intent_map_invalidate(im, &url_identity);
 }
 
 void fetch_client_get_stats(fetch_client_t* c, fetch_stats_t* out) {

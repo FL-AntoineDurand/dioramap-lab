@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(dioramap_processor
-    VERSION 0.2.2
+    VERSION 0.2.3
     LANGUAGES C CXX
     DESCRIPTION "Dioramap processor: unified lidar processing core")
 
@@ -158,6 +158,7 @@ find_package(Threads REQUIRED)
 add_library(dioramap_log STATIC
     src/log/log.c
     src/log/log_events.c
+    src/log/error.c
 )
 target_include_directories(dioramap_log PUBLIC include)
 target_link_libraries(dioramap_log PUBLIC Threads::Threads)
@@ -341,6 +342,8 @@ add_library(dioramap_server STATIC
     src/server/session_mgr.c
 )
 target_include_directories(dioramap_server PUBLIC include)
+# processor_version in SESSION_STARTED / RUN_FAILED (docs/ERRORS.md).
+target_compile_definitions(dioramap_server PRIVATE DIORAMAP_VERSION="${PROJECT_VERSION}")
 target_link_libraries(dioramap_server PUBLIC
     dioramap_runner dioramap_run_journal dioramap_log dioramap_fetch jansson
     PkgConfig::LWS Threads::Threads)

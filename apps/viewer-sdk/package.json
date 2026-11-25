@@ -2,7 +2,7 @@
   "name": "@dioramap/viewer-sdk",
   "license": "Apache-2.0",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.10.0",
   "type": "module",
   "description": "Embeddable 3D viewer for scenes streamed by dioramap-processor. Rendering from @dioramap/scene-base, WebSocket plumbing from @dioramap/protocol.",
   "scripts": {

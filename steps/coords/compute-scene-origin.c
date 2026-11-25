@@ -44,7 +44,7 @@ static int exec_fn(step_context_t* ctx) {
     size_t loc_len = 0;
     const char* loc_bytes = (const char*)step_read(ctx, "canonical-location", &loc_len);
     if (!loc_bytes)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "input artifact canonical-location is missing");
 
     size_t elev_len = 0;
     const uint8_t* elev_bytes = (const uint8_t*)step_read(ctx, "elevation-f32", &elev_len);
@@ -52,14 +52,15 @@ static int exec_fn(step_context_t* ctx) {
     // raster header (u32 cols, u32 rows, u32 n_channels). Skip past it
     // before scanning the F32 grid.
     if (!elev_bytes || elev_len < 12 + sizeof(float))
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "elevation raster missing or too short (%zu bytes)",
+                         elev_bytes ? elev_len : (size_t)0);
     elev_bytes += 12;
     elev_len -= 12;
 
     json_error_t je;
     json_t* loc = json_loadb(loc_bytes, loc_len, 0, &je);
     if (!loc)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location is not valid JSON: %s", je.text);
     double cx = json_number_value(json_object_get(loc, "center_l93_x"));
     double cy = json_number_value(json_object_get(loc, "center_l93_y"));
     json_decref(loc);
@@ -67,7 +68,9 @@ static int exec_fn(step_context_t* ctx) {
     size_t n_floats = elev_len / sizeof(float);
     float minZ, maxZ;
     if (scan_bil_minmax((const float*)elev_bytes, n_floats, &minZ, &maxZ) != 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_NO_DATA,
+                         "IGN elevation (RGE ALTI) has no valid height at this place: every cell "
+                         "of the %zu-cell grid is no-data (sea, or outside coverage)", n_floats - 3);
 
     double midZ = (minZ + maxZ) / 2.0;
     char buf[256];

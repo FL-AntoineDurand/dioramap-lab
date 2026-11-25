@@ -1,0 +1,28 @@
+# Opened by the viewer SDK's "Report on GitHub" button (docs/ERRORS.md).
+# The `report` field is pre-filled from the URL (?report=…).
+name: Run failure
+description: A 3D scene failed to build. The viewer pre-fills the technical report.
+title: "Run failed: "
+labels: ["bug", "run-failure"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. The block below was filled in by the viewer: it holds the
+        error code, the failing step, the upstream service's answer and the versions in play.
+        Please don't remove it. Check that it doesn't contain anything you consider private
+        (it includes the coordinates you asked for).
+  - type: textarea
+    id: report
+    attributes:
+      label: Technical report
+      description: Filled in automatically by the viewer ("Copy" in the error card gives the same text).
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: What were you doing?
+      description: Optional. Page or site, place you picked, whether retrying helped.
+    validations:
+      required: false

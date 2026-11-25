@@ -275,6 +275,62 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Error state of the loading card (docs/ERRORS.md). */
+.dioramap-loading-overlay.is-error { pointer-events: auto; opacity: 1; }
+.dioramap-loading-overlay.is-error .dioramap-loading-card {
+  background: var(--dioramap-surface-bg-strong);
+  border: 1px solid var(--dioramap-surface-border);
+  max-height: 65vh;
+  overflow: auto;
+}
+.dioramap-loading-overlay.is-error .dioramap-loading-label {
+  color: var(--dioramap-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: normal;
+  opacity: 1;
+}
+.dioramap-error-hint { color: var(--dioramap-text-secondary); font-size: 13px; margin-bottom: 10px; }
+.dioramap-error-msg {
+  color: var(--dioramap-text-primary);
+  font: 12px/1.4 var(--dioramap-font-mono);
+  background: rgba(248, 81, 73, 0.12);
+  border-left: 3px solid var(--dioramap-danger);
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+}
+.dioramap-error-details { color: var(--dioramap-text-secondary); font-size: 12px; margin-bottom: 12px; }
+.dioramap-error-details summary { cursor: pointer; user-select: none; }
+.dioramap-error-pre {
+  margin: 8px 0 0;
+  padding: 8px;
+  max-height: 30vh;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: var(--dioramap-radius);
+  color: var(--dioramap-text-primary);
+  font: 11px/1.45 var(--dioramap-font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.dioramap-error-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.dioramap-error-btn {
+  appearance: none;
+  border: 1px solid var(--dioramap-surface-border);
+  background: transparent;
+  color: var(--dioramap-text-primary);
+  border-radius: var(--dioramap-radius);
+  padding: 6px 12px;
+  font: 13px var(--dioramap-font-ui);
+  cursor: pointer;
+  text-decoration: none;
+}
+.dioramap-error-btn:hover { border-color: var(--dioramap-text-secondary); }
+.dioramap-error-btn.is-primary { background: var(--dioramap-accent); border-color: var(--dioramap-accent); color: #fff; }
+.dioramap-error-btn.is-primary:hover { background: var(--dioramap-accent-hover); }
+
 /* ── Model action-buttons (CSS2DObject above selected model) ─────── */
 .dioramap-action-buttons {
   display: flex;

@@ -41,16 +41,18 @@ static int exec_fn(step_context_t* ctx) {
     size_t in_len = 0;
     const char* in_bytes = (const char*)step_read(ctx, "canonical-location", &in_len);
     if (!in_bytes)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "input artifact canonical-location is missing");
     json_error_t je;
     json_t* loc = json_loadb(in_bytes, in_len, 0, &je);
     if (!loc)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location is not valid JSON: %s", je.text);
     json_t* j_bbox = json_object_get(loc, "bbox_l93");
     if (!json_is_array(j_bbox) || json_array_size(j_bbox) != 4) {
         json_decref(loc);
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location has no 4-element bbox_l93");
     }
+    double lat = json_number_value(json_object_get(loc, "lat"));
+    double lon = json_number_value(json_object_get(loc, "lon"));
     double bbox[4];
     for (size_t i = 0; i < 4; i++)
         bbox[i] = json_number_value(json_array_get(j_bbox, i));
@@ -65,35 +67,57 @@ static int exec_fn(step_context_t* ctx) {
                      "&SRSNAME=EPSG:2154&OUTPUTFORMAT=application/json",
                      bbox[0], bbox[1], bbox[2], bbox[3]);
     if (n < 0 || (size_t)n >= sizeof(url))
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "WFS URL does not fit in %zu bytes", sizeof(url));
 
     // Route through fetch_and_cache — same URL → same cached blob → second
     // run of find-copc-tiles skips the HTTP round-trip entirely (PLAN-FETCHERS §F4b).
     fetch_client_t* client = fetchers_shared_client();
     if (!client)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "HTTP client not initialised");
     store_t* store = step_runner_store(ctx);
     intent_map_t* im = step_runner_intent_map(ctx);
     hash_t blob_hash;
     if (fetch_and_cache(client, store, im, url, &blob_hash) != 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_UPSTREAM_HTTP,
+                         "IGN LiDAR HD tile index query (WFS IGNF_LIDAR-HD_METADONNEE:metadata) failed");
     store_handle_t wfs_handle;
     if (store_lookup(store, &blob_hash, &wfs_handle) != 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "cached WFS response vanished from the store");
 
     json_t* doc = json_loadb((const char*)wfs_handle.bytes, wfs_handle.len, 0, &je);
+    if (!doc) {
+        fetch_cache_forget(im, url);
+        char head[161] = {0};
+        size_t hl = wfs_handle.len < 160 ? wfs_handle.len : 160;
+        memcpy(head, wfs_handle.bytes, hl);
+        for (size_t i = 0; i < hl; i++)
+            if ((unsigned char)head[i] < 0x20) head[i] = ' ';
+        store_release(store, &wfs_handle);
+        return step_fail(ctx, V3_ERR_UPSTREAM_FORMAT,
+                         "IGN WFS tile index answered with non-JSON content (%s); starts with: %s",
+                         je.text, head);
+    }
     store_release(store, &wfs_handle);
-    if (!doc)
-        return -1;
     json_t* features = json_object_get(doc, "features");
     if (!json_is_array(features)) {
         json_decref(doc);
-        return -1;
+        fetch_cache_forget(im, url);
+        return step_fail(ctx, V3_ERR_UPSTREAM_FORMAT,
+                         "IGN WFS tile index answer has no \"features\" array");
     }
     size_t nf = json_array_size(features);
     if (nf == 0) {
         json_decref(doc);
-        return -1;
+        // IGN publishes LiDAR HD progressively: an empty index today may list
+        // tiles next month. Never keep "nothing here" in the URL cache.
+        fetch_cache_forget(im, url);
+        char detail[256];
+        snprintf(detail, sizeof(detail),
+                 "{\"lat\":%.6f,\"lon\":%.6f,\"bbox_l93\":[%.1f,%.1f,%.1f,%.1f]}",
+                 lat, lon, bbox[0], bbox[1], bbox[2], bbox[3]);
+        return step_fail_detail(ctx, V3_ERR_NO_DATA, detail,
+                                "no IGN LiDAR HD tile is published at lat=%.5f lon=%.5f yet "
+                                "(IGN is still rolling out coverage)", lat, lon);
     }
 
     // Collect into a serialized-JSON blob per element, then sort by URL for
@@ -101,7 +125,7 @@ static int exec_fn(step_context_t* ctx) {
     char** items = calloc(nf, sizeof(char*));
     if (!items) {
         json_decref(doc);
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "out of memory");
     }
     size_t n_items = 0;
     for (size_t i = 0; i < nf; i++) {
@@ -132,7 +156,10 @@ static int exec_fn(step_context_t* ctx) {
     json_decref(doc);
     if (n_items == 0) {
         free(items);
-        return -1;
+        fetch_cache_forget(im, url);
+        return step_fail(ctx, V3_ERR_UPSTREAM_FORMAT,
+                         "IGN WFS returned %zu tile feature(s) but none has a url_npl/url "
+                         "property (layer schema changed?)", nf);
     }
     qsort(items, n_items, sizeof(char*), cmp_cstr);
 
@@ -153,7 +180,9 @@ static int exec_fn(step_context_t* ctx) {
                                      b.bytes, b.len, b.n_records, 0);
     }
     blob_free(&b);
-    return rc;
+    if (rc != 0)
+        return step_fail(ctx, V3_ERR_INTERNAL, "failed to write copc-tile-urls");
+    return 0;
 }
 
 static const step_read_t reads_arr[] = {{.name = "canonical-location"}};

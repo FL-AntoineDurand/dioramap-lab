@@ -313,6 +313,52 @@ static const step_def_t FAIL_DEF = {
     .exec = fail_exec,
 };
 
+// Fails WITH a reason, after recording upstream evidence the way the fetch
+// layer does (docs/ERRORS.md).
+static int reasoned_fail_exec(step_context_t* ctx) {
+    v3_error_set_upstream(V3_ERR_UPSTREAM_HTTP,
+                          "{\"url\":\"https://example.test/wfs\",\"http_status\":400}",
+                          "HTTP 400 from example.test: Unknown namespace");
+    return step_fail_detail(ctx, V3_ERR_UPSTREAM_HTTP, "{\"lat\":48.1}",
+                            "tile index query failed");
+}
+static const step_write_t reasoned_fail_writes[] = {
+    {.name = "reasoned-result", .kind = 1, .visibility = STEP_VIS_DEBUG},
+};
+static const step_def_t REASONED_FAIL_DEF = {
+    .name = "fails-with-reason",
+    .version = 3,
+    .reads = fail_reads,
+    .n_reads = 1,
+    .writes = reasoned_fail_writes,
+    .n_writes = 1,
+    .compute_location = STEP_CL_CPU,
+    .streaming = false,
+    .exec = reasoned_fail_exec,
+};
+
+// Tolerates an upstream failure and succeeds: the evidence must not leak
+// into a later failure report.
+static int tolerant_exec(step_context_t* ctx) {
+    v3_error_set_upstream(V3_ERR_TIMEOUT, NULL, "optional fetch timed out");
+    int32_t v = 7;
+    return step_write_output(ctx, "tolerant-result", &v, sizeof(v));
+}
+static const step_write_t tolerant_writes[] = {
+    {.name = "tolerant-result", .kind = 1, .visibility = STEP_VIS_DEBUG},
+};
+static const step_def_t TOLERANT_DEF = {
+    .name = "tolerant",
+    .version = 1,
+    .reads = fail_reads,
+    .n_reads = 1,
+    .writes = tolerant_writes,
+    .n_writes = 1,
+    .compute_location = STEP_CL_CPU,
+    .streaming = false,
+    .exec = tolerant_exec,
+};
+
 // Non-deterministic step: declares nondeterministic=true on its write so the
 // runner bypasses the intent map and always re-runs. Writes a monotonically
 // increasing counter as its output.
@@ -437,6 +483,12 @@ typedef struct cb_state {
     atomic_size_t n_artifact_ready;
     atomic_size_t n_run_complete;
     atomic_size_t n_error;
+    // on_run_failed capture (guarded by g_cb_lock).
+    atomic_size_t n_run_failed;
+    v3_error_code_t fail_code;
+    char fail_msg[1024];
+    char fail_step[64];
+    char fail_detail[1024];
     // Stream callback counters (B9). n_stream_chunks counts total invocations
     // (final and non-final); n_stream_final counts only final=true; the bytes
     // counter sums sizes across all chunks for a sanity check against
@@ -521,6 +573,19 @@ static void cb_error(void* ctx, const char* run_id, const char* step, const char
     atomic_fetch_add_explicit(&((cb_state_t*)ctx)->n_error, 1, memory_order_relaxed);
 }
 
+static void cb_run_failed(void* ctx, const char* run_id, const v3_failure_t* f, uint64_t dt) {
+    (void)run_id;
+    (void)dt;
+    cb_state_t* s = ctx;
+    pthread_mutex_lock(&g_cb_lock);
+    s->fail_code = f->code;
+    snprintf(s->fail_msg, sizeof(s->fail_msg), "%s", f->message);
+    snprintf(s->fail_step, sizeof(s->fail_step), "%s", f->step ? f->step : "");
+    snprintf(s->fail_detail, sizeof(s->fail_detail), "%s", f->detail_json ? f->detail_json : "");
+    pthread_mutex_unlock(&g_cb_lock);
+    atomic_fetch_add_explicit(&s->n_run_failed, 1, memory_order_relaxed);
+}
+
 static runner_callbacks_t make_cb(cb_state_t* s) {
     runner_callbacks_t cb = {
         .ctx = s,
@@ -531,6 +596,7 @@ static runner_callbacks_t make_cb(cb_state_t* s) {
         .on_stream_chunk = cb_stream_chunk,
         .on_run_complete = cb_run_complete,
         .on_error = cb_error,
+        .on_run_failed = cb_run_failed,
     };
     return cb;
 }
@@ -564,6 +630,8 @@ static void register_all(void) {
     CHECK(step_register(&CYCLE_B_DEF) == 0);
     CHECK(step_register(&DUP_WRITER_DEF) == 0);
     CHECK(step_register(&FAIL_DEF) == 0);
+    CHECK(step_register(&REASONED_FAIL_DEF) == 0);
+    CHECK(step_register(&TOLERANT_DEF) == 0);
     CHECK(step_register(&NONDET_DEF) == 0);
     CHECK(step_register(&STREAM_DEF) == 0);
     CHECK(step_register(&STREAM_CHECK_DEF) == 0);
@@ -1134,6 +1202,11 @@ static void test_step_exec_error_mid_run(void) {
     CHECK(atomic_load_explicit(&cbs.n_error, memory_order_relaxed) == 1);
     CHECK(atomic_load_explicit(&cbs.n_run_complete, memory_order_relaxed) == 0);
     CHECK(atomic_load_explicit(&g_fail_runs, memory_order_relaxed) == 1);
+    // Terminal failure report: bare `return -1` → INTERNAL naming the step.
+    CHECK(atomic_load_explicit(&cbs.n_run_failed, memory_order_relaxed) == 1);
+    CHECK(cbs.fail_code == V3_ERR_INTERNAL);
+    CHECK(strcmp(cbs.fail_step, "always-fails") == 0);
+    CHECK(strstr(cbs.fail_msg, "always-fails failed without reporting a reason") != NULL);
 
     // The failing step's output must not be in the store.
     store_stats_t stats;
@@ -1142,6 +1215,56 @@ static void test_step_exec_error_mid_run(void) {
     CHECK(stats.entries == 1);
 
     pipeline_free(p);
+    runner_free(r);
+    intent_map_close(im);
+    store_close(store);
+    rm_rf(root);
+}
+
+// docs/ERRORS.md: step_fail reason + upstream evidence reach on_run_failed.
+static void test_step_failure_report(void) {
+    register_all();
+    char root[256];
+    make_tmpdir(root, sizeof(root));
+    store_t* store = store_open(&(store_config_t){.root_dir = root});
+    intent_map_t* im = open_test_im(root);
+    runner_t* r = runner_new(&(runner_config_t){.store = store, .intent_map = im});
+    int32_t dummy = 0;
+
+    // 1) Reasoned failure with upstream evidence.
+    pipeline_t* p = pipeline_new("reasoned");
+    CHECK(pipeline_add_step(p, "fails-with-reason", NULL) == 0);
+    const char* subs[] = {"reasoned-result"};
+    cb_state_t cbs = {0};
+    runner_callbacks_t cb = make_cb(&cbs);
+    CHECK(runner_run(r, p, &dummy, sizeof(dummy), subs, 1, &cb) == -1);
+    CHECK(atomic_load_explicit(&cbs.n_run_failed, memory_order_relaxed) == 1);
+    CHECK(atomic_load_explicit(&cbs.n_run_complete, memory_order_relaxed) == 0);
+    CHECK(cbs.fail_code == V3_ERR_UPSTREAM_HTTP);
+    CHECK(strcmp(cbs.fail_step, "fails-with-reason") == 0);
+    CHECK(strcmp(cbs.fail_msg,
+                 "tile index query failed: HTTP 400 from example.test: Unknown namespace") == 0);
+    CHECK(strstr(cbs.fail_detail, "\"lat\":48.1") != NULL);
+    CHECK(strstr(cbs.fail_detail, "\"upstream\"") != NULL);
+    CHECK(strstr(cbs.fail_detail, "\"http_status\":400") != NULL);
+    CHECK(strstr(cbs.fail_detail, "\"step_version\":3") != NULL);
+    pipeline_free(p);
+
+    // 2) A tolerated upstream failure in a successful step leaves no trace.
+    p = pipeline_new("tolerant");
+    CHECK(pipeline_add_step(p, "tolerant", NULL) == 0);
+    const char* subs2[] = {"tolerant-result"};
+    cb_state_t cbs2 = {0};
+    runner_callbacks_t cb2 = make_cb(&cbs2);
+    CHECK(runner_run(r, p, &dummy, sizeof(dummy), subs2, 1, &cb2) == 0);
+    CHECK(atomic_load_explicit(&cbs2.n_run_failed, memory_order_relaxed) == 0);
+    CHECK(atomic_load_explicit(&cbs2.n_run_complete, memory_order_relaxed) == 1);
+    pipeline_free(p);
+
+    // 3) No sink bound outside a run: recording is a safe no-op.
+    CHECK(v3_error_current() == NULL);
+    v3_error_set_step(V3_ERR_NO_DATA, NULL, "ignored %d", 1);
+
     runner_free(r);
     intent_map_close(im);
     store_close(store);
@@ -1615,6 +1738,7 @@ int main(void) {
     test_cycle_detected_by_runner();
     test_duplicate_writer_rejected();
     test_step_exec_error_mid_run();
+    test_step_failure_report();
 
     // B3.5 hash-model regression coverage.
     test_second_run_zero_body_executions();

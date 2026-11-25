@@ -10,7 +10,8 @@
   "exports": {
     ".": "./src/index.js",
     "./ws-client": "./src/ws-client.js",
-    "./artifact-decoder": "./src/artifact-decoder.js"
+    "./artifact-decoder": "./src/artifact-decoder.js",
+    "./errors": "./src/errors.js"
   },
   "sideEffects": false,
   "files": [

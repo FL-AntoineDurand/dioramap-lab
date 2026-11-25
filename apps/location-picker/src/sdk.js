@@ -46,6 +46,9 @@ import './styles.css';
  * @param {({lat,lon,radius}) => void} [config.onPick]     fired on each map click
  * @param {({lat,lon,radius}) => void} [config.onConfirm]  fired on confirm button
  * @param {(picker) => void} [config.onReady]
+ * @param {(err: Error & {code: string, detail: Object}) => void} [config.onError]
+ *        address search failures (code GEOCODER_FAILED); the picker also shows
+ *        a message in the search dropdown
  * @returns {Promise<Object>}
  */
 async function init(config) {
@@ -59,6 +62,7 @@ async function init(config) {
     onPick,
     onConfirm,
     onReady,
+    onError,
   } = config;
 
   const el = typeof container === 'string' ? document.querySelector(container) : container;
@@ -69,6 +73,7 @@ async function init(config) {
 
   // Address search — mount immediately, no need to wait for tiles.
   const search = createSearch(el, {
+    onError,
     onSelect: ({ lat, lon }) => {
       map.flyTo({ center: [lon, lat], zoom: 17, duration: 1200 });
       map.once('moveend', () => {

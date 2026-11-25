@@ -6,8 +6,11 @@
 
 #include "fetchers.h"
 
+#include <jansson.h>
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "v3/fetch.h"
 
@@ -62,4 +65,38 @@ void fetchers_shutdown(void) {
         g_client = NULL;
     }
     pthread_mutex_unlock(&g_lock);
+}
+
+int fetchers_fail_bad_body(step_context_t* ctx, const char* what, const char* url,
+                           const uint8_t* body, size_t len, const char* expected) {
+    char excerpt[401] = {0};
+    size_t o = 0;
+    for (size_t i = 0; body && i < len && o + 1 < sizeof(excerpt); i++) {
+        unsigned char ch = body[i];
+        excerpt[o++] = (ch >= 0x20 && ch < 0x7f) ? (char)ch : (ch == '\n' ? ' ' : '.');
+    }
+    // OGC exception text, when present, is the useful bit.
+    char why[200];
+    fetch_ogc_exception_text((const char*)body, body ? len : 0, why, sizeof(why));
+    json_t* d = json_object();
+    char* dtxt = NULL;
+    if (d) {
+        json_object_set_new(d, "url", json_string(url ? url : ""));
+        json_object_set_new(d, "expected", json_string(expected));
+        json_object_set_new(d, "body_bytes", json_integer((json_int_t)len));
+        json_object_set_new(d, "body_excerpt", json_string(excerpt));
+        dtxt = json_dumps(d, JSON_COMPACT);
+        json_decref(d);
+    }
+    int rc;
+    if (why[0]) {
+        rc = step_fail_detail(ctx, V3_ERR_UPSTREAM_FORMAT, dtxt,
+                              "%s: expected %s, the service answered: %s", what, expected, why);
+    } else {
+        rc = step_fail_detail(ctx, V3_ERR_UPSTREAM_FORMAT, dtxt,
+                              "%s: expected %s, got %zu bytes starting with \"%.60s\"", what,
+                              expected, len, excerpt);
+    }
+    free(dtxt);
+    return rc;
 }

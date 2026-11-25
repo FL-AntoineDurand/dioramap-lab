@@ -756,8 +756,17 @@ Binary WS frames carry artifact bytes; text WS frames carry JSON control message
 { "t": "SUBSCRIBE_ACK",  "artifact": "scaled", "duration_us": 120,
   "steps_executed": 0, "cache_hits": 1 }
 
-{ "t": "ERROR", "run_id": "r_1", "step": "ortho-fetch",
-  "code": "IGN_TIMEOUT", "msg": "..." }
+{ "t": "ERROR", "run_id": "r_1", "step": "find-copc-tiles",
+  "msg": "[UPSTREAM_HTTP] IGN LiDAR HD tile index query (…) failed: HTTP 400 from data.geopf.fr: Unknown namespace [IGNF_NUAGES-DE-POINTS-LIDAR-HD]" }
+
+// Terminal frame of a run that did not complete, in place of RUN_COMPLETE /
+// SUBSCRIBE_ACK. Full schema and code list: docs/ERRORS.md.
+{ "t": "RUN_FAILED", "run_id": "r_1", "code": "NO_DATA", "step": "find-copc-tiles",
+  "msg": "no IGN LiDAR HD tile is published at lat=47.65820 lon=-2.76033 yet (…)",
+  "detail": { "lat": 47.658201, "lon": -2.760328, "bbox_l93": [267935, 6744335, 268085, 6744485],
+              "step_version": 2, "step_duration_ms": 194.6 },
+  "pipeline": "viewer-full", "input": { "lat": 47.6582, "lon": -2.7603 },
+  "processor_version": "0.3.0", "duration_us": 839016 }
 ```
 
 **Not yet emitted (documented for future land):**

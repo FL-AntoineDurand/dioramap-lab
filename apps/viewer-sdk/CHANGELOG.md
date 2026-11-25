@@ -6,6 +6,15 @@ add/remove curated `EXPOSED_VISIBILITY_TOGGLES` entries (PLAN-VIEWER-SDK-PORT
 
 ## Unreleased
 
+## 0.10.0 — unreleased
+
+**Additive**: failures are shown and reported instead of freezing the loading bar (docs/ERRORS.md).
+
+- **Error card.** On any failure the loading card turns into an error card: a plain-language title and hint (French when the page is French, English otherwise), the technical one-liner, a collapsible "Technical details" block with the full report, and **Copy**, **Report on GitHub** (pre-filled issue on `FL-AntoineDurand/dioramap-lab`) and **Try again** buttons.
+- **`onError` receives a `DioramapError`** with `code`, `message`, `step`, `detail` (upstream URL, HTTP status, response excerpt…), `runId`, `input`, versions, and `toReport()`. Fixes a bug where `onError` always got `"server error"` (the SDK read `message`; the processor sends `msg`). Fires once per failed run.
+- **Covered failures**: `RUN_FAILED` (processor ≥ 0.3.0), step `ERROR` from older processors (after a 1.5 s grace), request-level rejections (`AUTH_*`, `RUN_BUSY`, …), WebSocket never opening (`CONNECTION_FAILED`) or closing mid-run (`CONNECTION_LOST`), and no frame for 5 minutes during a run (`STALLED`).
+- **New `init` options**: `locale` (`'fr'` / `'en'`), `issueRepo` (`'owner/repo'` for the report button), `reportIssues` (`false` hides it). API keys are redacted from reports.
+
 
 
 ## 0.9.0 — 2026-05-07

@@ -497,6 +497,10 @@ main:has(#pane-left[data-collapsed="true"]) {
   stroke: var(--accent);
   stroke-width: 1.5;
 }
+.dag-node[data-state="failed"] .dag-node-bg {
+  stroke: var(--err);
+  stroke-width: 2.5;
+}
 .dag-node[data-state="fresh"] .dag-node-bg {
   stroke: var(--ok);
   stroke-width: 1.5;

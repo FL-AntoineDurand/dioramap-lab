@@ -282,7 +282,20 @@ client.addEventListener('session', (ev) => {
 
 client.addEventListener('error-msg', (ev) => {
   console.warn('[ws error]', ev.detail);
-  timeline.onError(ev.detail);
+  // Step failures are reported in full by the RUN_FAILED that follows
+  // (processor ≥ 0.3.0); only show request-level errors here, plus step
+  // errors from older processors.
+  if (!(ev.detail.step && client.processorVersion)) timeline.onError(ev.detail);
+  if (ev.detail.step) dagView.setStepState(ev.detail.step, 'failed');
+  state.runActive = false;
+  runPanel.setRunning(false);
+});
+
+client.addEventListener('run-failed', (ev) => {
+  const d = ev.detail;
+  console.error('[run failed]', d);
+  timeline.onError({ step: d.step, msg: `[${d.code}] ${d.msg}` });
+  if (d.step_token || d.step) dagView.setStepState(d.step_token ?? d.step, 'failed');
   state.runActive = false;
   runPanel.setRunning(false);
 });

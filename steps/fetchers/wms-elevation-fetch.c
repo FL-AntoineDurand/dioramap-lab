@@ -33,7 +33,8 @@ int wms_elevation_fetch_exec(step_context_t* ctx,
         if (params) {
             json_t* j_grid = json_object_get(params, "grid_size");
             if (json_int_or_default(j_grid, 1, 16384, "grid_size", &grid_size) != 0) {
-                json_decref(params); return -1;
+                json_decref(params);
+                return step_fail(ctx, V3_ERR_INVALID_INPUT, "param grid_size must be an integer in [1, 16384]");
             }
             json_t* j_layer = json_object_get(params, "layer");
             if (json_is_string(j_layer)) {
@@ -51,14 +52,17 @@ int wms_elevation_fetch_exec(step_context_t* ctx,
                      "&BBOX=%.3f,%.3f,%.3f,%.3f&WIDTH=%d&HEIGHT=%d"
                      "&FORMAT=image/x-bil;bits=32",
                      layer, bbox[0], bbox[1], bbox[2], bbox[3], grid_size, grid_size);
-    if (n < 0 || (size_t)n >= sizeof(url)) return -1;
+    if (n < 0 || (size_t)n >= sizeof(url))
+        return step_fail(ctx, V3_ERR_INTERNAL, "request URL does not fit in %zu bytes", sizeof(url));
 
     fetch_client_t* client = fetchers_shared_client();
-    if (!client) return -1;
+    if (!client)
+        return step_fail(ctx, V3_ERR_INTERNAL, "HTTP client not initialised");
     fetch_response_t resp;
     if (fetch_get(client, url, &resp) != 0) {
         free(resp.body);
-        return -1;
+        return step_fail(ctx, V3_ERR_UPSTREAM_HTTP, "IGN elevation WMS request (layer %s) failed",
+                         layer);
     }
     // The IGN WMS-BIL response is raw F32 grid_size × grid_size cells.
     // Wrap in the v3 raster_format header (u32 cols, u32 rows, u32
@@ -66,14 +70,19 @@ int wms_elevation_fetch_exec(step_context_t* ctx,
     // a special case. Expected payload size: grid_size² × 4 bytes.
     const size_t expected_bil = (size_t)grid_size * (size_t)grid_size * 4;
     if (resp.body_len != expected_bil) {
+        char what[192], expected[96];
+        snprintf(what, sizeof(what), "IGN elevation WMS (layer %s)", layer);
+        snprintf(expected, sizeof(expected), "%zu bytes of float32 BIL (%dx%d)", expected_bil,
+                 grid_size, grid_size);
+        int frc = fetchers_fail_bad_body(ctx, what, url, resp.body, resp.body_len, expected);
         free(resp.body);
-        return -1;
+        return frc;
     }
     const size_t out_len = 12 + resp.body_len;
     uint8_t* out = malloc(out_len);
     if (!out) {
         free(resp.body);
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "out of memory");
     }
     const uint32_t cols_u32 = (uint32_t)grid_size;
     const uint32_t rows_u32 = (uint32_t)grid_size;

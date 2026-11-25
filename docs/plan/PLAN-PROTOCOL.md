@@ -87,7 +87,7 @@ Client → server:
   RECONNECT     { session_token }
 
 Server → client:
-  SESSION_STARTED { session_token, tier }
+  SESSION_STARTED { session_token, tier, processor_version }
   CATALOG_RESPONSE { artifacts: [...] }
   RUN_STARTED    { run_id, step_plan }
   STEP_STARTED   { run_id, step }
@@ -96,8 +96,10 @@ Server → client:
   // followed by one binary WS frame of `size` bytes in §5 layout
   STEP_COMPLETE  { run_id, step, writes }
   RUN_COMPLETE   { run_id, summary }
+  RUN_FAILED     { run_id, code, msg, step?, step_token?, detail?, pipeline?, input?,
+                   processor_version, duration_us, late_subscribe? }   // docs/ERRORS.md
   SUBSCRIBE_DENIED { artifact, reason }
-  ERROR          { run_id?, step?, code, msg }
+  ERROR          { run_id?, step?, code?, msg }   // step failures: msg = "[CODE] message"
 ```
 
 ### Session token

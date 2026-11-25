@@ -10,7 +10,54 @@ Deploy mechanics live in `v3/deploy/README.md`.
 
 ## Unreleased
 
+**Error reporting end to end** (docs/ERRORS.md). Additive on the wire: old
+clients keep working and ignore the new frame.
 
+- **`step_fail(ctx, code, fmt, …)` / `step_fail_detail`** (`v3/step.h`, new
+  `v3/error.h`): a step can say why it fails. Codes: `NO_DATA`,
+  `INVALID_INPUT`, `UPSTREAM_HTTP`, `UPSTREAM_UNREACHABLE`, `UPSTREAM_FORMAT`,
+  `TIMEOUT`, `CANCELLED`, `INTERNAL`. A bare `return -1` is reported as
+  `INTERNAL: <step> failed without reporting a reason`.
+- **Fetch failures carry their evidence.** `fetch_get` logs `fetch_failed`
+  and records URL, HTTP status, curl error, attempts and a body excerpt; OGC
+  exception text (`ows:ExceptionText` / `ServiceException`) goes into the
+  message. New `fetch_ogc_exception_text()`.
+- **New terminal `RUN_FAILED` frame** `{run_id, code, msg, step, step_token?,
+  detail, pipeline, input, processor_version, duration_us}`, in place of
+  `RUN_COMPLETE` / `SUBSCRIBE_ACK`. Step `ERROR` frames now say
+  `"[CODE] message"` instead of `"step failed"`. `SESSION_STARTED` carries
+  `processor_version`. Failed runs are journaled with `error_kind` /
+  `error_message`.
+- **Runner**: new `on_run_failed` callback (first failure of the run, fired
+  last); `step_failed` / `run_failed` log events carry code, message and
+  detail; a step that succeeds but misses a declared output says which.
+- **Obfuscated builds report friendly step names** via an embedded
+  token → name table (`obfuscate.mjs embed-names`, `v3/obf_names.h`).
+- **Steps converted**: `canonicalize-location` (lat/lon validation),
+  `compute-scene-origin`, `find-copc-tiles` (0 tiles → `NO_DATA`),
+  `fetch-copc-tiles`, `laz-extract-disc`, all `fetchers/*` (WMS answers that
+  are not a JPEG / not the expected BIL size → `UPSTREAM_FORMAT`). Step
+  versions unchanged: outputs are byte-identical, cache stays valid.
+- `obfuscate.mjs scan` skips `dist-dev/`.
+- **Empty or unusable IGN answers are no longer cached forever.** A 2xx WFS
+  answer listing no tile (or not parsable) used to stay in the URL cache, so a
+  retry after IGN published the tile still said `NO_DATA`. New
+  `fetch_cache_forget()`; `find-copc-tiles` calls it on those answers.
+- **Refused connections** are `FETCH_CONNECT_FAIL` (`connect_failed`),
+  retried like DNS failures and reported as `UPSTREAM_UNREACHABLE`; when a
+  step reports a generic `UPSTREAM_*` code, the fetch layer's more precise
+  code wins.
+
+
+## 0.2.3 — 2026-11-24 (hotfix: IGN LiDAR HD tile discovery)
+
+- **`find-copc-tiles` queries `IGNF_LIDAR-HD_METADONNEE:metadata`** instead
+  of `IGNF_NUAGES-DE-POINTS-LIDAR-HD:dalle`, which IGN withdrew from the
+  Géoplateforme WFS (HTTP 400 "Unknown namespace"). Every uncached location
+  failed at this step and the viewer stalled at ~48%. The COPC link now
+  comes from the `url_npl` property and the tile name from the URL's file
+  name; the old `url`/`name`/`nom_pkk` properties are still accepted.
+  Built from `processor-v0.2.2` plus this fix only.
 
 ## 0.2.2 — 2026-05-06 (HTTP /healthz + /ws fast-fail; PLAN-PROTOCOL P8 partial)
 

@@ -11,6 +11,9 @@ Exercises:
   - Late SUBSCRIBE → SUBSCRIBE_ACK + ARTIFACT_HEADER + binary (from cache)
   - CANCEL of an active RUN → ERROR { msg: "cancelled" }
   - RECONNECT to a preserved session after WS close → RECONNECTED
+  - Step failure → ERROR + terminal RUN_FAILED {code, step, msg, input,
+    processor_version} (docs/ERRORS.md), and a retry right after is not
+    RUN_BUSY
 """
 
 import asyncio
@@ -211,6 +214,38 @@ async def test_cancel(port):
         print(f"[case3] CANCEL terminal = {'ERROR cancelled' if saw_cancel else 'RUN_COMPLETE (race)'}")
 
 
+async def test_run_failed(port):
+    uri = f"ws://127.0.0.1:{port}/"
+    async with websockets.connect(uri, subprotocols=["dioramap-v1"]) as ws:
+        started = json.loads(await ws.recv())
+        assert started["t"] == "SESSION_STARTED"
+        assert started.get("processor_version"), started
+        # lat out of range: canonicalize-location rejects it before any
+        # network access, with INVALID_INPUT.
+        for attempt in range(2):
+            await ws.send(json.dumps({
+                "t": "RUN",
+                "pipeline": "viewer-full",
+                "input": {"lat": 999.0, "lon": 2.0},
+                "subscribe": ["canonical-location"],
+            }))
+            msgs = await recv_until(
+                ws, lambda m: isinstance(m, dict) and m.get("t") in ("RUN_FAILED", "RUN_COMPLETE"))
+            texts = [m for m in msgs if isinstance(m, dict)]
+            assert not any(m.get("code") == "RUN_BUSY" for m in texts), texts
+            errs = [m for m in texts if m.get("t") == "ERROR"]
+            fail = texts[-1]
+            assert fail["t"] == "RUN_FAILED", fail
+            assert fail["code"] == "INVALID_INPUT", fail
+            assert fail["step"] == "canonicalize-location", fail
+            assert "out of range" in fail["msg"], fail
+            assert fail["input"]["lat"] == 999.0, fail
+            assert fail.get("processor_version"), fail
+            assert fail["detail"]["step_version"] >= 1, fail
+            assert errs and errs[0]["msg"].startswith("[INVALID_INPUT]"), errs
+        print(f"[case5] RUN_FAILED = {fail['code']} @ {fail['step']}: {fail['msg']}")
+
+
 async def test_reconnect(port):
     uri = f"ws://127.0.0.1:{port}/"
     ws = await websockets.connect(uri, subprotocols=["dioramap-v1"])
@@ -269,6 +304,7 @@ async def main():
         await test_session_and_catalog(port)
         await test_run_then_late_subscribe(port)
         await test_cancel(port)
+        await test_run_failed(port)
         await test_reconnect(port)
     finally:
         try: os.killpg(os.getpgid(proc.pid), signal.SIGTERM)

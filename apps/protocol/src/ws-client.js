@@ -28,6 +28,11 @@ export class WSClient extends EventTarget {
     // At most one of these is outstanding at any time: the server guarantees
     // text-before-binary ordering per artifact.
     this.pendingBinary = null;
+    // Wall-clock ms of the last frame received (any kind). Lets callers run
+    // a "no progress" watchdog without hooking every event type.
+    this.lastMessageAt = 0;
+    // Set from SESSION_STARTED (processors ≥ 0.3.0); null before that.
+    this.processorVersion = null;
   }
 
   connect() {
@@ -37,8 +42,12 @@ export class WSClient extends EventTarget {
     this.ws = ws;
 
     ws.addEventListener('open', () => this._emit('state', { state: 'connected' }));
-    ws.addEventListener('close', () => this._emit('state', { state: 'disconnected' }));
-    ws.addEventListener('error', () => this._emit('state', { state: 'error' }));
+    // A browser 'error' event carries no detail; the 'close' that always
+    // follows it does (code 1006 = abnormal closure / never connected).
+    ws.addEventListener('close', (ev) => this._emit('state', {
+      state: 'disconnected', code: ev.code, reason: ev.reason, wasClean: ev.wasClean, url: this.url,
+    }));
+    ws.addEventListener('error', () => this._emit('state', { state: 'error', url: this.url }));
     ws.addEventListener('message', (ev) => this._onMessage(ev));
   }
 
@@ -90,6 +99,7 @@ export class WSClient extends EventTarget {
   }
 
   _onMessage(ev) {
+    this.lastMessageAt = Date.now();
     // Binary frame: expected to follow a buffered header (ARTIFACT_HEADER
     // for a full artifact or STREAM_CHUNK for one piece of a streaming one).
     if (ev.data instanceof ArrayBuffer) {
@@ -122,6 +132,7 @@ export class WSClient extends EventTarget {
       case 'SESSION_STARTED':
       case 'RECONNECTED':
         this.sessionToken = msg.session_token;
+        if (msg.processor_version) this.processorVersion = msg.processor_version;
         this._emit('session', msg);
         break;
       case 'CATALOG_RESPONSE':
@@ -149,6 +160,13 @@ export class WSClient extends EventTarget {
         break;
       case 'RUN_COMPLETE':
         this._emit('run-complete', msg);
+        break;
+      case 'RUN_FAILED':
+        // Terminal frame for a run that did not complete (docs/ERRORS.md):
+        // { run_id, code, msg, step?, step_token?, detail?, pipeline?,
+        //   input?, processor_version, duration_us, late_subscribe? }.
+        // Processors < 0.3.0 never send it — they send only ERROR.
+        this._emit('run-failed', msg);
         break;
       case 'SUBSCRIBE_ACK':
         this._emit('subscribe-ack', msg);

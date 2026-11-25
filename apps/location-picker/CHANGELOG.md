@@ -3,6 +3,17 @@
 Versioning: SDK semver, in lockstep with `@dioramap/viewer-sdk` for
 embedder-visible breaking changes.
 
+## 0.9.0 — unreleased
+
+**Additive.**
+
+- **Address search failures are visible.** A failed BAN geocoder request
+  (HTTP error or network) used to be silently ignored; the dropdown now says
+  the search is unavailable (French or English, from the page language) and
+  "No address found" on empty results.
+- **New `init({ onError })`**: called with an `Error` whose `code` is
+  `GEOCODER_FAILED` and `detail` holds the request URL and query.
+
 ## 0.8.0 — 2026-05-06
 
 **Breaking** in lockstep with viewer-sdk 0.8.0 (CSP / theming).

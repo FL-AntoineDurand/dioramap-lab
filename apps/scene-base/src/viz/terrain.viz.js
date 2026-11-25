@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Antoine Durand
-
+// t() — Phase 1 obfuscation marker; see viewer-sdk/src/viewer.js.
 const t = (s) => s;
 
 // terrain.viz.js — local lidar-ground heightmap textured with the

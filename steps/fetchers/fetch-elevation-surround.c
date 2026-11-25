@@ -33,15 +33,17 @@
 static int compute_surround_bbox(step_context_t* ctx, double bbox[4]) {
     size_t in_len = 0;
     const char* in_bytes = (const char*)step_read(ctx, "canonical-location", &in_len);
-    if (!in_bytes || in_len == 0) return -1;
+    if (!in_bytes || in_len == 0)
+        return step_fail(ctx, V3_ERR_INTERNAL, "input artifact canonical-location is missing");
     json_error_t je;
     json_t* input = json_loadb(in_bytes, in_len, 0, &je);
-    if (!input) return -1;
+    if (!input)
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location is not valid JSON: %s", je.text);
     json_t* j_cx = json_object_get(input, "center_l93_x");
     json_t* j_cy = json_object_get(input, "center_l93_y");
     if (!json_is_number(j_cx) || !json_is_number(j_cy)) {
         json_decref(input);
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location has no center_l93_x/y");
     }
     double cx = json_number_value(j_cx);
     double cy = json_number_value(j_cy);

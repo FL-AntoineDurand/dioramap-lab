@@ -38,6 +38,7 @@ typedef enum fetch_error_code {
     FETCH_ABORTED,
     FETCH_UNKNOWN,
     FETCH_TRUNCATED,  // 2xx body shorter than Content-Length (mid-stream cut)
+    FETCH_CONNECT_FAIL, // TCP connect refused / unreachable (retried like DNS)
 } fetch_error_code_t;
 
 typedef struct fetch_response {
@@ -98,6 +99,21 @@ int fetch_get(fetch_client_t* c, const char* url, fetch_response_t* out);
 */
 int fetch_and_cache(fetch_client_t* c, store_t* store, intent_map_t* im, const char* url,
                     hash_t* out_hash);
+
+// Forget the cached answer for `url` so the next fetch_and_cache goes back to
+// the network. A 2xx answer is cached forever by URL; call this when the
+// cached bytes turn out to be unusable or describe a state the upstream may
+// change later (an empty tile index, a 200 carrying an OGC exception, a body
+// that does not parse). Without it, a retry after the upstream recovers or
+// publishes new data would keep seeing the stale answer. The store blob
+// itself is left alone (it is content-addressed and may be shared).
+// Returns 0 on success (including "was not cached"), -1 on bad args.
+int fetch_cache_forget(intent_map_t* im, const char* url);
+
+// Extract the human-readable text of an OGC exception report (WFS
+// ExceptionText / WMS ServiceException) from a response body. Writes ""
+// when none is found. Used for failure reports (docs/ERRORS.md).
+void fetch_ogc_exception_text(const char* body, size_t len, char* out, size_t out_sz);
 
 // Stats for diagnostics.
 typedef struct fetch_stats {

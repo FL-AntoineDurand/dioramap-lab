@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>   // ACSL valid_read_string
 
+#include "v3/error.h"
 #include "v3/hash.h"
 #include "v3/intent_map.h"
 #include "v3/pipeline.h"
@@ -37,7 +38,16 @@ typedef struct runner_callbacks {
                             const hash_t* hash);
     void (*on_run_complete)(void* ctx, const char* run_id, uint64_t duration_us,
                             size_t steps_executed, size_t cache_hits);
+    // Non-terminal notification: a step failed (fires once per failing
+    // step, as soon as it fails) or a run-level problem occurred. `msg` is
+    // "[CODE] message". Kept for wire compatibility (ERROR frame).
     void (*on_error)(void* ctx, const char* run_id, const char* step_name, const char* msg);
+    // Terminal: the run did not complete. Fires exactly once per failed
+    // run, LAST, instead of on_run_complete. `f` describes the FIRST
+    // failure of the run (peers cancelled after it are not reported) and
+    // is valid only for the duration of the callback. See docs/ERRORS.md.
+    void (*on_run_failed)(void* ctx, const char* run_id, const v3_failure_t* f,
+                          uint64_t duration_us);
 } runner_callbacks_t;
 
 typedef struct runner_config {

@@ -41,6 +41,10 @@
 #include <jansson.h>
 #include <libwebsockets.h>
 
+#ifndef DIORAMAP_VERSION
+#define DIORAMAP_VERSION "0.0.0-dev"
+#endif
+
 #include "server_internal.h"
 #include "v3/hash.h"
 #include "v3/log.h"
@@ -355,6 +359,101 @@ static void cb_on_error(void* vctx, const char* run_id, const char* step, const 
     session_enqueue_json(s, obj);
 }
 
+// Terminal failure frame (docs/ERRORS.md). Replaces RUN_COMPLETE /
+// SUBSCRIBE_ACK for a run that did not complete. Everything a developer
+// needs to reproduce lives in this one object: the SDK shows it under
+// "technical details" and pre-fills a GitHub issue with it.
+static void cb_on_run_failed(void* vctx, const char* run_id, const v3_failure_t* f,
+                             uint64_t dt_us) {
+    session_t* s  = vctx;
+    server_t*  sv = session_server(s);
+    bool late = session_is_late_subscribe(s);
+
+    session_journal_snapshot_t snap;
+    bool have_snap = session_journal_snapshot(s, &snap) == 0;
+
+    if (sv->journal && have_snap) {
+        run_artifact_t* arts = NULL;
+        if (snap.n_artifacts > 0) {
+            arts = calloc(snap.n_artifacts, sizeof(*arts));
+            if (arts) {
+                for (size_t i = 0; i < snap.n_artifacts; i++) {
+                    arts[i].name     = snap.artifact_names[i];
+                    arts[i].hash_hex = snap.artifact_hashes[i];
+                }
+            }
+        }
+        char**  sub = NULL;
+        size_t  n_sub = 0;
+        (void)session_subscribe_snapshot(s, &sub, &n_sub);
+        run_record_t rec = {
+            .run_id          = run_id,
+            .pipeline_name   = snap.pipeline_name,
+            .input_json      = snap.input_json,
+            .input_hash      = snap.input_hash,
+            .test_case_label = snap.test_case_label,
+            .started_at_us   = snap.started_at_us,
+            .duration_us     = dt_us,
+            .success         = false,
+            .error_kind      = f->code_name,
+            .error_message   = f->message,
+            .subscribe       = (const char* const*)sub,
+            .n_subscribe     = n_sub,
+            .produced        = arts,
+            .n_produced      = arts ? snap.n_artifacts : 0,
+        };
+        (void)run_journal_record(sv->journal, &rec);
+        free(arts);
+        session_subscribe_snapshot_free(sub, n_sub);
+    }
+
+    json_t* obj = json_object();
+    json_object_set_new(obj, "t",      json_string("RUN_FAILED"));
+    json_object_set_new(obj, "run_id", json_string(run_id));
+    json_object_set_new(obj, "code",   json_string(f->code_name));
+    json_object_set_new(obj, "msg",    json_string(f->message ? f->message : ""));
+    if (f->step) {
+        json_object_set_new(obj, "step", json_string(f->step));
+        if (f->step_token && strcmp(f->step_token, f->step) != 0) {
+            json_object_set_new(obj, "step_token", json_string(f->step_token));
+        }
+    }
+    if (f->detail_json) {
+        json_error_t je;
+        json_t* d = json_loads(f->detail_json, 0, &je);
+        if (d) json_object_set_new(obj, "detail", d);
+    }
+    if (have_snap) {
+        if (snap.pipeline_name) {
+            json_object_set_new(obj, "pipeline",
+                                json_string(snap.pipeline_name));
+        }
+        if (snap.input_json && strlen(snap.input_json) <= 4096) {
+            json_error_t je;
+            json_t* in = json_loads(snap.input_json, 0, &je);
+            if (in) json_object_set_new(obj, "input", in);
+        }
+        session_journal_snapshot_free(&snap);
+    }
+    json_object_set_new(obj, "processor_version", json_string(DIORAMAP_VERSION));
+    json_object_set_new(obj, "duration_us", json_integer((json_int_t)dt_us));
+    if (late) {
+        json_object_set_new(obj, "late_subscribe", json_true());
+    }
+
+    // Same ordering rule as cb_on_run_complete (task #84): free the run
+    // slot BEFORE the terminal frame, so a client that retries on
+    // RUN_FAILED doesn't hit RUN_BUSY.
+    session_end_run(s);
+    // 12 significant digits: lat/lon read as 47.658201, not 47.658200999999998.
+    char* txt = json_dumps(obj, JSON_COMPACT | JSON_REAL_PRECISION(12));
+    json_decref(obj);
+    if (txt) {
+        (void)session_enqueue_text(s, txt, strlen(txt));
+        free(txt);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Run thread entry
 // ---------------------------------------------------------------------------
@@ -372,19 +471,18 @@ static void* run_thread_main(void* vctx) {
         .on_stream_chunk   = cb_on_stream_chunk,
         .on_run_complete   = cb_on_run_complete,
         .on_error          = cb_on_error,
+        .on_run_failed     = cb_on_run_failed,
     };
 
     runner_run(rc->server->runner, rc->pipeline, rc->input_json, rc->input_len,
                (const char* const*)rc->subscribe, rc->n_subscribe, &cb);
 
     // Safety net: cb_on_run_complete already called session_end_run on
-    // the success path (BEFORE enqueuing RUN_COMPLETE — task #84).
+    // the success path (BEFORE enqueuing RUN_COMPLETE — task #84), and
+    // cb_on_run_failed on the failure path (before RUN_FAILED).
     // session_end_run is idempotent, so calling it again here is a
-    // no-op on success but still releases the slot on failure paths
-    // where on_run_complete never fires (runner.c only invokes
-    // on_run_complete when final_rc == 0; on step failure it logs
-    // EV_RUNNER_RUN_FAILED but issues NO terminating callback, and
-    // on external cancel it fires on_error instead).
+    // no-op in both cases; it stays as a guard for any path where
+    // runner_run returns without firing either terminal callback.
     session_end_run(s);
 
     // Free the run context — including the subscribe snapshot that
@@ -1077,6 +1175,7 @@ static int protocol_cb(struct lws* wsi, enum lws_callback_reasons reason, void* 
         json_t* obj = json_object();
         json_object_set_new(obj, "t",             json_string("SESSION_STARTED"));
         json_object_set_new(obj, "session_token", json_string(session_token(s)));
+        json_object_set_new(obj, "processor_version", json_string(DIORAMAP_VERSION));
         session_enqueue_json(s, obj);
         break;
     }

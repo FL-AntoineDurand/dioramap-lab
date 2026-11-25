@@ -22,7 +22,8 @@
 
 static int exec_fn(step_context_t* ctx) {
     double bbox[4];
-    if (step_read_bbox_l93(ctx, bbox) != 0) return -1;
+    if (step_read_bbox_l93(ctx, bbox) != 0)
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location missing or has no bbox_l93");
     return wms_elevation_fetch_exec(ctx, bbox,
         /*default_grid_size=*/512,
         "ELEVATION.ELEVATIONGRIDCOVERAGE.HIGHRES",

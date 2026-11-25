@@ -144,6 +144,7 @@ export class DagView extends EventTarget {
    *                 loading-tier artifact tile).
    *   'cached'   — step completed in this run, served from cache.
    *   'fresh'    — step ran fresh in this run.
+   *   'failed'   — step failed (RUN_FAILED / ERROR, docs/ERRORS.md).
    *   undefined  — clear; fall back to neutral.
    * Persisted on the SVG <g class="dag-node" data-step-name="..."> via
    * a `data-state` attribute that the stylesheet keys off.

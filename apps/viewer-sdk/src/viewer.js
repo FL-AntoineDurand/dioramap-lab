@@ -20,7 +20,9 @@
 //   - point-cloud-discs.viz (S5)
 //   - canopy.viz (S5)
 
-import { WSClient } from '@dioramap/protocol';
+import {
+  WSClient, errorFromRunFailed, errorFromServerError, errorFromDisconnect, errorFromWatchdog,
+} from '@dioramap/protocol';
 import { Viewer, MarineCompass } from '@dioramap/scene-base';
 import { createSceneState } from '@dioramap/scene-base/scene/scene-state';
 
@@ -36,6 +38,19 @@ import { mountControlsPanel } from './controls-panel.js';
 import { createModelsSystem } from './models/index.js';
 import { mountLoadingBar } from './loading-bar.js';
 import { mountAttribution } from './attribution.js';
+import { resolveLocale } from './error-messages.js';
+
+// Injected by vite.config.js (`define`); 'dev' when running from source.
+// eslint-disable-next-line no-undef
+const SDK_VERSION = typeof __DIORAMAP_SDK_VERSION__ !== 'undefined' ? __DIORAMAP_SDK_VERSION__ : 'dev';
+
+// No frame at all for this long while a run is active = stalled. Generous:
+// a cold run downloads ~100 MB LiDAR tiles inside one step, and the
+// processor only reports at step boundaries.
+const STALL_MS = 5 * 60 * 1000;
+// Processors < 0.3.0 send only ERROR (no RUN_FAILED) on step failure.
+// Wait this long for a RUN_FAILED before treating the ERROR as terminal.
+const LEGACY_ERROR_GRACE_MS = 1500;
 
 const PIPELINE = 'viewer-full';
 
@@ -87,7 +102,11 @@ const ORCHESTRATION = [
  * @param {number}      cfg.lat
  * @param {number}      cfg.lon
  * @param {number}      [cfg.radius=75]
- * @param {Function}    [cfg.onError]
+ * @param {Function}    [cfg.onError]          called once per failed run with a DioramapError
+ *                                             ({code, message, step, detail, runId, …, toReport()})
+ * @param {string}      [cfg.locale]           'fr' | 'en' (default: page / browser language)
+ * @param {string}      [cfg.issueRepo]        GitHub "owner/repo" for the Report button
+ * @param {boolean}     [cfg.reportIssues=true] show the Report on GitHub button
  * @param {Function}    [cfg.onModelSelected]
  * @param {Function}    [cfg.onModelMoved]
  * @param {Function}    [cfg.onModelDeselected]
@@ -97,7 +116,9 @@ export async function mountViewer(cfg) {
   const {
     container, backendUrl, lat, lon, radius = 75,
     onError, onModelSelected, onModelMoved, onModelDeselected,
+    locale: localeOpt, issueRepo, reportIssues = true,
   } = cfg;
+  const locale = resolveLocale(localeOpt);
 
   // ── Three.js scene ──────────────────────────────────────────────
   const sceneCtx = new Viewer(container, { targetRadius: radius });
@@ -122,7 +143,7 @@ export async function mountViewer(cfg) {
 
   // ── V7 loading bar — driven by RUN_STARTED / STEP_STARTED /
   //    STEP_COMPLETE / RUN_COMPLETE from the WSClient. ────────────
-  const loadingBar = mountLoadingBar(container);
+  const loadingBar = mountLoadingBar(container, { locale, issueRepo, reportIssues });
 
   // ── D5a attribution overlay — always-on bottom-right credit.
   // Initially shows just "Powered by dioramap.com"; the "Data: …" half
@@ -149,25 +170,73 @@ export async function mountViewer(cfg) {
 
   // ── WebSocket ──────────────────────────────────────────────────
   const ws = new WSClient(backendUrl);
+  const runInput = { lat, lon, radius_m: radius };
 
-  ws.addEventListener('state', (ev) => {
-    if (ev.detail.state === 'error' && onError) {
-      onError(new Error('viewer-sdk WS error'));
+  // Run lifecycle, for failure reporting (docs/ERRORS.md). Exactly one
+  // terminal outcome per run: RUN_COMPLETE, or fail() — whichever first.
+  const run = {
+    active: false, terminal: false, runId: null, everConnected: false,
+    stepsTotal: 0, stepsCompleted: 0, lastStep: null,
+    legacyTimer: null, kindsReady: false,
+  };
+  const errCtx = () => ({
+    runId: run.runId, pipeline: PIPELINE, input: runInput,
+    processorVersion: ws.processorVersion, clientVersion: `viewer-sdk ${SDK_VERSION}`,
+    backendUrl, everConnected: run.everConnected, lastStep: run.lastStep,
+    stepsCompleted: run.stepsCompleted, stepsTotal: run.stepsTotal,
+  });
+  const startRun = () => {
+    run.active = true; run.terminal = false; run.runId = null;
+    run.stepsTotal = 0; run.stepsCompleted = 0; run.lastStep = null;
+    ws.lastMessageAt = Date.now();
+    ws.run(PIPELINE, runInput, SUBSCRIBE_LIST);
+  };
+  const retry = () => {
+    if (ws.ws && ws.ws.readyState === WebSocket.OPEN && run.kindsReady) startRun();
+    else { run.active = true; run.terminal = false; ws.connect(); }
+  };
+  function fail(err) {
+    if (run.terminal) return;
+    run.terminal = true;
+    run.active = false;
+    clearTimeout(run.legacyTimer);
+    console.error('[viewer-sdk] run failed:', err.code, err.message, err.toReport());
+    loadingBar.onRunFailed(err, { onRetry: retry });
+    if (onError) {
+      try { onError(err); } catch (e) { console.error('[viewer-sdk] onError handler threw', e); }
+    }
+  }
+
+  ws.addEventListener('state', ({ detail }) => {
+    if (detail.state === 'connected') run.everConnected = true;
+    // 'error' is always followed by 'disconnected' (with the close code);
+    // report once, from there.
+    if (detail.state === 'disconnected' && (run.active || !run.everConnected) && !run.terminal) {
+      fail(errorFromDisconnect(detail, errCtx()));
     }
   });
+
+  // Stall watchdog.
+  const watchdog = setInterval(() => {
+    if (!run.active || run.terminal || !ws.lastMessageAt) return;
+    const idle = Date.now() - ws.lastMessageAt;
+    if (idle > STALL_MS) fail(errorFromWatchdog(idle, errCtx()));
+  }, 10_000);
 
   // Two-step handshake: SESSION_STARTED → CATALOG → CATALOG_RESPONSE → RUN.
   // We need the CATALOG response to know each artifact's kind for decoding.
   ws.addEventListener('session', () => {
+    run.active = true;
     ws.catalog(PIPELINE);
   });
   ws.addEventListener('catalog', ({ detail }) => {
     if (detail.pipeline !== PIPELINE) return;
     orchestration.setKinds(detail.artifacts ?? []);
+    run.kindsReady = true;
     // D5a: refresh the bottom-right credit overlay from the pipeline's
     // declared attributions[]. Idempotent — no DOM rewrite if unchanged.
     attribution.update(detail);
-    ws.run(PIPELINE, { lat, lon, radius_m: radius }, SUBSCRIBE_LIST);
+    startRun();
   });
 
   ws.addEventListener('artifact', ({ detail }) => {
@@ -220,9 +289,27 @@ export async function mountViewer(cfg) {
     orchestration.handleStreamChunk(detail);
   });
 
+  ws.addEventListener('run-failed', ({ detail }) => {
+    fail(errorFromRunFailed(detail, errCtx()));
+  });
+
   ws.addEventListener('error-msg', ({ detail }) => {
     console.warn('[viewer-sdk] server error:', detail);
-    if (onError) onError(new Error(detail.message ?? 'server error'));
+    const err = errorFromServerError(detail, errCtx());
+    if (detail.step) {
+      // Step failure. Processors ≥ 0.3.0 follow up with RUN_FAILED (full
+      // detail); older ones send nothing else — fall back to this ERROR.
+      clearTimeout(run.legacyTimer);
+      run.legacyTimer = setTimeout(() => fail(err), LEGACY_ERROR_GRACE_MS);
+    } else if (detail.code === 'ARTIFACT_MISSING') {
+      // One artifact could not be shipped; the run itself goes on.
+    } else if (err.code === 'CANCELLED') {
+      // We cancel on dispose(); processors ≥ 0.3.0 also send RUN_FAILED.
+    } else if (run.active) {
+      // Request-level rejection (AUTH_*, BAD_RUN, UNKNOWN_PIPELINE,
+      // RUN_BUSY, FORBIDDEN_ARTIFACT…): the run will not happen.
+      fail(err);
+    }
   });
 
   // Loading-bar event hooks. Fire after the orchestration's own
@@ -231,9 +318,23 @@ export async function mountViewer(cfg) {
   ws.addEventListener('run-started', ({ detail }) => {
     loadingBar.onRunStarted(detail);
   });
-  ws.addEventListener('step-started', ({ detail }) => loadingBar.onStepStarted(detail));
-  ws.addEventListener('step-complete', ({ detail }) => loadingBar.onStepComplete(detail));
+  ws.addEventListener('run-started', ({ detail }) => {
+    run.runId = detail.run_id ?? null;
+    run.stepsTotal = detail.step_plan?.length ?? 0;
+  });
+  ws.addEventListener('step-started', ({ detail }) => {
+    run.lastStep = detail.step ?? null;
+    loadingBar.onStepStarted(detail);
+  });
+  ws.addEventListener('step-complete', ({ detail }) => {
+    run.stepsCompleted += 1;
+    loadingBar.onStepComplete(detail);
+  });
   ws.addEventListener('run-complete', () => {
+    if (run.terminal) return;
+    run.terminal = true;
+    run.active = false;
+    clearTimeout(run.legacyTimer);
     loadingBar.onRunComplete();
   });
 
@@ -246,6 +347,11 @@ export async function mountViewer(cfg) {
     orchestration,
     models,
     dispose() {
+      // Disposal is not a failure: silence the terminal-failure path.
+      run.terminal = true;
+      run.active = false;
+      clearInterval(watchdog);
+      clearTimeout(run.legacyTimer);
       try { ws.cancel(); } catch { /* WS may already be closed */ }
       try { ws.ws?.close(); } catch { /* idem */ }
       orchestration.dispose();

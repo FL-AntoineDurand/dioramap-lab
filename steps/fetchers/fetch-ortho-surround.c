@@ -39,16 +39,16 @@ static int exec_fn(step_context_t* ctx) {
     size_t in_len = 0;
     const char* in_bytes = (const char*)step_read(ctx, "canonical-location", &in_len);
     if (!in_bytes || in_len == 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "input artifact canonical-location is missing");
     json_error_t je;
     json_t* input = json_loadb(in_bytes, in_len, 0, &je);
     if (!input)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location is not valid JSON: %s", je.text);
     json_t* j_cx = json_object_get(input, "center_l93_x");
     json_t* j_cy = json_object_get(input, "center_l93_y");
     if (!json_is_number(j_cx) || !json_is_number(j_cy)) {
         json_decref(input);
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location has no center_l93_x/y");
     }
     double cx = json_number_value(j_cx);
     double cy = json_number_value(j_cy);
@@ -64,7 +64,8 @@ static int exec_fn(step_context_t* ctx) {
         if (params) {
             json_t* j_size = json_object_get(params, "size_px");
             if (json_int_or_default(j_size, 1, 16384, "size_px", &size_px) != 0) {
-                json_decref(params); return -1;
+                json_decref(params);
+                return step_fail(ctx, V3_ERR_INVALID_INPUT, "param size_px must be an integer in [1, 16384]");
             }
             json_t* j_radius = json_object_get(params, "radius_m");
             if (json_is_number(j_radius)) {
@@ -88,15 +89,22 @@ static int exec_fn(step_context_t* ctx) {
                      "&BBOX=%.3f,%.3f,%.3f,%.3f&WIDTH=%d&HEIGHT=%d&FORMAT=image/jpeg",
                      layer, bbox[0], bbox[1], bbox[2], bbox[3], size_px, size_px);
     if (n < 0 || (size_t)n >= sizeof(url))
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "request URL does not fit in %zu bytes", sizeof(url));
 
     fetch_client_t* client = fetchers_shared_client();
     if (!client)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "HTTP client not initialised");
     fetch_response_t resp;
     if (fetch_get(client, url, &resp) != 0) {
         free(resp.body);
-        return -1;
+        return step_fail(ctx, V3_ERR_UPSTREAM_HTTP,
+                         "IGN surrounding orthophoto WMS request (layer %s) failed", layer);
+    }
+    if (!fetchers_is_jpeg(resp.body, resp.body_len)) {
+        int frc = fetchers_fail_bad_body(ctx, "IGN surrounding orthophoto WMS", url, resp.body,
+                                         resp.body_len, "a JPEG image");
+        free(resp.body);
+        return frc;
     }
     int rc = step_write_output(ctx, "ortho-surround-jpeg", resp.body, resp.body_len);
     free(resp.body);

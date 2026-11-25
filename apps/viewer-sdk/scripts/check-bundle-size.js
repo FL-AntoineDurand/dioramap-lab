@@ -3,9 +3,9 @@
 // Bundle-size guard for the SDK production build.
 //
 // Asserts:
-//   1. dist/dioramap-viewer.js exists.
-//   2. raw size <= RAW_LIMIT.
-//   3. gzipped size <= GZ_LIMIT.
+//   1. dist/dioramap-viewer.{umd,es}.js exist (names set in vite.config.js).
+//   2. raw size <= RAW_LIMIT      (UMD only: the CDN <script> bundle. The ES
+//   3. gzipped size <= GZ_LIMIT   build is unminified; the embedder's bundler minifies it.)
 //   4. the closed-allow-list invariant (PLAN-VIEWER-SDK-PORT §5.8) — the
 //      SDK should NOT pull in viz modules it doesn't explicitly import.
 //      We check for source-level markers of the EXCLUDED composers
@@ -27,7 +27,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BUNDLE = resolve(__dirname, '..', 'dist', 'dioramap-viewer.js');
+const BUNDLES = ['umd', 'es'].map((f) => resolve(__dirname, '..', 'dist', `dioramap-viewer.${f}.js`));
 
 // Budget — set comfortably above today's size, tightened at each release.
 // Raw budget is generous because UMD wrapping is verbose. Gzip is the
@@ -46,41 +46,43 @@ const EXCLUDED_MARKERS = [
 
 let failed = false;
 
-if (!existsSync(BUNDLE)) {
-  console.error(`✗ ${BUNDLE} does not exist — run \`npm run build\` first.`);
-  process.exit(1);
-}
+for (const BUNDLE of BUNDLES) {
+  if (!existsSync(BUNDLE)) {
+    console.error(`✗ ${BUNDLE} does not exist — run \`npm run build\` first.`);
+    process.exit(1);
+  }
 
-const raw = readFileSync(BUNDLE);
-const gz = gzipSync(raw);
+  const raw = readFileSync(BUNDLE);
+  const rawSize = statSync(BUNDLE).size;
+  const gzSize = gzipSync(raw).length;
 
-const rawSize = statSync(BUNDLE).size;
-const gzSize = gz.length;
+  console.log(`bundle: ${BUNDLE}`);
+  const lim = (n) => (BUNDLE.endsWith('.umd.js') ? ` / limit ${n.toLocaleString()}` : ' (not budgeted)');
+  console.log(`  raw   ${rawSize.toLocaleString()} bytes${lim(RAW_LIMIT)}`);
+  console.log(`  gzip  ${gzSize.toLocaleString()} bytes${lim(GZ_LIMIT)}`);
 
-console.log(`bundle: ${BUNDLE}`);
-console.log(`  raw   ${rawSize.toLocaleString()} bytes  / limit ${RAW_LIMIT.toLocaleString()}`);
-console.log(`  gzip  ${gzSize.toLocaleString()} bytes  / limit ${GZ_LIMIT.toLocaleString()}`);
-
-if (rawSize > RAW_LIMIT) {
-  console.error(`✗ raw bundle size (${rawSize}) exceeds limit (${RAW_LIMIT}).`);
-  failed = true;
-}
-if (gzSize > GZ_LIMIT) {
-  console.error(`✗ gzipped bundle size (${gzSize}) exceeds limit (${GZ_LIMIT}).`);
-  failed = true;
-}
-
-const text = raw.toString('utf8');
-for (const marker of EXCLUDED_MARKERS) {
-  if (text.includes(marker)) {
-    console.error(
-      `✗ excluded composer leaked into bundle — found marker '${marker}'.\n` +
-      `  This means an import is transitively pulling in a viz module the SDK\n` +
-      `  is supposed to skip (PLAN-VIEWER-SDK-PORT §5.8). Likely cause: someone\n` +
-      `  imported '@dioramap/scene-base/viz' (the index) instead of a specific\n` +
-      `  viz path, OR a new file imports the index transitively.`
-    );
+  const sized = BUNDLE.endsWith('.umd.js');
+  if (sized && rawSize > RAW_LIMIT) {
+    console.error(`✗ raw bundle size (${rawSize}) exceeds limit (${RAW_LIMIT}).`);
     failed = true;
+  }
+  if (sized && gzSize > GZ_LIMIT) {
+    console.error(`✗ gzipped bundle size (${gzSize}) exceeds limit (${GZ_LIMIT}).`);
+    failed = true;
+  }
+
+  const text = raw.toString('utf8');
+  for (const marker of EXCLUDED_MARKERS) {
+    if (text.includes(marker)) {
+      console.error(
+        `✗ excluded composer leaked into ${BUNDLE} — found marker '${marker}'.\n` +
+        `  This means an import is transitively pulling in a viz module the SDK\n` +
+        `  is supposed to skip (PLAN-VIEWER-SDK-PORT §5.8). Likely cause: someone\n` +
+        `  imported '@dioramap/scene-base/viz' (the index) instead of a specific\n` +
+        `  viz path, OR a new file imports the index transitively.`
+      );
+      failed = true;
+    }
   }
 }
 

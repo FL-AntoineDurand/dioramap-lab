@@ -12,7 +12,10 @@
 #include <string.h>
 #include <time.h>
 
+#include <jansson.h>
+
 #include "v3/cached_compute.h"
+#include "v3/error.h"
 #include "v3/log.h"
 #include "v3/thread_pool.h"
 
@@ -56,6 +59,13 @@ typedef struct run_state {
     bool cancel;           // set on first failure; blocks new task submissions
     bool cancel_external;  // set by runner_cancel(); distinguishes cancel-from-outside
     int run_rc;            // 0 on success, -1 on any step failure or external cancel
+
+    // First failure of the run (docs/ERRORS.md). Guarded by lock; set once.
+    bool has_failure;
+    v3_error_code_t fail_code;
+    char fail_msg[V3_ERROR_MSG_MAX + 160];
+    const char* fail_step_token; // borrowed from step_def_t (static storage)
+    char* fail_detail;           // owned JSON object text, or NULL
 } run_state_t;
 
 struct runner {
@@ -1119,6 +1129,9 @@ static int body_trampoline(void* vctx, uint8_t** out_bytes, size_t* out_len) {
     // Every declared write must have been produced.
     for (size_t i = 0; i < def->n_writes; i++) {
         if (!slots[i].populated) {
+            v3_error_set_step(V3_ERR_INTERNAL, NULL,
+                              "step returned success but did not produce its declared output '%s'",
+                              def->writes[i].name);
             free(slots);
             return -1;
         }
@@ -1286,6 +1299,151 @@ static int execute_step(runner_t* r, run_state_t* rs, size_t step_idx, bool* out
     return -1;
 }
 
+// ----------------------------------------------------------------------------
+// Failure reports (docs/ERRORS.md)
+// ----------------------------------------------------------------------------
+
+int step_fail(step_context_t* ctx, v3_error_code_t code, const char* fmt, ...) {
+    (void)ctx;
+    va_list ap;
+    va_start(ap, fmt);
+    v3_error_set_stepv(code, NULL, fmt, ap);
+    va_end(ap);
+    return -1;
+}
+
+int step_fail_detail(step_context_t* ctx, v3_error_code_t code, const char* detail_json,
+                     const char* fmt, ...) {
+    (void)ctx;
+    va_list ap;
+    va_start(ap, fmt);
+    v3_error_set_stepv(code, detail_json, fmt, ap);
+    va_end(ap);
+    return -1;
+}
+
+static json_t* parse_detail_object(const char* txt) {
+    if (!txt) {
+        return NULL;
+    }
+    json_error_t je;
+    json_t* j = json_loads(txt, 0, &je);
+    if (j && !json_is_object(j)) {
+        json_t* wrap = json_object();
+        if (wrap) {
+            json_object_set_new(wrap, "value", j);
+        } else {
+            json_decref(j);
+        }
+        return wrap;
+    }
+    if (!j) {
+        json_t* wrap = json_object();
+        if (wrap) {
+            json_object_set_new(wrap, "raw", json_string(txt));
+        }
+        return wrap;
+    }
+    return j;
+}
+
+// Combine the step's own reason and the upstream evidence recorded by the
+// fetch layer into one report. Writes code + message into the out params
+// and returns an owned JSON detail string (or NULL).
+static char* compose_step_failure(const step_def_t* def, const v3_error_sink_t* sink,
+                                  uint64_t duration_us, v3_error_code_t* out_code,
+                                  char* out_msg, size_t out_msg_sz) {
+    const char* friendly = def->name;
+    const v3_error_slot_t* st = &sink->step;
+    const v3_error_slot_t* up = &sink->upstream;
+    bool has_step = st->code != V3_ERR_NONE;
+    bool has_up = up->code != V3_ERR_NONE;
+
+    if (has_step) {
+        *out_code = st->code;
+        const char* m = st->message[0] ? st->message : "step failed";
+        bool upstream_kind = st->code == V3_ERR_UPSTREAM_HTTP ||
+                             st->code == V3_ERR_UPSTREAM_UNREACHABLE ||
+                             st->code == V3_ERR_TIMEOUT;
+        // A step that says "the request failed" (UPSTREAM_*) cannot know
+        // whether it was an HTTP error, a refused connection or a timeout;
+        // the fetch layer does. Its code is the more precise one.
+        if (has_up && upstream_kind) {
+            *out_code = up->code;
+        }
+        if (has_up && upstream_kind && up->message[0] && !strstr(m, up->message)) {
+            snprintf(out_msg, out_msg_sz, "%s: %s", m, up->message);
+        } else {
+            snprintf(out_msg, out_msg_sz, "%s", m);
+        }
+    } else if (has_up) {
+        *out_code = up->code;
+        snprintf(out_msg, out_msg_sz, "%s: %s", friendly,
+                 up->message[0] ? up->message : "upstream request failed");
+    } else {
+        *out_code = V3_ERR_INTERNAL;
+        snprintf(out_msg, out_msg_sz,
+                 "%s failed without reporting a reason (bare return -1; see the "
+                 "processor log for this run)", friendly);
+    }
+
+    json_t* d = has_step ? parse_detail_object(st->detail_json) : NULL;
+    if (!d) {
+        d = json_object();
+    }
+    if (!d) {
+        return NULL;
+    }
+    json_object_set_new(d, "step_version", json_integer((json_int_t)def->version));
+    json_object_set_new(d, "step_duration_ms", json_real((double)duration_us / 1000.0));
+    if (has_up) {
+        json_t* u = parse_detail_object(up->detail_json);
+        if (!u) {
+            u = json_object();
+        }
+        if (u) {
+            json_object_set_new(u, "code", json_string(v3_error_code_name(up->code)));
+            json_object_set_new(u, "message", json_string(up->message));
+            json_object_set_new(d, "upstream", u);
+        }
+    }
+    char* txt = json_dumps(d, JSON_COMPACT | JSON_REAL_PRECISION(12));
+    json_decref(d);
+    return txt;
+}
+
+// Caller must hold rs->lock. First failure wins; ownership of `detail`
+// passes to rs (freed here if a failure is already recorded).
+static void record_run_failure_locked(run_state_t* rs, v3_error_code_t code, const char* msg,
+                                      const char* step_token, char* detail) {
+    if (rs->has_failure) {
+        free(detail);
+        return;
+    }
+    rs->has_failure = true;
+    rs->fail_code = code;
+    snprintf(rs->fail_msg, sizeof(rs->fail_msg), "%s", msg ? msg : "");
+    rs->fail_step_token = step_token;
+    rs->fail_detail = detail;
+}
+
+static void emit_run_failed(const runner_callbacks_t* cb, const char* run_id,
+                            v3_error_code_t code, const char* msg, const char* step_token,
+                            const char* detail, uint64_t duration_us) {
+    if (!cb || !cb->on_run_failed) {
+        return;
+    }
+    v3_failure_t f = {
+        .code = code,
+        .code_name = v3_error_code_name(code),
+        .message = msg ? msg : "",
+        .step = step_token ? step_token : NULL,
+        .step_token = step_token,
+        .detail_json = detail,
+    };
+    cb->on_run_failed(cb->ctx, run_id, &f, duration_us);
+}
+
 // Forward decl — the worker submits successors by calling back into the pool.
 static void step_task_fn(void* arg);
 
@@ -1342,16 +1500,28 @@ static void step_task_fn(void* arg) {
 
     uint64_t t_start = now_us();
     bool cache_hit = false;
+    v3_error_sink_t sink = {0};
+    v3_error_sink_t* prev_sink = v3_error_bind(&sink);
     int rc = execute_step(r, rs, step_idx, &cache_hit);
+    v3_error_bind(prev_sink);
     uint64_t dt = now_us() - t_start;
 
     if (rc != 0) {
+        v3_error_code_t code = V3_ERR_INTERNAL;
+        char msg[V3_ERROR_MSG_MAX + 128];
+        char* detail = compose_step_failure(def, &sink, dt, &code, msg, sizeof(msg));
+        v3_error_sink_clear(&sink);
         LOG_EVENT(SUB_RUNNER, LOG_ERROR, EV_RUNNER_STEP_FAILED, LF_RUN_ID(rs->run_id),
-                  LF_STEP(def->name), LF_UINT("duration_us", dt));
+                  LF_STEP(def->name), LF_STR("step_name", def->name),
+                  LF_UINT("duration_us", dt), LF_STR("code", v3_error_code_name(code)),
+                  LF_STR("msg", msg), LF_STR("detail", detail ? detail : ""));
         if (cb && cb->on_error) {
-            cb->on_error(cb->ctx, rs->run_id, def->name, "step failed");
+            char line[sizeof(msg) + 32];
+            snprintf(line, sizeof(line), "[%s] %s", v3_error_code_name(code), msg);
+            cb->on_error(cb->ctx, rs->run_id, def->name, line);
         }
         pthread_mutex_lock(&rs->lock);
+        record_run_failure_locked(rs, code, msg, def->name, detail);
         rs->cancel = true;
         rs->run_rc = -1;
         rs->n_pending--;
@@ -1360,6 +1530,10 @@ static void step_task_fn(void* arg) {
         free(t);
         return;
     }
+
+    // Success: a step may have tolerated an upstream failure (optional
+    // fetch); drop that evidence.
+    v3_error_sink_clear(&sink);
 
     // Success. Under lock: bookkeep + decrement successors + collect ready.
     // IMPORTANT: do not decrement rs->n_pending yet. Main blocks on n_pending
@@ -1546,6 +1720,8 @@ int runner_run(runner_t* r, const pipeline_t* pipeline, const void* input_bytes,
             if (callbacks && callbacks->on_error) {
                 callbacks->on_error(callbacks->ctx, rs.run_id, NULL, "OOM on pipeline-input copy");
             }
+            emit_run_failed(callbacks, rs.run_id, V3_ERR_INTERNAL,
+                            "out of memory copying the pipeline input", NULL, NULL, 0);
             pthread_cond_destroy(&rs.done_cv);
             pthread_mutex_destroy(&rs.lock);
             return -1;
@@ -1556,6 +1732,9 @@ int runner_run(runner_t* r, const pipeline_t* pipeline, const void* input_bytes,
         if (callbacks && callbacks->on_error) {
             callbacks->on_error(callbacks->ctx, rs.run_id, NULL, "failed to store pipeline-input");
         }
+        emit_run_failed(callbacks, rs.run_id, V3_ERR_INTERNAL,
+                        "failed to store the pipeline input (disk full or cache directory not "
+                        "writable?)", NULL, NULL, 0);
         pthread_cond_destroy(&rs.done_cv);
         pthread_mutex_destroy(&rs.lock);
         return -1;
@@ -1578,6 +1757,14 @@ int runner_run(runner_t* r, const pipeline_t* pipeline, const void* input_bytes,
                   LF_STR("reason", "dag walk / topo sort failed"));
         if (callbacks && callbacks->on_error) {
             callbacks->on_error(callbacks->ctx, rs.run_id, NULL, "dag walk / topo sort failed");
+        }
+        {
+            char m[256];
+            snprintf(m, sizeof(m),
+                     "cannot plan the run: a subscribed artifact is not produced by pipeline "
+                     "'%s', or the pipeline has a dependency cycle",
+                     pipeline_name(pipeline));
+            emit_run_failed(callbacks, rs.run_id, V3_ERR_INVALID_INPUT, m, NULL, NULL, 0);
         }
         for (size_t i = 0; i < rs.n_artifacts; i++) {
             free(rs.artifacts[i].name);
@@ -1662,6 +1849,14 @@ int runner_run(runner_t* r, const pipeline_t* pipeline, const void* input_bytes,
     bool was_cancelled_external = rs.cancel_external;
     size_t executed = rs.n_executed;
     size_t cache_hits = rs.n_cache_hits;
+    if (final_rc != 0 && !rs.has_failure) {
+        // No step reported: external cancel, or a scheduling failure.
+        record_run_failure_locked(
+            &rs, was_cancelled_external ? V3_ERR_CANCELLED : V3_ERR_INTERNAL,
+            was_cancelled_external ? "run cancelled (client request or disconnect)"
+                                   : "run aborted while scheduling steps (out of memory?)",
+            NULL, NULL);
+    }
     pthread_mutex_unlock(&rs.lock);
     free(initial_ready);
 
@@ -1680,10 +1875,15 @@ int runner_run(runner_t* r, const pipeline_t* pipeline, const void* input_bytes,
     } else {
         LOG_EVENT(SUB_RUNNER, LOG_ERROR, EV_RUNNER_RUN_FAILED, LF_RUN_ID(rs.run_id),
                   LF_STR("pipeline", pipeline_name(pipeline)), LF_UINT("duration_us", total_dt),
-                  LF_BOOL("external_cancel", was_cancelled_external));
+                  LF_BOOL("external_cancel", was_cancelled_external),
+                  LF_STR("code", v3_error_code_name(rs.fail_code)),
+                  LF_STR("step", rs.fail_step_token ? rs.fail_step_token : ""),
+                  LF_STR("msg", rs.fail_msg));
         if (was_cancelled_external && callbacks && callbacks->on_error) {
             callbacks->on_error(callbacks->ctx, rs.run_id, NULL, "cancelled");
         }
+        emit_run_failed(callbacks, rs.run_id, rs.fail_code, rs.fail_msg, rs.fail_step_token,
+                        rs.fail_detail, total_dt);
     }
 
     int run_rc = final_rc;
@@ -1691,6 +1891,9 @@ int runner_run(runner_t* r, const pipeline_t* pipeline, const void* input_bytes,
 
 cleanup_fail:
     run_rc = -1;
+    emit_run_failed(callbacks, rs.run_id, V3_ERR_INTERNAL,
+                    "run aborted before start (out of memory building the step graph)", NULL,
+                    NULL, now_us() - t_run_start);
 cleanup_ok:
     // Single teardown path for both success and post-DAG-build failure.
     // Invariant by the time we reach here:
@@ -1720,6 +1923,7 @@ cleanup_ok:
     }
     free(rs.successors);
     free(rs.n_successors);
+    free(rs.fail_detail);
     pthread_cond_destroy(&rs.done_cv);
     pthread_mutex_destroy(&rs.lock);
     return run_rc;

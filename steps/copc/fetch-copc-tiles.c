@@ -34,38 +34,41 @@ static int exec_fn(step_context_t* ctx) {
 
     fetch_client_t* client = fetchers_shared_client();
     if (!client)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "HTTP client not initialised");
     store_t* store = step_runner_store(ctx);
     intent_map_t* im = step_runner_intent_map(ctx);
 
     hash_t* element_hashes = calloc(n, sizeof(hash_t));
     if (!element_hashes)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "out of memory");
 
     int rc = 0;
     for (size_t i = 0; i < n; i++) {
         const uint8_t* item_bytes = NULL;
         size_t item_len = 0;
         if (step_array_read_bytes(ctx, "copc-tile-urls", i, &item_bytes, &item_len) != 0) {
-            rc = -1;
+            rc = step_fail(ctx, V3_ERR_INTERNAL, "cannot read copc-tile-urls[%zu]", i);
             break;
         }
         // Item is a JSON object {"url": "...", "name": "..."}.
         json_error_t je;
         json_t* obj = json_loadb((const char*)item_bytes, item_len, 0, &je);
         if (!obj) {
-            rc = -1;
+            rc = step_fail(ctx, V3_ERR_INTERNAL, "copc-tile-urls[%zu] is not JSON: %s", i, je.text);
             break;
         }
         const char* url = json_string_value(json_object_get(obj, "url"));
         if (!url) {
             json_decref(obj);
-            rc = -1;
+            rc = step_fail(ctx, V3_ERR_INTERNAL, "copc-tile-urls[%zu] has no url", i);
             break;
         }
         if (fetch_and_cache(client, store, im, url, &element_hashes[i]) != 0) {
+            const char* nm = json_string_value(json_object_get(obj, "name"));
+            rc = step_fail(ctx, V3_ERR_UPSTREAM_HTTP,
+                           "download of IGN LiDAR HD tile %s (%zu of %zu) failed",
+                           nm ? nm : url, i + 1, n);
             json_decref(obj);
-            rc = -1;
             break;
         }
         json_decref(obj);

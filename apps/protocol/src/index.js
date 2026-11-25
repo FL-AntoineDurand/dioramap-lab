@@ -9,3 +9,8 @@
 
 export { WSClient } from './ws-client.js';
 export { AK, decodeArtifact } from './artifact-decoder.js';
+export {
+  DioramapError, DEFAULT_ISSUE_REPO,
+  errorFromRunFailed, errorFromServerError, errorFromDisconnect, errorFromWatchdog,
+  formatReport, issueUrl,
+} from './errors.js';

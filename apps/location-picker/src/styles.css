@@ -91,6 +91,13 @@
 .dioramap-picker-search-item:hover {
   background: var(--dioramap-picker-hover-bg);
 }
+.dioramap-picker-search-item.is-message,
+.dioramap-picker-search-item.is-message:hover {
+  cursor: default;
+  background: var(--dioramap-picker-surface-bg);
+  opacity: 0.75;
+  font-style: italic;
+}
 
 /* ── Confirm marker (next to picked point) ─────────────────────────── */
 .dioramap-picker-confirm-wrap {

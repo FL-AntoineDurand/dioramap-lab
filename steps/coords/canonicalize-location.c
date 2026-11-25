@@ -38,19 +38,26 @@ static int exec_fn(step_context_t* ctx) {
     size_t in_len = 0;
     const char* in_bytes = (const char*)step_read(ctx, PIPELINE_INPUT_ARTIFACT, &in_len);
     if (!in_bytes || in_len == 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_INVALID_INPUT, "RUN input is empty: expected {\"lat\":…,\"lon\":…}");
     json_error_t je;
     json_t* input = json_loadb(in_bytes, in_len, 0, &je);
     if (!input)
-        return -1;
+        return step_fail(ctx, V3_ERR_INVALID_INPUT, "RUN input is not valid JSON (line %d: %s)",
+                         je.line, je.text);
     json_t* j_lat = json_object_get(input, "lat");
     json_t* j_lon = json_object_get(input, "lon");
-    if (!j_lat || !j_lon) {
+    if (!json_is_number(j_lat) || !json_is_number(j_lon)) {
         json_decref(input);
-        return -1;
+        return step_fail(ctx, V3_ERR_INVALID_INPUT,
+                         "RUN input needs numeric \"lat\" and \"lon\" (WGS84 degrees)");
     }
     double lat = json_number_value(j_lat);
     double lon = json_number_value(j_lon);
+    if (!isfinite(lat) || !isfinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        json_decref(input);
+        return step_fail(ctx, V3_ERR_INVALID_INPUT,
+                         "lat/lon out of range: lat=%g lon=%g (expected WGS84 degrees)", lat, lon);
+    }
     double raw_radius = 75.0;
     json_t* j_rad = json_object_get(input, "radius_m");
     if (j_rad)
@@ -70,7 +77,9 @@ static int exec_fn(step_context_t* ctx) {
         if (params) {
             json_t* j_cell = json_object_get(params, "cell_size_m");
             if (json_int_or_default(j_cell, 1, 16384, "cell_size_m", &cell_size) != 0) {
-                json_decref(params); return -1;
+                json_decref(params);
+                return step_fail(ctx, V3_ERR_INVALID_INPUT,
+                                 "param cell_size_m must be an integer in [1, 16384]");
             }
             json_t* j_buckets = json_object_get(params, "radius_buckets");
             if (json_is_array(j_buckets) && json_array_size(j_buckets) > 0) {
@@ -82,7 +91,10 @@ static int exec_fn(step_context_t* ctx) {
                         if (json_int_or_default(je_b, 0, 65535, "radius_buckets[i]",
                                                  &alloced_buckets[i]) != 0) {
                             free(alloced_buckets);
-                            json_decref(params); return -1;
+                            json_decref(params);
+                            return step_fail(ctx, V3_ERR_INVALID_INPUT,
+                                             "param radius_buckets[%zu] must be an integer in "
+                                             "[0, 65535]", i);
                         }
                     }
                     qsort(alloced_buckets, nb, sizeof(int), cmp_int);
@@ -98,7 +110,9 @@ static int exec_fn(step_context_t* ctx) {
     double cx, cy;
     if (wgs84_to_l93(lon, lat, &cx, &cy) != 0) {
         free(alloced_buckets);
-        return -1;
+        return step_fail(ctx, V3_ERR_INVALID_INPUT,
+                         "cannot project lat=%.6f lon=%.6f to Lambert-93 (EPSG:2154); the "
+                         "engine covers metropolitan France", lat, lon);
     }
 
     // Quantize center to a `cell_size`-metre grid; anchor to centre-of-cell so
@@ -119,7 +133,8 @@ static int exec_fn(step_context_t* ctx) {
     // Inverse: quantized L93 back to WGS84 for human-readable output.
     double q_lon, q_lat;
     if (l93_to_wgs84(q_cx, q_cy, &q_lon, &q_lat) != 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "Lambert-93 → WGS84 inverse projection failed "
+                         "for x=%.1f y=%.1f (PROJ setup?)", q_cx, q_cy);
 
     char buf[1024];
     int n = snprintf(buf, sizeof(buf),

@@ -254,6 +254,18 @@ static void cb_error(void* vctx, const char* run_id, const char* step, const cha
     incr_error(bc);
 }
 
+static void cb_run_failed(void* vctx, const char* run_id, const v3_failure_t* f,
+                          uint64_t dt_us) {
+    (void)vctx;
+    fprintf(stderr, "[batch] RUN FAILED %s after %.2f ms\n"
+                    "  code:   %s\n"
+                    "  step:   %s\n"
+                    "  msg:    %s\n"
+                    "  detail: %s\n",
+            run_id, dt_us / 1000.0, f->code_name, f->step ? f->step : "(run-level)",
+            f->message, f->detail_json ? f->detail_json : "{}");
+}
+
 void batch_ctx_install_callbacks(batch_ctx_t* bc, runner_callbacks_t* cb) {
     if (!bc || !cb) return;
     *cb = (runner_callbacks_t){
@@ -263,5 +275,6 @@ void batch_ctx_install_callbacks(batch_ctx_t* bc, runner_callbacks_t* cb) {
         .on_artifact_ready = cb_artifact_ready,
         .on_run_complete   = cb_run_complete,
         .on_error          = cb_error,
+        .on_run_failed     = cb_run_failed,
     };
 }

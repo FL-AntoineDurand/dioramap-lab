@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>   // brings in Frama-C's ACSL logic for valid_read_string
 
+#include "v3/error.h"
 #include "v3/hash.h"
 #include "v3/intent_map.h"
 #include "v3/store.h"
@@ -174,6 +175,19 @@ int step_write_output_owned(step_context_t* ctx, const char* name, uint8_t* byte
 */
 int step_write_output_stream(step_context_t* ctx, const char* name, const void* bytes, size_t len,
                              bool final);
+
+// Report WHY the step is failing (docs/ERRORS.md). Always returns -1 so a
+// step can write `return step_fail(ctx, V3_ERR_NO_DATA, "...", ...);`.
+// The message is free text shown to end users and developers — say what
+// was expected, what was found, and the key input (coordinates, URL host,
+// counts). Use step_fail_detail to attach a JSON object with structured
+// evidence. An HTTP failure inside fetch_get/fetch_and_cache is recorded
+// automatically and attached as detail.upstream; the step does not need to
+// forward it.
+int step_fail(step_context_t* ctx, v3_error_code_t code, const char* fmt, ...)
+    __attribute__((format(printf, 3, 4)));
+int step_fail_detail(step_context_t* ctx, v3_error_code_t code, const char* detail_json,
+                     const char* fmt, ...) __attribute__((format(printf, 4, 5)));
 
 // Get the step's params JSON string. May be NULL if not set.
 /*@ requires \valid(ctx);

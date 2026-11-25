@@ -82,6 +82,13 @@ export class LogPanel {
       tag: 'invalidate',
       text: `INVALIDATED ${d.artifact} (step=${d.step}) prev=${short(d.previous_manifest_hash)}`,
     }));
+    // RUN_FAILED (docs/ERRORS.md): one line + the full structured detail,
+    // so the upstream URL / HTTP status / response excerpt are right here.
+    on('run-failed',     (d) => ({
+      tag: 'error',
+      text: `RUN_FAILED ${d.code} step=${d.step ?? '(run)'} ${d.msg ?? ''}` +
+            (d.detail ? `\n    detail ${JSON.stringify(d.detail, null, 2).replace(/\n/g, '\n    ')}` : ''),
+    }));
     on('error-msg',      (d) => ({
       tag: 'error',
       text: `ERROR code=${d.code ?? '?'} step=${d.step ?? ''} ${d.msg ?? ''}`,

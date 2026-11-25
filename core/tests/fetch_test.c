@@ -22,7 +22,32 @@ static void check(int cond, const char* msg) {
     }
 }
 
+// docs/ERRORS.md: the exception text of IGN's two OGC error shapes (real
+// responses from data.geopf.fr, 2026-11-24) ends up in the failure message.
+static void test_ogc_exception_text(void) {
+    const char* wfs =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ows:ExceptionReport version=\"2.0.0\">\n"
+        "  <ows:Exception exceptionCode=\"InvalidParameterValue\" locator=\"namespace\">\n"
+        "    <ows:ExceptionText>Unknown namespace [IGNF_NUAGES-DE-POINTS-LIDAR-HD]</ows:ExceptionText>\n"
+        "  </ows:Exception>\n</ows:ExceptionReport>";
+    const char* wms =
+        "<ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\">"
+        "<ServiceException code=\"LayerNotDefined\">Layer X unknown</ServiceException>"
+        "</ServiceExceptionReport>";
+    char out[128];
+    fetch_ogc_exception_text(wfs, strlen(wfs), out, sizeof(out));
+    check(strcmp(out, "Unknown namespace [IGNF_NUAGES-DE-POINTS-LIDAR-HD]") == 0, out);
+    fetch_ogc_exception_text(wms, strlen(wms), out, sizeof(out));
+    check(strcmp(out, "Layer X unknown") == 0, out);
+    fetch_ogc_exception_text("\xff\xd8\xff\xe0 jpeg", 8, out, sizeof(out));
+    check(out[0] == '\0', "no exception text in a JPEG");
+    char tiny[6];
+    fetch_ogc_exception_text(wms, strlen(wms), tiny, sizeof(tiny));
+    check(strcmp(tiny, "Layer") == 0, "truncates to the buffer");
+}
+
 int main(void) {
+    test_ogc_exception_text();
     const char* base = getenv("TEST_URL");
     const char* cache_dir = getenv("TEST_CACHE_DIR");
     check(base != NULL && cache_dir != NULL, "TEST_URL + TEST_CACHE_DIR required");
@@ -93,6 +118,16 @@ int main(void) {
     intent_map_stats_t im_stats;
     intent_map_get_stats(im, &im_stats);
     check(im_stats.live_entries >= 2, "intent map recorded both URLs");
+
+    // 7. fetch_cache_forget: the next fetch_and_cache goes back to the
+    //    network (an empty IGN tile index must not stick after IGN publishes).
+    check(fetch_cache_forget(im, url_a) == 0, "fetch_cache_forget");
+    check(fetch_cache_forget(im, url_a) == 0, "forget twice is fine");
+    hash_t h4;
+    check(fetch_and_cache(c, store, im, url_a, &h4) == 0, "fetch_and_cache after forget");
+    fetch_client_get_stats(c, &stats);
+    check(stats.cache_misses == 3, "forgotten URL is a miss again");
+    check(hash_eq(&h1, &h4), "same bytes → same content hash");
 
     intent_map_close(im);
     store_close(store);

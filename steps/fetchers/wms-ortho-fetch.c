@@ -22,7 +22,8 @@ int wms_ortho_fetch_exec(step_context_t* ctx,
                          const char* output_artifact)
 {
     double bbox[4];
-    if (step_read_bbox_l93(ctx, bbox) != 0) return -1;
+    if (step_read_bbox_l93(ctx, bbox) != 0)
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location missing or has no bbox_l93");
 
     int size_px = 2048;
     const char* layer = default_layer;
@@ -34,7 +35,8 @@ int wms_ortho_fetch_exec(step_context_t* ctx,
         if (params) {
             json_t* j_size = json_object_get(params, "size_px");
             if (json_int_or_default(j_size, 1, 16384, "size_px", &size_px) != 0) {
-                json_decref(params); return -1;
+                json_decref(params);
+                return step_fail(ctx, V3_ERR_INVALID_INPUT, "param size_px must be an integer in [1, 16384]");
             }
             json_t* j_layer = json_object_get(params, "layer");
             if (json_is_string(j_layer)) {
@@ -51,14 +53,24 @@ int wms_ortho_fetch_exec(step_context_t* ctx,
                      "&REQUEST=GetMap&LAYERS=%s&STYLES=&CRS=EPSG:2154"
                      "&BBOX=%.3f,%.3f,%.3f,%.3f&WIDTH=%d&HEIGHT=%d&FORMAT=image/jpeg",
                      layer, bbox[0], bbox[1], bbox[2], bbox[3], size_px, size_px);
-    if (n < 0 || (size_t)n >= sizeof(url)) return -1;
+    if (n < 0 || (size_t)n >= sizeof(url))
+        return step_fail(ctx, V3_ERR_INTERNAL, "request URL does not fit in %zu bytes", sizeof(url));
 
     fetch_client_t* client = fetchers_shared_client();
-    if (!client) return -1;
+    if (!client)
+        return step_fail(ctx, V3_ERR_INTERNAL, "HTTP client not initialised");
     fetch_response_t resp;
     if (fetch_get(client, url, &resp) != 0) {
         free(resp.body);
-        return -1;
+        return step_fail(ctx, V3_ERR_UPSTREAM_HTTP, "IGN orthophoto WMS request (layer %s) failed",
+                         layer);
+    }
+    if (!fetchers_is_jpeg(resp.body, resp.body_len)) {
+        char what[192];
+        snprintf(what, sizeof(what), "IGN orthophoto WMS (layer %s)", layer);
+        int frc = fetchers_fail_bad_body(ctx, what, url, resp.body, resp.body_len, "a JPEG image");
+        free(resp.body);
+        return frc;
     }
     int rc = step_write_output(ctx, output_artifact, resp.body, resp.body_len);
     free(resp.body);

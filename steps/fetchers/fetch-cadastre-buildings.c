@@ -29,15 +29,15 @@ static int exec_fn(step_context_t* ctx) {
     size_t in_len = 0;
     const char* in_bytes = (const char*)step_read(ctx, "canonical-location", &in_len);
     if (!in_bytes || in_len == 0)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "input artifact canonical-location is missing");
     json_error_t je;
     json_t* input = json_loadb(in_bytes, in_len, 0, &je);
     if (!input)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location is not valid JSON: %s", je.text);
     json_t* j_bbox = json_object_get(input, "bbox_l93");
     if (!json_is_array(j_bbox) || json_array_size(j_bbox) != 4) {
         json_decref(input);
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "canonical-location has no 4-element bbox_l93");
     }
     double bbox[4];
     for (size_t i = 0; i < 4; i++) {
@@ -52,7 +52,8 @@ static int exec_fn(step_context_t* ctx) {
         if (params) {
             json_t* j = json_object_get(params, "max_count");
             if (json_int_or_default(j, 1, 100000, "max_count", &max_count) != 0) {
-                json_decref(params); return -1;
+                json_decref(params);
+                return step_fail(ctx, V3_ERR_INVALID_INPUT, "param max_count must be an integer in [1, 100000]");
             }
             json_decref(params);
         }
@@ -67,28 +68,23 @@ static int exec_fn(step_context_t* ctx) {
                      "&SRSNAME=EPSG:2154&OUTPUTFORMAT=application/json",
                      max_count, bbox[0], bbox[1], bbox[2], bbox[3]);
     if (n < 0 || (size_t)n >= sizeof(url))
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "request URL does not fit in %zu bytes", sizeof(url));
 
     fetch_client_t* client = fetchers_shared_client();
     if (!client)
-        return -1;
+        return step_fail(ctx, V3_ERR_INTERNAL, "HTTP client not initialised");
     fetch_response_t resp;
     if (fetch_get(client, url, &resp) != 0) {
-        char snippet[257] = {0};
-        if (resp.body && resp.body_len > 0) {
-            size_t copy_len = resp.body_len < sizeof(snippet) - 1
-                              ? resp.body_len
-                              : sizeof(snippet) - 1;
-            memcpy(snippet, resp.body, copy_len);
-        }
-        LOG_EVENT(SUB_FETCH, LOG_ERROR, EV_FETCH_FAILED,
-                  LF_STEP("fetch-cadastre-buildings"),
-                  LF_STR("url", url),
-                  LF_UINT("status", resp.status_code),
-                  LF_INT("error_code", (int)resp.error),
-                  LF_STR("body_snippet", snippet));
+        // fetch_get logs fetch_failed and records URL/status/body excerpt
+        // as upstream evidence for the failure report (docs/ERRORS.md).
         free(resp.body);
-        return -1;
+        return step_fail(ctx, V3_ERR_UPSTREAM_HTTP, "IGN cadastre buildings query (WFS BDPARCELLAIRE-VECTEUR_WLD_BDD_WGS84G:batiment) failed");
+    }
+    if (!fetchers_is_json_object(resp.body, resp.body_len)) {
+        int frc = fetchers_fail_bad_body(ctx, "IGN cadastre buildings WFS", url, resp.body,
+                                         resp.body_len, "GeoJSON");
+        free(resp.body);
+        return frc;
     }
     int rc = step_write_output(ctx, "cadastre-buildings-geojson", resp.body, resp.body_len);
     free(resp.body);
