@@ -12,7 +12,7 @@
     "check": "npm run build && npm run check:bundle-size"
   },
   "devDependencies": {
-    "vite": "^5.4.10"
+    "vite": "^8.3.8"
   },
   "dependencies": {
     "@dioramap/protocol": "file:../protocol",
