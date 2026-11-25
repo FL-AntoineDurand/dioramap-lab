@@ -88,6 +88,12 @@ static pipeline_t* clone_pipeline_with_overrides(const pipeline_t* src, json_t* 
     return clone;
 }
 
+// Extension access level (v3/extension.h): a public-only connection never
+// sees, subscribes to or runs for an artifact whose writer is not public.
+static bool access_allows(v3_access_t a, step_visibility_t v) {
+    return a == V3_ACCESS_FULL || v == STEP_VIS_PUBLIC;
+}
+
 static int pipeline_visibility_of(const pipeline_t* p, const char* artifact_name,
                                   step_visibility_t* out_vis) {
     size_t n = pipeline_step_count(p);
@@ -248,6 +254,48 @@ static void cb_on_stream_chunk(void* vctx, const char* run_id, const char* name,
     (void)session_enqueue_json_with_binary(s, hdr, bytes, len);
 }
 
+// Hand a finished run to the extension (usage metering etc.). Takes its
+// own journal snapshot; cheap (a few dup'd strings).
+static void report_run_to_extension(session_t* s, const char* run_id, bool late,
+                                    uint64_t dt_us, size_t executed, size_t hits,
+                                    const v3_failure_t* f) {
+    server_t* sv = session_server(s);
+    if (!sv->ext || !sv->ext->on_run_finished) return;
+    v3_run_report_t r = {
+        .principal    = session_principal(s),
+        .account      = session_account(s),
+        .event        = late ? "late_subscribe" : "scene_load",
+        .run_id       = run_id,
+        .duration_us  = dt_us,
+        .success      = f == NULL,
+        .error_code   = f ? f->code_name : NULL,
+        .error_message = f ? f->message : NULL,
+        .n_executed   = executed,
+        .n_cache_hits = hits,
+    };
+    session_journal_snapshot_t snap;
+    bool have_snap = session_journal_snapshot(s, &snap) == 0;
+    if (have_snap) {
+        r.pipeline        = snap.pipeline_name;
+        r.input_hash      = snap.input_hash;
+        r.test_case_label = snap.test_case_label;
+        json_error_t je;
+        json_t* in = snap.input_json ? json_loads(snap.input_json, 0, &je) : NULL;
+        if (in) {
+            json_t* jl = json_object_get(in, "lat");
+            json_t* jo = json_object_get(in, "lon");
+            if (json_is_number(jl) && json_is_number(jo)) {
+                r.has_latlon = true;
+                r.lat = json_number_value(jl);
+                r.lon = json_number_value(jo);
+            }
+            json_decref(in);
+        }
+    }
+    sv->ext->on_run_finished(sv->ext_state, &r);
+    if (have_snap) session_journal_snapshot_free(&snap);
+}
+
 static void cb_on_run_complete(void* vctx, const char* run_id, uint64_t dt_us, size_t executed,
                                size_t hits) {
     session_t* s  = vctx;
@@ -336,6 +384,7 @@ static void cb_on_run_complete(void* vctx, const char* run_id, uint64_t dt_us, s
         json_object_set_new(ack, "cache_hits",      json_integer((json_int_t)hits));
         session_enqueue_json(s, ack);
         session_subscribe_snapshot_free(sub, n_sub);
+        report_run_to_extension(s, run_id, late, dt_us, executed, hits, NULL);
         return;
     }
     json_t* obj = json_object();
@@ -347,6 +396,7 @@ static void cb_on_run_complete(void* vctx, const char* run_id, uint64_t dt_us, s
     json_object_set_new(summ, "cache_hits",     json_integer((json_int_t)hits));
     json_object_set_new(obj, "summary", summ);
     session_enqueue_json(s, obj);
+    report_run_to_extension(s, run_id, late, dt_us, executed, hits, NULL);
 }
 
 static void cb_on_error(void* vctx, const char* run_id, const char* step, const char* msg) {
@@ -452,6 +502,7 @@ static void cb_on_run_failed(void* vctx, const char* run_id, const v3_failure_t*
         (void)session_enqueue_text(s, txt, strlen(txt));
         free(txt);
     }
+    report_run_to_extension(s, run_id, late, dt_us, 0, 0, f);
 }
 
 // ---------------------------------------------------------------------------
@@ -549,11 +600,15 @@ static void handle_catalog_message(session_t* s, json_t* root) {
 
     json_t* arr = json_array();        json_object_set_new(resp, "artifacts", arr);
     json_t* steps_arr = json_array();  json_object_set_new(resp, "steps", steps_arr);
+    v3_access_t access = session_access(s);
     size_t n_steps = pipeline_step_count(p);
     for (size_t i = 0; i < n_steps; i++) {
         const step_def_t* def = pipeline_step_def_at(p, i);
+        size_t n_visible = 0;
         for (size_t w = 0; w < def->n_writes; w++) {
             const step_write_t* wr = &def->writes[w];
+            if (!access_allows(access, wr->visibility)) continue;
+            n_visible++;
             json_t* entry = json_object();
             json_object_set_new(entry, "name",       json_string(wr->name));
             json_object_set_new(entry, "kind",       json_integer(wr->kind));
@@ -562,7 +617,7 @@ static void handle_catalog_message(session_t* s, json_t* root) {
                                 json_string(wr->visibility == STEP_VIS_PUBLIC ? "public" : "debug"));
             json_array_append_new(arr, entry);
         }
-        if (def->n_writes == 0) continue;
+        if (n_visible == 0) continue;
         json_t* step_entry = json_object();
         json_object_set_new(step_entry, "name",    json_string(def->name));
         json_object_set_new(step_entry, "version", json_integer((json_int_t)def->version));
@@ -574,6 +629,7 @@ static void handle_catalog_message(session_t* s, json_t* root) {
         json_t* writes_arr = json_array();
         for (size_t w = 0; w < def->n_writes; w++) {
             const step_write_t* wr = &def->writes[w];
+            if (!access_allows(access, wr->visibility)) continue;
             json_t* we = json_object();
             json_object_set_new(we, "name",       json_string(wr->name));
             json_object_set_new(we, "kind",       json_integer(wr->kind));
@@ -616,6 +672,10 @@ static void handle_subscribe_message(session_t* s, json_t* root) {
     step_visibility_t vis;
     if (pipeline_visibility_of(p, artifact, &vis) != 0) {
         send_error(s, "UNKNOWN_ARTIFACT", artifact);
+        return;
+    }
+    if (!access_allows(session_access(s), vis)) {
+        send_error(s, "FORBIDDEN_ARTIFACT", artifact);
         return;
     }
 
@@ -986,6 +1046,13 @@ static void handle_run_message(session_t* s, json_t* root) {
             send_error(s, "UNKNOWN_ARTIFACT", name);
             return;
         }
+        if (!access_allows(session_access(s), vis)) {
+            for (size_t j = 0; j < i; j++) free(sub[j]);
+            free(sub); free(input_json);
+            if (owned_clone) pipeline_free(owned_clone);
+            send_error(s, "FORBIDDEN_ARTIFACT", name);
+            return;
+        }
         sub[i] = strdup(name);
         if (!sub[i]) {
             for (size_t j = 0; j < i; j++) free(sub[j]);
@@ -1170,11 +1237,43 @@ static int protocol_cb(struct lws* wsi, enum lws_callback_reasons reason, void* 
                 return 0;
             }
         }
+
+        // Processor extension (v3/extension.h): the hosted service's own
+        // accounts. Runs after the token check.
+        char tier_label[16] = "";
+        if (sv->ext && sv->ext->authenticate) {
+            const char* param = sv->ext->credential_param ? sv->ext->credential_param : "key";
+            char cred[256] = {0};
+            int clen = lws_get_urlarg_by_name_safe(wsi, param, cred, sizeof(cred));
+            char origin[256] = {0};
+            if (lws_hdr_copy(wsi, origin, sizeof(origin), WSI_TOKEN_ORIGIN) <= 0) origin[0] = '\0';
+            v3_ext_auth_request_t req = {
+                .credential = (clen > 0 && cred[0]) ? cred : NULL,
+                .origin     = origin,
+            };
+            v3_ext_auth_result_t res;
+            memset(&res, 0, sizeof(res));
+            sv->ext->authenticate(sv->ext_state, &req, &res);
+            if (!res.ok) {
+                json_t* err = json_object();
+                json_object_set_new(err, "t",    json_string("ERROR"));
+                json_object_set_new(err, "code",
+                    json_string(res.error_code[0] ? res.error_code : "AUTH_FAILED"));
+                json_object_set_new(err, "msg",  json_string(res.reason));
+                session_enqueue_json(s, err);
+                session_set_close_after_flush(s, true);
+                lws_callback_on_writable(wsi);
+                return 0;
+            }
+            session_set_identity(s, res.principal, res.account, res.access);
+            snprintf(tier_label, sizeof(tier_label), "%s", res.tier_label);
+        }
         session_set_authed(s, true);
 
         json_t* obj = json_object();
         json_object_set_new(obj, "t",             json_string("SESSION_STARTED"));
         json_object_set_new(obj, "session_token", json_string(session_token(s)));
+        if (tier_label[0]) json_object_set_new(obj, "tier", json_string(tier_label));
         json_object_set_new(obj, "processor_version", json_string(DIORAMAP_VERSION));
         session_enqueue_json(s, obj);
         break;
@@ -1334,6 +1433,8 @@ server_t* server_new(const server_config_t* cfg) {
     sv->journal   = cfg->journal;
     if (cfg->token && cfg->token[0])
         snprintf(sv->token, sizeof(sv->token), "%s", cfg->token);
+    sv->ext       = cfg->extension;
+    sv->ext_state = cfg->extension_state;
     sv->resolve     = cfg->resolve;
     sv->list        = cfg->list;
     sv->resolve_ctx = cfg->resolve_ctx;

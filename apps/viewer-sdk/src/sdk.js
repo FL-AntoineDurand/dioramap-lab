@@ -43,6 +43,7 @@ export async function init(config) {
   const {
     container,
     token = '',
+    auth,
     backendUrl = DEFAULT_BACKEND,
     lat, lon,
     radius = 75,
@@ -52,6 +53,8 @@ export async function init(config) {
     onModelMoved,
     onModelDeselected,
     onError,
+    locale, issueRepo, reportIssues,
+    plugins, pluginConfig,
   } = config;
 
   if (lat == null || lon == null) {
@@ -62,9 +65,13 @@ export async function init(config) {
   if (!el) throw new Error(`DioramapViewer.init: container "${container}" not found`);
   if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
 
-  // Optional shared token (processor started with --token).
-  const fullBackend = token
-    ? backendUrl + (backendUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`
+  // Credential appended to the WebSocket URL. `token` is the processor's
+  // own --token; `auth: { param, value }` is for a processor extension that
+  // reads another query parameter (docs/EXTENSIONS.md), e.g. { param: 'key' }.
+  const cred = auth?.value ? auth : (token ? { param: 'token', value: token } : null);
+  const fullBackend = cred
+    ? backendUrl + (backendUrl.includes('?') ? '&' : '?') +
+      `${encodeURIComponent(cred.param || 'token')}=${encodeURIComponent(cred.value)}`
     : backendUrl;
 
   const viewer = await mountViewer({
@@ -73,6 +80,8 @@ export async function init(config) {
     lat, lon, radius,
     onError,
     onModelSelected, onModelMoved, onModelDeselected,
+    locale, issueRepo, reportIssues,
+    plugins, pluginConfig,
   });
 
   const sdk = {

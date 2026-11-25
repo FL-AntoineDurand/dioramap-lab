@@ -158,6 +158,10 @@ struct session {
 
     // auth result.  Written once at ESTABLISHED via session_set_authed.
     bool            authed      GUARDED_BY(lock);
+    // extension identity (v3/extension.h), written once at ESTABLISHED
+    char            principal[96] GUARDED_BY(lock);
+    char            account[64]   GUARDED_BY(lock);
+    v3_access_t     access        GUARDED_BY(lock);
 
     // L6 journal accumulator
     char*           journal_pipeline_name    GUARDED_BY(lock);
@@ -678,6 +682,33 @@ bool session_is_authed(session_t* s) {
     bool v = s->authed;
     MUTEX_UNLOCK(&s->lock);
     return v;
+}
+
+void session_set_identity(session_t* s, const char* principal, const char* account,
+                          v3_access_t access) {
+    MUTEX_LOCK(&s->lock);
+    snprintf(s->principal, sizeof(s->principal), "%s", principal ? principal : "");
+    snprintf(s->account, sizeof(s->account), "%s", account ? account : "");
+    s->access = access;
+    MUTEX_UNLOCK(&s->lock);
+}
+
+// Written once before the session is authed and never again, so the
+// buffers are stable for the session's lifetime (same contract as
+// session_token).
+const char* session_principal(session_t* s) {
+    return s->principal;
+}
+
+const char* session_account(session_t* s) {
+    return s->account;
+}
+
+v3_access_t session_access(session_t* s) {
+    MUTEX_LOCK(&s->lock);
+    v3_access_t a = s->access;
+    MUTEX_UNLOCK(&s->lock);
+    return a;
 }
 
 void session_set_close_after_flush(session_t* s, bool v) {

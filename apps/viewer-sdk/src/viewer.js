@@ -107,6 +107,10 @@ const ORCHESTRATION = [
  * @param {string}      [cfg.locale]           'fr' | 'en' (default: page / browser language)
  * @param {string}      [cfg.issueRepo]        GitHub "owner/repo" for the Report button
  * @param {boolean}     [cfg.reportIssues=true] show the Report on GitHub button
+ * @param {Function[]}  [cfg.plugins]          viewer plugins (docs/EXTENSIONS.md):
+ *                                             (ctx) => ({ onRunStarted, onRunComplete,
+ *                                             onRunFailed, dispose }), all optional
+ * @param {Object}      [cfg.pluginConfig]     passed to every plugin as ctx.config
  * @param {Function}    [cfg.onModelSelected]
  * @param {Function}    [cfg.onModelMoved]
  * @param {Function}    [cfg.onModelDeselected]
@@ -117,6 +121,7 @@ export async function mountViewer(cfg) {
     container, backendUrl, lat, lon, radius = 75,
     onError, onModelSelected, onModelMoved, onModelDeselected,
     locale: localeOpt, issueRepo, reportIssues = true,
+    plugins: pluginFactories = [], pluginConfig = {},
   } = cfg;
   const locale = resolveLocale(localeOpt);
 
@@ -149,6 +154,24 @@ export async function mountViewer(cfg) {
   // Initially shows just "Powered by dioramap.com"; the "Data: …" half
   // lights up when the first CATALOG_RESPONSE arrives (~1 s post-init).
   const attribution = mountAttribution(container);
+
+  // ── Plugins (docs/EXTENSIONS.md): hosted-service add-ons such as a
+  // feedback widget. A plugin that throws is logged and skipped; it never
+  // breaks the viewer.
+  const plugins = [];
+  for (const factory of pluginFactories) {
+    try {
+      const p = factory({ container, controlsPanel: panel, config: pluginConfig, locale });
+      if (p) plugins.push(p);
+    } catch (e) {
+      console.error('[viewer-sdk] plugin failed to mount', e);
+    }
+  }
+  const notifyPlugins = (hook, arg) => {
+    for (const p of plugins) {
+      try { p[hook]?.(arg); } catch (e) { console.error(`[viewer-sdk] plugin ${hook} threw`, e); }
+    }
+  };
 
   // ── Models (V6: GLB placement + gizmo + click-select) ──────────
   const models = createModelsSystem({
@@ -202,6 +225,7 @@ export async function mountViewer(cfg) {
     clearTimeout(run.legacyTimer);
     console.error('[viewer-sdk] run failed:', err.code, err.message, err.toReport());
     loadingBar.onRunFailed(err, { onRetry: retry });
+    notifyPlugins('onRunFailed', err);
     if (onError) {
       try { onError(err); } catch (e) { console.error('[viewer-sdk] onError handler threw', e); }
     }
@@ -317,6 +341,7 @@ export async function mountViewer(cfg) {
   // observers of the same WS events.
   ws.addEventListener('run-started', ({ detail }) => {
     loadingBar.onRunStarted(detail);
+    notifyPlugins('onRunStarted', detail);
   });
   ws.addEventListener('run-started', ({ detail }) => {
     run.runId = detail.run_id ?? null;
@@ -336,6 +361,7 @@ export async function mountViewer(cfg) {
     run.active = false;
     clearTimeout(run.legacyTimer);
     loadingBar.onRunComplete();
+    notifyPlugins('onRunComplete');
   });
 
   ws.connect();
@@ -361,6 +387,7 @@ export async function mountViewer(cfg) {
       panel?.dispose?.();
       compass?.dispose?.();
       attribution?.dispose?.();
+      notifyPlugins('dispose');
       sceneCtx.dispose?.();
     },
   };

@@ -64,7 +64,7 @@ wires them into a DAG by artifact name.
 - **Typed binary artifacts** (point clouds, rasters, roof graphs, meshes), each with a
   `.doc.json` describing its format, plus a JSON inspector.
 - **Built for correctness:** ASan/UBSan/TSan builds, libFuzzer targets, Frama-C,
-  `-Werror`, 60 CTest suites ([docs/quality/README.md](docs/quality/README.md)).
+  `-Werror`, 61 CTest suites ([docs/quality/README.md](docs/quality/README.md)).
 
 See [docs/UNIFIED-ARCHITECTURE.md](docs/UNIFIED-ARCHITECTURE.md) for the full design.
 
@@ -232,6 +232,9 @@ cd apps/lab-ui && npm ci && npm run dev                      # http://127.0.0.1:
 The server listens on `127.0.0.1` with no authentication by default. To expose it,
 use `--bind <addr>` together with `--token <secret>`; clients then connect with
 `?token=…` (or pass `token` to `DioramapViewer.init`). See [SECURITY.md](SECURITY.md).
+To run it behind your own accounts (API keys, public-only access for customer
+sites, usage metering, viewer add-ons), link a processor extension and use SDK
+plugins: [docs/EXTENSIONS.md](docs/EXTENSIONS.md).
 
 **Docker:**
 

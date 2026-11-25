@@ -18,6 +18,7 @@
 
 #include <libwebsockets.h>
 
+#include "v3/extension.h"
 #include "v3/run_journal.h"
 #include "v3/runner.h"
 #include "v3/server.h"
@@ -46,6 +47,8 @@ struct server {
     store_t*                      store;
     run_journal_t*                journal;        // L6 — optional
     char                          token[128];     // "" = no auth (default)
+    const v3_extension_t*         ext;            // NULL = no extension
+    void*                         ext_state;
 
     server_pipeline_resolver_fn   resolve;
     server_pipeline_list_fn       list;

@@ -102,7 +102,7 @@ cancelled after it are not reported).
 ```json
 { "t": "RUN_FAILED", "run_id": "r_1",
   "code": "UPSTREAM_HTTP",
-  "step": "find-copc-tiles", "step_token": "tt_c5e060a1",
+  "step": "find-copc-tiles",
   "msg": "IGN LiDAR HD tile index query (WFS IGNF_LIDAR-HD_METADONNEE:metadata) failed: HTTP 400 from data.geopf.fr: Unknown namespace [IGNF_NUAGES-DE-POINTS-LIDAR-HD]",
   "detail": { "step_version": 2, "step_duration_ms": 182.3,
               "upstream": { "url": "https://data.geopf.fr/wfs/ows?…", "http_status": 400,
@@ -110,10 +110,6 @@ cancelled after it are not reported).
   "pipeline": "viewer-full", "input": { "lat": 48.11, "lon": -1.68, "radius_m": 75 },
   "processor_version": "0.3.0", "duration_us": 412000 }
 ```
-
-`step` is the step name. `step_token` is the name the client saw in
-`STEP_STARTED`; the two differ only in builds that rename identifiers, where
-the processor maps the token back so reports stay readable.
 
 The run is also recorded in the run journal with `success=false`,
 `error_kind=<code>`, `error_message=<msg>`, and `SESSION_STARTED` now

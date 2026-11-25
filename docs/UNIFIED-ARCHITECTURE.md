@@ -207,9 +207,7 @@ Each write declares one of:
 - `public` — visible to both viewer clients and lab UI
 - `debug` — visible to lab UI only
 
-The server filters the catalog based on the connecting client's tier. Viewer subscriptions to debug artifacts are rejected. See §8.4.
-
-> **Status (2026-04-20):** catalog entries carry the `visibility` field, but tier enforcement is not wired — every connection is treated as `debug` today. Gating activates in A10 when the control-plane client can resolve a tier from an API key.
+The server filters the catalog based on the connection's access level. Subscriptions to debug artifacts from a public-only connection are rejected. See §8.4.
 
 ### 4.6 Subscription
 
@@ -578,7 +576,7 @@ One persistent C process, multiple threads:
 ### 7.2 Request flow (serve mode)
 
 1. Client opens WS.
-2. If viewer tier: main thread calls control-plane client to verify the key (cached 60s).
+2. If `--token` is set, the token is checked; if a processor extension is linked, its `authenticate` callback decides and sets the access level ([EXTENSIONS.md](EXTENSIONS.md)).
 3. Client sends `RUN { pipeline_id, input, subscribe: [...] }`.
 4. Main thread creates a Session object, enqueues a "produce these artifacts" task to Runner.
 5. A compute thread picks up the task, walks the step DAG backward from subscribed artifacts, executes each uncached step in topological order.
@@ -773,7 +771,7 @@ Binary WS frames carry artifact bytes; text WS frames carry JSON control message
 
 - `STREAM_CHUNK` — ✅ landed in B9 (runner `step_write_output_stream` + in-process accumulator + WS plumbing). First consumer: `laz-extract-disc` streams `lidar-positions` in 20k-point chunks. See PLAN-RUNNER T14 and PLAN-VIEWER-PORT §7.
 - `PROGRESS` (in-step percentage updates) — reserved for long-running algorithmic steps; lands alongside the first step that actually wants it.
-- `SUBSCRIBE_DENIED { artifact, reason: "visibility" }` — depends on tier enforcement, which depends on A10 (control-plane / auth).
+- `SUBSCRIBE_DENIED` — not used: a public-only connection asking for a debug artifact gets `ERROR FORBIDDEN_ARTIFACT` (§8.4).
 
 **Binary frames:**
 
@@ -830,15 +828,15 @@ out/
 
 ### 8.4 Visibility enforcement
 
-Per-connection tier is established at connect time:
+Per-connection access is established at connect time:
 
-- Lab UI: localhost or dev auth → tier `debug`
-- Viewer SDK: API key verified with control plane → tier `public`
-- Batch mode (CLI): tier `debug` by default; `--include-debug` is redundant but documented
+- No extension (lab build, with or without `--token`): full access, every artifact.
+- With a processor extension ([EXTENSIONS.md](EXTENSIONS.md)): its `authenticate` callback returns `V3_ACCESS_FULL` or `V3_ACCESS_PUBLIC_ONLY` (e.g. a customer site's API key → public only).
+- Batch mode (CLI): full access.
 
-The catalog is filtered server-side before the response is built; a `debug` artifact is invisible to a `public`-tier client — they don't even know it exists.
+The catalog is filtered server-side before the response is built; a `debug` artifact is invisible to a public-only connection — it doesn't even know it exists.
 
-`SUBSCRIBE` for an artifact not visible to the tier → `SUBSCRIBE_DENIED { reason: "visibility" }`. The artifact name is echoed (client already asked for it).
+`RUN` or `SUBSCRIBE` naming an artifact the connection may not see → `ERROR { code: "FORBIDDEN_ARTIFACT", msg: <artifact> }`.
 
 ---
 

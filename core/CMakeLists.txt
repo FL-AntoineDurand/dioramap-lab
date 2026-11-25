@@ -349,6 +349,24 @@ target_link_libraries(dioramap_server PUBLIC
     PkgConfig::LWS Threads::Threads)
 
 # -----------------------------------------------------------------------------
+# Processor extension (v3/extension.h, docs/EXTENSIONS.md). A hosted service
+# links its own auth / usage-metering code here; the default is a no-op.
+# -----------------------------------------------------------------------------
+set(DIORAMAP_EXTENSION_DIR "" CACHE PATH
+    "Directory whose CMakeLists.txt defines the static library target dioramap_extension")
+if(DIORAMAP_EXTENSION_DIR)
+    add_subdirectory(${DIORAMAP_EXTENSION_DIR} ${CMAKE_BINARY_DIR}/extension)
+    if(NOT TARGET dioramap_extension)
+        message(FATAL_ERROR
+            "DIORAMAP_EXTENSION_DIR=${DIORAMAP_EXTENSION_DIR} does not define target dioramap_extension")
+    endif()
+    message(STATUS "Processor extension: ${DIORAMAP_EXTENSION_DIR}")
+else()
+    add_library(dioramap_extension STATIC src/extension/none.c)
+    target_include_directories(dioramap_extension PUBLIC include)
+endif()
+
+# -----------------------------------------------------------------------------
 # Step packages. Each package is a library of step_def_t's + a register() fn.
 # -----------------------------------------------------------------------------
 set(FETCHERS_SRCS
@@ -689,10 +707,9 @@ target_include_directories(dioramap_batch PUBLIC include)
 target_link_libraries(dioramap_batch PUBLIC
     dioramap_runner dioramap_store dioramap_hash Threads::Threads)
 
-add_executable(dioramap_processor src/main.c)
-
-target_include_directories(dioramap_processor PRIVATE include)
-target_link_libraries(dioramap_processor PRIVATE
+# Everything main.c links except the extension, so tests can build the same
+# binary against a fake extension (tests/fake_extension.c).
+set(DIORAMAP_PROCESSOR_LIBS
     dioramap_log dioramap_runner dioramap_store dioramap_server dioramap_fetch
     dioramap_batch dioramap_coords dioramap_lazperf
     dioramap_steps_demo dioramap_steps_gpu_smoke dioramap_steps_fetchers
@@ -700,17 +717,18 @@ target_link_libraries(dioramap_processor PRIVATE
     dioramap_steps_registration dioramap_steps_ortho
     dioramap_steps_classification dioramap_steps_ground
     dioramap_steps_shadow dioramap_steps_buildings)
-
 # v7 roof-recon step lib — product port, linked whenever DIORAMAP_V7=ON
 # (default). main.c gates v7's registration on the DIORAMAP_V7=1 compile def.
+set(DIORAMAP_PROCESSOR_DEFS DIORAMAP_VERSION="${PROJECT_VERSION}")
 if(DIORAMAP_V7)
-    target_link_libraries(dioramap_processor PRIVATE dioramap_steps_v7)
-    target_compile_definitions(dioramap_processor PRIVATE DIORAMAP_V7=1)
+    list(APPEND DIORAMAP_PROCESSOR_LIBS dioramap_steps_v7)
+    list(APPEND DIORAMAP_PROCESSOR_DEFS DIORAMAP_V7=1)
 endif()
 
-
-target_compile_definitions(dioramap_processor PRIVATE
-    DIORAMAP_VERSION="${PROJECT_VERSION}")
+add_executable(dioramap_processor src/main.c)
+target_include_directories(dioramap_processor PRIVATE include)
+target_link_libraries(dioramap_processor PRIVATE ${DIORAMAP_PROCESSOR_LIBS} dioramap_extension)
+target_compile_definitions(dioramap_processor PRIVATE ${DIORAMAP_PROCESSOR_DEFS})
 
 # Produce a hyphenated binary name matching the docs / CLI idiom
 set_target_properties(dioramap_processor PROPERTIES

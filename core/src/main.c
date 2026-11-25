@@ -23,6 +23,7 @@
 #include <signal.h>
 
 #include "v3/batch_ctx.h"
+#include "v3/extension.h"
 #include "v3/hash.h"
 #include <jansson.h>
 
@@ -660,7 +661,9 @@ static int cmd_serve(int argc, char** argv) {
         fprintf(stderr, "serve: --token must be at least 16 chars — refusing to start\n");
         return 2;
     }
-    if (strcmp(bind_iface, "127.0.0.1") != 0 && !(token && token[0])) {
+    const v3_extension_t* ext = v3_extension();
+    bool ext_auth = ext && ext->authenticate;
+    if (strcmp(bind_iface, "127.0.0.1") != 0 && !(token && token[0]) && !ext_auth) {
         fprintf(stderr, "[serve] WARN listening on %s without --token: anyone who can reach "
                         "this port can run pipelines\n", bind_iface);
     }
@@ -774,6 +777,24 @@ static int cmd_serve(int argc, char** argv) {
         run_journal_prune(journal);
     }
 
+    // Processor extension (v3/extension.h; -DDIORAMAP_EXTENSION_DIR).
+    void* ext_state = NULL;
+    if (ext && ext->init) {
+        v3_ext_env_t env = {.cache_dir = cache_dir, .processor_version = DIORAMAP_VERSION};
+        ext_state = ext->init(&env);
+        if (!ext_state) {
+            fprintf(stderr, "serve: extension '%s' failed to initialise — refusing to start\n",
+                    ext->name ? ext->name : "?");
+            if (journal) run_journal_close(journal);
+            runner_free(runner);
+            intent_map_close(im);
+            store_close(store);
+            pipeline_registry_free(&reg);
+            log_shutdown();
+            return 1;
+        }
+    }
+
     server_config_t cfg = {
         .port = port,
         .runner = runner,
@@ -781,6 +802,8 @@ static int cmd_serve(int argc, char** argv) {
         .journal = journal,
         .iface = (strcmp(bind_iface, "*") == 0) ? NULL : bind_iface,
         .token = token,
+        .extension = ext,
+        .extension_state = ext_state,
         .resolve = pipeline_registry_resolve,
         .list = pipeline_registry_list,
         .resolve_ctx = &reg,
@@ -788,6 +811,7 @@ static int cmd_serve(int argc, char** argv) {
     server_t* server = server_new(&cfg);
     if (!server) {
         fprintf(stderr, "serve: server_new failed (port %d already in use?)\n", port);
+        if (ext && ext->shutdown) ext->shutdown(ext_state);
         runner_free(runner);
         intent_map_close(im);
         store_close(store);
@@ -803,12 +827,18 @@ static int cmd_serve(int argc, char** argv) {
     sigaction(SIGTERM, &sa, NULL);
     signal(SIGPIPE, SIG_IGN);
 
+    char auth_desc[96];
+    snprintf(auth_desc, sizeof(auth_desc), "%s%s%s",
+             (token && token[0]) ? "token" : (ext_auth ? "" : "none"),
+             ((token && token[0]) && ext_auth) ? "+" : "",
+             ext_auth ? (ext->name ? ext->name : "extension") : "");
     fprintf(stderr, "[serve] listening on %s:%d (pipelines: %zu, cache: %s, auth: %s)\n",
-            bind_iface, port, reg.n, cache_dir, (token && token[0]) ? "token" : "none");
+            bind_iface, port, reg.n, cache_dir, auth_desc);
     int rc = server_run(server);
 
     g_server = NULL;
     server_free(server);
+    if (ext && ext->shutdown) ext->shutdown(ext_state);
     runner_free(runner);
     intent_map_close(im);
     if (journal) run_journal_close(journal);
