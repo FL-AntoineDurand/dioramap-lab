@@ -24,6 +24,21 @@ best-effort basis, so responses may take a while.
 5. Research findings and design decisions go in `docs/journal/YYYY/MM/` (see
    `docs/journal/README.md` for the entry format).
 
+## Working with an AI assistant
+
+The research journal (`docs/journal/`, ~190 entries) records what was tried,
+measured and decided. `tools/rag/` is a local, CPU-only search over it and the
+rest of the docs, meant to be queried by your coding assistant before it
+re-derives a past decision:
+
+```bash
+python3 tools/rag/build_index.py                       # once, then after pulling
+python3 tools/rag/rag_query.py "why are coplanar ridges excluded from make-shared" --format text
+```
+
+Setup and the snippet to add to your assistant's instructions:
+[tools/rag/README.md](tools/rag/README.md).
+
 ## Code layout
 
 See the *Repository layout* section of the README and `docs/GLOSSARY.md`.
