@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.2.0 (2026-11-25)
+
+Processor 0.3.0, viewer SDK and location picker 0.10.0.
+
 - **Failure reports end to end** ([docs/ERRORS.md](docs/ERRORS.md)). A failed
   run ends with a `RUN_FAILED` message naming the code (`NO_DATA`,
   `UPSTREAM_HTTP`, …), the step, the upstream URL / HTTP status / response

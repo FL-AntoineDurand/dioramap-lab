@@ -4,7 +4,7 @@
 // Confirm button is positioned next to the picked point on the map (as a MapLibre marker).
 // Confirm is only enabled when zoom >= minConfirmZoom.
 
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 
 const CIRCLE_SEGMENTS = 64;
 

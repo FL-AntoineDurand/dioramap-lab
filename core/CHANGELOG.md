@@ -10,6 +10,18 @@ Deploy mechanics live in `v3/deploy/README.md`.
 
 ## Unreleased
 
+## 0.3.0 — 2026-11-25 (failure reports end to end; extension seams)
+
+**Extension seams for hosted deployments** (docs/EXTENSIONS.md). A static
+library linked with `-DDIORAMAP_EXTENSION_DIR` implements `v3_extension()`:
+per-connection `authenticate` (credential + Origin → allow/refuse, identity,
+`V3_ACCESS_FULL` / `V3_ACCESS_PUBLIC_ONLY`), `on_run_finished` (a
+`v3_run_report_t` for every run, successful or failed), `init`, `shutdown`.
+Public-only connections never see debug artifacts (left out of
+`CATALOG_RESPONSE`; `FORBIDDEN_ARTIFACT` on `RUN` / `SUBSCRIBE`). Default build:
+no extension. New test `serve_extension` (fake extension).
+
+
 **Error reporting end to end** (docs/ERRORS.md). Additive on the wire: old
 clients keep working and ignore the new frame.
 
@@ -31,14 +43,11 @@ clients keep working and ignore the new frame.
 - **Runner**: new `on_run_failed` callback (first failure of the run, fired
   last); `step_failed` / `run_failed` log events carry code, message and
   detail; a step that succeeds but misses a declared output says which.
-- **Obfuscated builds report friendly step names** via an embedded
-  token → name table (`obfuscate.mjs embed-names`, `v3/obf_names.h`).
 - **Steps converted**: `canonicalize-location` (lat/lon validation),
   `compute-scene-origin`, `find-copc-tiles` (0 tiles → `NO_DATA`),
   `fetch-copc-tiles`, `laz-extract-disc`, all `fetchers/*` (WMS answers that
   are not a JPEG / not the expected BIL size → `UPSTREAM_FORMAT`). Step
   versions unchanged: outputs are byte-identical, cache stays valid.
-- `obfuscate.mjs scan` skips `dist-dev/`.
 - **Empty or unusable IGN answers are no longer cached forever.** A 2xx WFS
   answer listing no tile (or not parsable) used to stay in the URL cache, so a
   retry after IGN published the tile still said `NO_DATA`. New
