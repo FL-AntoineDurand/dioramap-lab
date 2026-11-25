@@ -83,3 +83,6 @@ __pycache__/
 .frama-c-out/
 *.sav
 ci-artifacts/
+
+# Local Vite env files (credentials for a local processor)
+.env*.local

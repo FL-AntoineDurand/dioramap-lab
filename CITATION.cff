@@ -9,8 +9,8 @@ authors:
 license: Apache-2.0
 doi: 10.5281/zenodo.24443302
 repository-code: "https://github.com/FL-AntoineDurand/dioramap-lab"
-version: 0.1.0
-date-released: 2026-11-22
+version: 0.2.0
+date-released: 2026-11-25
 keywords:
   - lidar
   - point cloud

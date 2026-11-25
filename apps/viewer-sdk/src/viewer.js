@@ -329,9 +329,12 @@ export async function mountViewer(cfg) {
       // One artifact could not be shipped; the run itself goes on.
     } else if (err.code === 'CANCELLED') {
       // We cancel on dispose(); processors ≥ 0.3.0 also send RUN_FAILED.
-    } else if (run.active) {
+    } else if (run.active || /^AUTH_/.test(err.code)) {
       // Request-level rejection (AUTH_*, BAD_RUN, UNKNOWN_PIPELINE,
-      // RUN_BUSY, FORBIDDEN_ARTIFACT…): the run will not happen.
+      // RUN_BUSY, FORBIDDEN_ARTIFACT…): the run will not happen. Auth
+      // refusals arrive right after connecting, before any run has started,
+      // and the server then closes the socket: terminal too, or the loading
+      // card would wait forever (wrong / revoked key, origin not allowed).
       fail(err);
     }
   });

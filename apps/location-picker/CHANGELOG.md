@@ -3,7 +3,27 @@
 Versioning: SDK semver, in lockstep with `@dioramap/viewer-sdk` for
 embedder-visible breaking changes.
 
-## 0.9.0 — unreleased
+## 0.10.0 — 2026-11-25
+
+Version aligned with `@dioramap/viewer-sdk` (both bundles are published
+together under `sdk/v<version>/`).
+
+- **MapLibre GL JS 4.7 → 6** (security: `DOM.sanitize` XSS bypass advisory,
+  MapLibre ≤ 6.4.0). MapLibre ≥ 5 loads its web worker from a separate file,
+  which cannot work for a single cross-origin bundle; the worker is now
+  embedded and handed to MapLibre as a `blob:` URL (`src/maplibre-worker.js`),
+  as MapLibre 4 did internally. Embedding pages still need `worker-src blob:`
+  in a strict CSP. Bundle size: ~460 kB gzip (was ~220 kB).
+- **Build:** Vite 6. The stylesheet is now emitted as
+  `dist/dioramap-location-picker.css` (was `dist/style.css`).
+- **Address search failures are visible.** A failed BAN geocoder request
+  (HTTP error or network) used to be silently ignored; the dropdown now says
+  the search is unavailable (French or English, from the page language) and
+  "No address found" on empty results.
+- **New `init({ onError })`**: called with an `Error` whose `code` is
+  `GEOCODER_FAILED` and `detail` holds the request URL and query.
+
+## 0.9.0 — not released (folded into 0.10.0)
 
 **Additive.**
 

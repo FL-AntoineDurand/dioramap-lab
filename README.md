@@ -134,11 +134,11 @@ the result.
 
 ```bash
 cd apps/viewer-sdk && npm ci && npm run build
-# → dist/dioramap-viewer.umd.js, dist/dioramap-viewer.es.js, dist/style.css
+# → dist/dioramap-viewer.umd.js, dist/dioramap-viewer.es.js, dist/dioramap-viewer.css
 ```
 
 ```html
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="dioramap-viewer.css">
 <div id="scene" style="width:100%; height:480px"></div>
 <script src="dioramap-viewer.umd.js"></script>
 <script>

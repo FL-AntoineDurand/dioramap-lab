@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(dioramap_processor
-    VERSION 0.2.3
+    VERSION 0.3.0
     LANGUAGES C CXX
     DESCRIPTION "Dioramap processor: unified lidar processing core")
 

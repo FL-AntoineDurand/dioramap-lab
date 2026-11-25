@@ -2,7 +2,8 @@
 // Copyright 2026 Antoine Durand
 // MapLibre map initialization with IGN Plan + IGN ortho basemaps (Géoplateforme WMTS).
 
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import { installMaplibreWorker } from './maplibre-worker.js';
 
 // Plan IGN v2 street map. Replaces direct use of tile.openstreetmap.org, whose
 // tile usage policy does not allow heavy or embedded use. The `basemap`
@@ -39,6 +40,7 @@ export function createMap(containerEl, { center, zoom, basemap }) {
 
   const { sources, layers } = buildStyle(basemap);
 
+  installMaplibreWorker();
   const map = new maplibregl.Map({
     container: mapDiv,
     style: {
