@@ -254,46 +254,62 @@ static void cb_on_stream_chunk(void* vctx, const char* run_id, const char* name,
     (void)session_enqueue_json_with_binary(s, hdr, bytes, len);
 }
 
-// Hand a finished run to the extension (usage metering etc.). Takes its
-// own journal snapshot; cheap (a few dup'd strings).
-static void report_run_to_extension(session_t* s, const char* run_id, bool late,
-                                    uint64_t dt_us, size_t executed, size_t hits,
-                                    const v3_failure_t* f) {
+// Hand a finished run to the extension (usage metering etc.). Two phases:
+// the report is captured BEFORE session_end_run frees the run slot (after
+// that, a client that fires its next RUN right away overwrites the
+// session's journal accumulator), and sent AFTER the terminal frame is
+// queued so a slow extension never delays the client.
+typedef struct {
+    bool active;
+    bool have_snap;
+    session_journal_snapshot_t snap;
+    v3_run_report_t r;
+} ext_report_t;
+
+static void ext_report_capture(ext_report_t* x, session_t* s, const char* run_id, bool late,
+                               uint64_t dt_us, size_t executed, size_t hits,
+                               const v3_failure_t* f) {
+    memset(x, 0, sizeof(*x));
     server_t* sv = session_server(s);
     if (!sv->ext || !sv->ext->on_run_finished) return;
-    v3_run_report_t r = {
-        .principal    = session_principal(s),
-        .account      = session_account(s),
-        .event        = late ? "late_subscribe" : "scene_load",
-        .run_id       = run_id,
-        .duration_us  = dt_us,
-        .success      = f == NULL,
-        .error_code   = f ? f->code_name : NULL,
+    x->active = true;
+    x->r = (v3_run_report_t){
+        .principal     = session_principal(s),
+        .account       = session_account(s),
+        .event         = late ? "late_subscribe" : "scene_load",
+        .run_id        = run_id,
+        .duration_us   = dt_us,
+        .success       = f == NULL,
+        .error_code    = f ? f->code_name : NULL,
         .error_message = f ? f->message : NULL,
-        .n_executed   = executed,
-        .n_cache_hits = hits,
+        .n_executed    = executed,
+        .n_cache_hits  = hits,
     };
-    session_journal_snapshot_t snap;
-    bool have_snap = session_journal_snapshot(s, &snap) == 0;
-    if (have_snap) {
-        r.pipeline        = snap.pipeline_name;
-        r.input_hash      = snap.input_hash;
-        r.test_case_label = snap.test_case_label;
-        json_error_t je;
-        json_t* in = snap.input_json ? json_loads(snap.input_json, 0, &je) : NULL;
-        if (in) {
-            json_t* jl = json_object_get(in, "lat");
-            json_t* jo = json_object_get(in, "lon");
-            if (json_is_number(jl) && json_is_number(jo)) {
-                r.has_latlon = true;
-                r.lat = json_number_value(jl);
-                r.lon = json_number_value(jo);
-            }
-            json_decref(in);
+    x->have_snap = session_journal_snapshot(s, &x->snap) == 0;
+    if (!x->have_snap) return;
+    x->r.pipeline        = x->snap.pipeline_name;
+    x->r.input_hash      = x->snap.input_hash;
+    x->r.test_case_label = x->snap.test_case_label;
+    json_error_t je;
+    json_t* in = x->snap.input_json ? json_loads(x->snap.input_json, 0, &je) : NULL;
+    if (in) {
+        json_t* jl = json_object_get(in, "lat");
+        json_t* jo = json_object_get(in, "lon");
+        if (json_is_number(jl) && json_is_number(jo)) {
+            x->r.has_latlon = true;
+            x->r.lat = json_number_value(jl);
+            x->r.lon = json_number_value(jo);
         }
+        json_decref(in);
     }
-    sv->ext->on_run_finished(sv->ext_state, &r);
-    if (have_snap) session_journal_snapshot_free(&snap);
+}
+
+static void ext_report_send(ext_report_t* x, session_t* s) {
+    if (!x->active) return;
+    server_t* sv = session_server(s);
+    sv->ext->on_run_finished(sv->ext_state, &x->r);
+    if (x->have_snap) session_journal_snapshot_free(&x->snap);
+    x->active = false;
 }
 
 static void cb_on_run_complete(void* vctx, const char* run_id, uint64_t dt_us, size_t executed,
@@ -365,6 +381,8 @@ static void cb_on_run_complete(void* vctx, const char* run_id, uint64_t dt_us, s
     //  - cb_on_artifact_ready reads late_subscribe_active off the
     //    session but only DURING the run — by the time end_run runs
     //    here, no more artifacts are arriving for this run.
+    ext_report_t xr;
+    ext_report_capture(&xr, s, run_id, late, dt_us, executed, hits, NULL);
     session_end_run(s);
 
     if (late) {
@@ -384,7 +402,7 @@ static void cb_on_run_complete(void* vctx, const char* run_id, uint64_t dt_us, s
         json_object_set_new(ack, "cache_hits",      json_integer((json_int_t)hits));
         session_enqueue_json(s, ack);
         session_subscribe_snapshot_free(sub, n_sub);
-        report_run_to_extension(s, run_id, late, dt_us, executed, hits, NULL);
+        ext_report_send(&xr, s);
         return;
     }
     json_t* obj = json_object();
@@ -396,7 +414,7 @@ static void cb_on_run_complete(void* vctx, const char* run_id, uint64_t dt_us, s
     json_object_set_new(summ, "cache_hits",     json_integer((json_int_t)hits));
     json_object_set_new(obj, "summary", summ);
     session_enqueue_json(s, obj);
-    report_run_to_extension(s, run_id, late, dt_us, executed, hits, NULL);
+    ext_report_send(&xr, s);
 }
 
 static void cb_on_error(void* vctx, const char* run_id, const char* step, const char* msg) {
@@ -494,6 +512,8 @@ static void cb_on_run_failed(void* vctx, const char* run_id, const v3_failure_t*
     // Same ordering rule as cb_on_run_complete (task #84): free the run
     // slot BEFORE the terminal frame, so a client that retries on
     // RUN_FAILED doesn't hit RUN_BUSY.
+    ext_report_t xr;
+    ext_report_capture(&xr, s, run_id, late, dt_us, 0, 0, f);
     session_end_run(s);
     // 12 significant digits: lat/lon read as 47.658201, not 47.658200999999998.
     char* txt = json_dumps(obj, JSON_COMPACT | JSON_REAL_PRECISION(12));
@@ -502,7 +522,7 @@ static void cb_on_run_failed(void* vctx, const char* run_id, const v3_failure_t*
         (void)session_enqueue_text(s, txt, strlen(txt));
         free(txt);
     }
-    report_run_to_extension(s, run_id, late, dt_us, 0, 0, f);
+    ext_report_send(&xr, s);
 }
 
 // ---------------------------------------------------------------------------
